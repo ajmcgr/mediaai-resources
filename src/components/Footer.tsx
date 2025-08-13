@@ -97,7 +97,7 @@ const Footer = () => {
                   PR Measurement
                 </Link>
                 <Link 
-                  to="/resources" 
+                  to="/" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
