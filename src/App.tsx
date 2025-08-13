@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ToolsHub from "./pages/ToolsHub";
 import ToolTemplate from "./pages/ToolTemplate";
+import Resources from "./pages/Resources";
+import ResourceArticle from "./pages/ResourceArticle";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +23,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/tools" element={<ToolsHub />} />
           <Route path="/tools/:slug" element={<ToolTemplate />} />
+          <Route path="/resources" element={<Resources />} />
+          <Route path="/resources/:slug" element={<ResourceArticle />} />
           <Route path="/about" element={<About />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
