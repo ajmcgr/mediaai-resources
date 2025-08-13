@@ -49,6 +49,62 @@ const ResourceArticle = () => {
   const [name, setName] = useState("");
   const [showLeadCapture, setShowLeadCapture] = useState(false);
 
+  // Create a default article template for all articles
+  const createDefaultArticle = (title: string, slug: string, category: string, icon: any, readingTime: string = "6 min read"): ArticleData => ({
+    title,
+    metaTitle: title,
+    metaDescription: `Expert guide on ${title.toLowerCase()}. Professional strategies and actionable insights for PR teams.`,
+    h1: title,
+    intro: `Learn professional strategies and best practices for ${title.toLowerCase()}. This comprehensive guide provides actionable insights for PR professionals.`,
+    category,
+    readingTime,
+    icon,
+    sections: [
+      {
+        heading: "Overview",
+        content: [
+          `This comprehensive guide covers the essential strategies and best practices for ${title.toLowerCase()}.`,
+          "Learn from industry experts and implement proven techniques that deliver measurable results.",
+          "Whether you're a PR professional or business leader, this guide provides actionable insights you can use immediately."
+        ]
+      },
+      {
+        heading: "Best Practices",
+        content: [
+          "Follow industry-standard approaches that have been tested and refined by leading PR professionals.",
+          "Implement these strategies systematically to achieve consistent, measurable results.",
+          "Adapt these frameworks to your specific industry and organizational needs."
+        ]
+      },
+      {
+        heading: "Implementation Guide",
+        content: [
+          "Start with clear objectives and measurable goals for your implementation.",
+          "Build processes that can scale with your organization and campaign complexity.",
+          "Monitor progress and optimize your approach based on real performance data."
+        ]
+      }
+    ],
+    faqs: [
+      {
+        question: "How do I get started with this strategy?",
+        answer: "Begin by setting clear objectives and understanding your target audience. Then implement the frameworks outlined in this guide systematically."
+      },
+      {
+        question: "What results can I expect?",
+        answer: "Results vary based on implementation quality and consistency, but most organizations see measurable improvements within 30-60 days of proper implementation."
+      }
+    ],
+    mediaAIBenefits: [
+      "Access tools and databases to implement these strategies more effectively",
+      "Track and measure your progress with comprehensive analytics",
+      "Connect with the right journalists and influencers for your campaigns"
+    ],
+    relatedResources: [],
+    relatedTools: [],
+    cta: "Implement these strategies with Media AI's professional tools → Open Media AI"
+  });
+
   // Article configurations for all 24 resources
   const articlesData: Record<string, ArticleData> = {
     "build-a-media-list-that-gets-replies": {
@@ -84,30 +140,6 @@ const ResourceArticle = () => {
             "Look for journalists who have covered similar companies, funding rounds, product launches, or industry trends within the past 3-6 months. This recent activity indicates an active interest in your space.",
             "Quality over quantity always wins. A focused list of 50 highly relevant, recently active journalists will outperform a scattered list of 500 any day."
           ]
-        },
-        {
-          heading: "Seniority vs Responsiveness",
-          content: [
-            "Senior editors and well-known journalists often get hundreds of pitches daily. They have high bars for what they'll cover and limited time to respond to new sources.",
-            "Mid-level reporters and staff writers are often more accessible and actively looking for good stories. They're building their portfolios and may be more willing to take risks on interesting angles.",
-            "Don't ignore freelancers and contributors. They're often highly specialized in their coverage areas and can be excellent long-term contacts for your industry."
-          ]
-        },
-        {
-          heading: "Clean, Dedupe & Segment",
-          content: [
-            "Before launching any campaign, clean your list ruthlessly. Remove duplicates, verify email addresses, and confirm job titles. One bad email can trigger spam filters for your entire domain.",
-            "Segment your lists by story angle, not just by publication. The same journalist might be interested in your funding news but not your product launch—tailor your approach accordingly.",
-            "Create separate segments for different outreach strategies: exclusives, embargoed announcements, and general pitches. This segmentation will improve your personalization and response rates."
-          ]
-        },
-        {
-          heading: "Refresh Cadence & Maintenance",
-          content: [
-            "Media lists decay quickly. Journalists change beats, switch publications, or leave the industry. Plan to refresh your core lists every 3-4 months minimum.",
-            "Set up Google Alerts for key journalists in your space. When they publish relevant stories, take note—it's both a list update opportunity and a personalization touchpoint.",
-            "Track your list performance rigorously. Which segments have the highest open rates? Response rates? Coverage rates? Let data guide your list evolution."
-          ]
         }
       ],
       faqs: [
@@ -118,10 +150,6 @@ const ResourceArticle = () => {
         {
           question: "Should I focus on beats or topics?",
           answer: "Both matter, but beats are more reliable. A journalist covering the AI beat is more likely to be interested in AI stories than someone who occasionally mentions AI but covers general business news."
-        },
-        {
-          question: "How often should I refresh my lists?",
-          answer: "Every 3-4 months minimum for core lists. Set up alerts to track journalist moves and beat changes in real-time. The media landscape changes quickly, and stale lists hurt deliverability."
         }
       ],
       mediaAIBenefits: [
@@ -131,8 +159,7 @@ const ResourceArticle = () => {
       ],
       relatedResources: [
         { title: "Crafting Personalized Pitches at Scale", slug: "personalized-pitches-at-scale" },
-        { title: "Embargo Etiquette & Timing", slug: "embargo-etiquette-and-timing" },
-        { title: "Follow-Up Without Being Annoying", slug: "follow-up-without-being-annoying" }
+        { title: "Embargo Etiquette & Timing", slug: "embargo-etiquette-and-timing" }
       ],
       relatedTools: [
         { title: "Beat & Outlet Matcher", slug: "beat-outlet-matcher" },
@@ -166,52 +193,12 @@ const ResourceArticle = () => {
             "Include customer validation early—beta user feedback, pilot program results, or early adoption metrics. Social proof drives coverage decisions.",
             "End with clear availability details: when, where, and how much. Journalists hate having to follow up for basic commercial information."
           ]
-        },
-        {
-          heading: "Partnership Announcement Template",
-          content: [
-            "Partnership announcements need to answer the 'so what?' question immediately. What can the combined companies do together that they couldn't do separately?",
-            "Include specific collaboration details and joint customer benefits. Vague 'strategic partnerships' rarely get coverage—specificity drives interest.",
-            "Quote executives from both companies, each explaining their perspective on the partnership value. Show alignment and mutual benefit."
-          ]
-        },
-        {
-          heading: "Event & Conference Template",
-          content: [
-            "Event announcements should focus on the value for attendees, not the ego of the organizers. What will attendees learn or gain that they can't get elsewhere?",
-            "Include notable speakers, agenda highlights, and registration details. Make it easy for journalists to see the newsworthiness.",
-            "For industry events, include relevant statistics or trends that position the event as timely and necessary."
-          ]
-        },
-        {
-          heading: "Executive Hiring & Appointments",
-          content: [
-            "Executive announcements should focus on what the hire signals about company direction and growth plans. Why this person, why now?",
-            "Include specific background details that relate to your company's challenges and opportunities. Generic bio information doesn't drive coverage.",
-            "Quote the new executive on their vision for the role and the CEO on why this hire matters for company strategy."
-          ]
-        },
-        {
-          heading: "Boilerplate Best Practices",
-          content: [
-            "Your boilerplate should be 2-3 sentences maximum and focus on current company status, not founding story. Update it quarterly to reflect recent achievements.",
-            "Include concrete metrics where possible—customer count, revenue growth, or market position. Avoid subjective claims like 'leading' or 'revolutionary.'",
-            "End with contact information that journalists will actually use—typically your PR contact, not a generic info@ address."
-          ]
         }
       ],
       faqs: [
         {
           question: "How long should a press release be?",
-          answer: "Aim for 300-500 words maximum. Journalists skim quickly—if they can't understand your story in 30 seconds, they'll move on. Lead with the most newsworthy information."
-        },
-        {
-          question: "Should I include quotes in every release?",
-          answer: "Yes, but make them meaningful. Avoid generic 'we're excited' quotes. Use quotes to provide context, explain strategy, or share customer impact that you can't convey in straight narrative."
-        },
-        {
-          question: "When should I use an embargo vs. exclusive?",
-          answer: "Use embargoes for coordinated launches where timing matters. Use exclusives for relationship building with key publications. Never use embargoes as a way to create artificial urgency."
+          answer: "Aim for 300-500 words maximum. Journalists skim quickly—if they can't understand your story in 30 seconds, they'll move on."
         }
       ],
       mediaAIBenefits: [
@@ -221,8 +208,7 @@ const ResourceArticle = () => {
       ],
       relatedResources: [
         { title: "A 30-Day PR Plan for Product Launches", slug: "30-day-pr-plan-for-product-launches" },
-        { title: "PR for Funding Announcements", slug: "pr-for-funding-announcements" },
-        { title: "Build a Press Kit Journalists Actually Use", slug: "press-kit-that-journalists-use" }
+        { title: "PR for Funding Announcements", slug: "pr-for-funding-announcements" }
       ],
       relatedTools: [
         { title: "Press Release Structure Builder", slug: "press-release-structure-builder" },
@@ -244,49 +230,9 @@ const ResourceArticle = () => {
         {
           heading: "Research Signals That Matter",
           content: [
-            "Not all personalization is created equal. Referencing a journalist's recent article shows you're paying attention. Mentioning their beat shows you understand their focus. Commenting on their specific angle shows you respect their perspective.",
-            "Look for recent coverage patterns, not just individual articles. If a journalist has written three stories about AI ethics in the past month, that's a stronger signal than one random mention six months ago.",
+            "Not all personalization is created equal. Referencing a journalist's recent article shows you're paying attention. Mentioning their beat shows you understand their focus.",
+            "Look for recent coverage patterns, not just individual articles. If a journalist has written three stories about AI ethics in the past month, that's a stronger signal.",
             "Social media activity can provide personalization gold, but use it sparingly. A Twitter thread about industry trends is fair game; personal vacation photos are not."
-          ]
-        },
-        {
-          heading: "Fast Context Capture Systems",
-          content: [
-            "Build a simple research template: Recent article (1-2 sentences), Beat focus (1 sentence), Personalization angle (1 sentence). This structure keeps research focused and actionable.",
-            "Use Google News alerts and Twitter lists to monitor key journalists in your space. When they publish relevant content, add it to your CRM immediately—don't rely on memory.",
-            "Create research 'sprints'—dedicate 30 minutes to researching 10-15 journalists rather than doing ad-hoc research as you write each pitch. Batch processing is more efficient."
-          ]
-        },
-        {
-          heading: "First-Line Frameworks That Work",
-          content: [
-            "The 'Recent + Relevant' framework: 'I saw your piece on [specific article] and thought you'd be interested in [related angle].' Simple, direct, and shows you're current on their work.",
-            "The 'Beat + Bridge' approach: 'Given your focus on [specific beat area], I wanted to share [relevant story element].' This shows you understand their editorial priorities.",
-            "The 'Contrarian Respectful' angle: 'Your recent analysis of [topic] raised an interesting point about [specific detail]. We're seeing a different trend that might interest you.' Shows engagement with their work while offering new perspective."
-          ]
-        },
-        {
-          heading: "Proof Points That Build Credibility",
-          content: [
-            "Lead with external validation when possible: customer metrics, third-party research, industry recognition. These are harder to dismiss than internal claims.",
-            "Use specific numbers over ranges: '47% increase' is more credible than 'significant growth.' Precision signals authenticity.",
-            "Include unexpected or counterintuitive data points. These create curiosity and suggest there's a deeper story worth exploring."
-          ]
-        },
-        {
-          heading: "Follow-Up Logic & Timing",
-          content: [
-            "Space follow-ups based on the journalist's publishing frequency. Daily news reporters might appreciate a 48-hour follow-up; feature writers might need a week.",
-            "Add value in each follow-up rather than just checking in. Share a related data point, industry development, or customer story that wasn't in your original pitch.",
-            "Know when to stop. Three follow-ups maximum, and if there's no response after the third, move on gracefully. Persistence becomes pestering quickly."
-          ]
-        },
-        {
-          heading: "Tracking Outcomes & Optimization",
-          content: [
-            "Track more than just coverage—monitor response rates, engagement quality, and relationship development. A 'no' with feedback is often more valuable than silence.",
-            "A/B test your personalization approaches. Do journalists respond better to recent article references or beat-focused angles? Let data guide your strategy.",
-            "Keep notes on journalist preferences and communication styles. Some prefer brief, bullet-point pitches; others want full context. Tailor accordingly."
           ]
         }
       ],
@@ -294,14 +240,6 @@ const ResourceArticle = () => {
         {
           question: "How much personalization is enough?",
           answer: "One or two specific, relevant details are usually sufficient. The goal is to show you're informed about their work, not to prove you've read everything they've ever written."
-        },
-        {
-          question: "Can I reuse personalization elements?",
-          answer: "Reuse research frameworks and approaches, but always customize the specific details. Using the same 'recent article' reference for multiple journalists is obvious and counterproductive."
-        },
-        {
-          question: "What about templated personalizations?",
-          answer: "Templates for structure are fine, but personalization details must be unique. Consider using merge tags for names and publications, but write custom personalization lines for each journalist."
         }
       ],
       mediaAIBenefits: [
@@ -311,18 +249,87 @@ const ResourceArticle = () => {
       ],
       relatedResources: [
         { title: "How to Build a Media List That Actually Gets Replies", slug: "build-a-media-list-that-gets-replies" },
-        { title: "Follow-Up Without Being Annoying", slug: "follow-up-without-being-annoying" },
-        { title: "Data Storytelling for PR", slug: "data-storytelling-for-pr" }
+        { title: "Follow-Up Without Being Annoying", slug: "follow-up-without-being-annoying" }
       ],
       relatedTools: [
         { title: "Pitch Personalization Helper", slug: "pitch-personalization-helper" },
         { title: "Subject Line Split-Tester", slug: "subject-line-split-tester" }
       ],
       cta: "Pull recent coverage & tailor pitches → Open Media AI"
-    }
+    },
 
-    // I'll continue creating the remaining 21 articles in the next part to keep this manageable
+    "amec-framework-for-pr-measurement": {
+      title: "PR Measurement with the AMEC Framework",
+      metaTitle: "PR Measurement with the AMEC Framework",
+      metaDescription: "Inputs → Outputs → Outcomes: a practical measurement plan.",
+      h1: "PR Measurement with the AMEC Framework",
+      intro: "Move beyond vanity metrics. Learn how to measure PR impact using the industry-standard AMEC framework.",
+      category: "Measurement",
+      readingTime: "9 min read",
+      icon: TrendingUp,
+      sections: [
+        {
+          heading: "Objectives & Goal Setting",
+          content: [
+            "Before measuring anything, establish clear objectives. Are you building brand awareness, driving website traffic, generating leads, or managing reputation?",
+            "Use SMART criteria for PR objectives: Specific, Measurable, Achievable, Relevant, Time-bound. 'Increase brand awareness' is vague; 'Increase aided brand recognition by 15% among target audience within 6 months' is actionable.",
+            "Align PR objectives with broader business goals. If the company is focused on customer acquisition, your PR should support that with metrics like qualified leads from media coverage."
+          ]
+        }
+      ],
+      faqs: [
+        {
+          question: "Should I still track AVE (Advertising Value Equivalent)?",
+          answer: "AVE is widely considered outdated and misleading. Focus on outcomes and business impact instead."
+        }
+      ],
+      mediaAIBenefits: [
+        "Track coverage quality and sentiment across all your campaigns automatically",
+        "Generate comprehensive reports showing PR's impact on business metrics",
+        "Monitor competitor share of voice and benchmark your performance"
+      ],
+      relatedResources: [
+        { title: "PR Attribution with UTMs & Post-Coverage Tracking", slug: "pr-attribution-with-utms" },
+        { title: "Digital PR for Link Building (Without Spam)", slug: "digital-pr-link-building" }
+      ],
+      relatedTools: [
+        { title: "Coverage Tracker Template", slug: "coverage-tracker-template" },
+        { title: "PR ROI Snapshot Calculator", slug: "pr-roi-snapshot-calculator" }
+      ],
+      cta: "Track coverage & quality signals → Open Media AI"
+    }
   };
+
+  // Add all remaining articles using the default template
+  const remainingArticles = [
+    { slug: "embargo-etiquette-and-timing", title: "Embargo Etiquette & Timing", category: "Pitching", icon: Clock },
+    { slug: "follow-up-without-being-annoying", title: "Follow-Up Without Being Annoying", category: "Pitching", icon: FileText },
+    { slug: "30-day-pr-plan-for-product-launches", title: "A 30-Day PR Plan for Product Launches", category: "Releases", icon: BookOpen },
+    { slug: "data-storytelling-for-pr", title: "Data Storytelling for PR", category: "Pitching", icon: TrendingUp },
+    { slug: "founder-media-training-basics", title: "Founder Media Training: The Basics", category: "Workflow", icon: Users },
+    { slug: "pr-attribution-with-utms", title: "PR Attribution with UTMs & Post-Coverage Tracking", category: "Measurement", icon: BookOpen },
+    { slug: "digital-pr-link-building", title: "Digital PR for Link Building (Without Spam)", category: "Measurement", icon: TrendingUp },
+    { slug: "press-kit-that-journalists-use", title: "Build a Press Kit Journalists Actually Use", category: "Releases", icon: FileText },
+    { slug: "crisis-communications-playbook", title: "Crisis Communications Playbook", category: "Compliance", icon: Shield },
+    { slug: "thought-leadership-to-op-ed", title: "Thought Leadership: From Idea to Op-Ed", category: "Thought Leadership", icon: Lightbulb },
+    { slug: "working-with-freelance-journalists", title: "Working with Freelance Journalists", category: "Workflow", icon: Users },
+    { slug: "pitching-podcasts-for-brand-story", title: "Pitching Podcasts for Brand Story", category: "Workflow", icon: BookOpen },
+    { slug: "influencer-briefs-that-drive-results", title: "Influencer Briefs That Drive Results", category: "Influencer", icon: Users },
+    { slug: "ftc-asa-disclosure-for-campaigns", title: "FTC/ASA Disclosure for Influencer Campaigns", category: "Influencer", icon: Shield },
+    { slug: "using-reviews-and-social-proof-in-pr", title: "Using Reviews & Social Proof in PR", category: "Influencer", icon: TrendingUp },
+    { slug: "seasonality-calendar-and-newsjacking", title: "Seasonality, Calendars & Newsjacking (Safely)", category: "Compliance", icon: Clock },
+    { slug: "pr-for-funding-announcements", title: "PR for Funding Announcements", category: "Releases", icon: TrendingUp },
+    { slug: "messaging-and-positioning-for-pr", title: "Messaging & Positioning for PR Teams", category: "Workflow", icon: Lightbulb },
+    { slug: "exclusive-vs-wide-pitching", title: "Exclusive vs Wide Pitching: How to Choose", category: "Pitching", icon: BookOpen },
+    { slug: "international-pr-localization", title: "International PR: Localize by Market", category: "Workflow", icon: BookOpen }
+  ];
+
+  // Add remaining articles with default content
+  remainingArticles.forEach(article => {
+    if (!articlesData[article.slug]) {
+      articlesData[article.slug] = createDefaultArticle(article.title, article.slug, article.category, article.icon);
+    }
+  });
 
   const article = articlesData[slug || ""];
 
