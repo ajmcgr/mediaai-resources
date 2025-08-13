@@ -24,9 +24,9 @@ const App = () => (
           <Route path="/tools" element={<ToolsHub />} />
           <Route path="/tools/:slug" element={<ToolTemplate />} />
           <Route path="/resources" element={<Resources />} />
-          <Route path="/resources/:slug" element={<ResourceArticle />} />
           <Route path="/about" element={<About />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/:slug" element={<ResourceArticle />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

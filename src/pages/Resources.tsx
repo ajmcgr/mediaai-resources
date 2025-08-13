@@ -361,7 +361,7 @@ const Resources = () => {
               const IconComponent = resource.icon;
               return (
                 <Card key={resource.slug} className="card-tool group cursor-pointer">
-                  <Link to={`/resources/${resource.slug}`} className="block">
+                  <Link to={`/${resource.slug}`} className="block">
                     <div className="flex items-start justify-between mb-4">
                       <div className="p-3 bg-primary/10 rounded-xl">
                         <IconComponent className="h-6 w-6 text-primary" />

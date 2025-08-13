@@ -210,7 +210,7 @@ const Index = () => {
               const IconComponent = resource.icon;
               return (
                 <Card key={resource.slug} className="p-6 hover:shadow-lg transition-all duration-300 group">
-                  <Link to={`/resources/${resource.slug}`} className="block">
+                  <Link to={`/${resource.slug}`} className="block">
                     <div className="flex items-start space-x-4">
                       <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
                         <IconComponent className="h-5 w-5 text-primary" />

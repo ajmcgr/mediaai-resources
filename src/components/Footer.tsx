@@ -76,21 +76,21 @@ const Footer = () => {
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Resources</h4>
               <div className="space-y-3">
                 <Link 
-                  to="/resources/build-a-media-list-that-gets-replies" 
+                  to="/build-a-media-list-that-gets-replies" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Build a Media List
                 </Link>
                 <Link 
-                  to="/resources/personalized-pitches-at-scale" 
+                  to="/personalized-pitches-at-scale" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Personalized Pitches
                 </Link>
                 <Link 
-                  to="/resources/amec-framework-for-pr-measurement" 
+                  to="/amec-framework-for-pr-measurement" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
