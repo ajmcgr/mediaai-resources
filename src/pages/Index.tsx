@@ -205,22 +205,6 @@ const Index = () => {
             Free PR & Social Media Resources
           </h1>
           
-          {/* Quick Navigation */}
-          <div className="flex justify-center space-x-4 mb-12">
-            <Link 
-              to="/tools" 
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary-hover transition-colors font-medium"
-            >
-              View All Tools
-            </Link>
-            <Link 
-              to="/resources" 
-              className="px-6 py-3 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/80 transition-colors font-medium"
-            >
-              Browse Resources
-            </Link>
-          </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {allResources.map((resource) => {
               const IconComponent = resource.icon;
