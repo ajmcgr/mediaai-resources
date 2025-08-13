@@ -498,14 +498,6 @@ const ResourceArticle = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <article className="prose prose-lg max-w-none">
-              {/* Cover Image Placeholder */}
-              <div className="w-full h-64 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl mb-12 flex items-center justify-center">
-                <div className="text-center">
-                  <IconComponent className="h-16 w-16 text-primary mx-auto mb-4" />
-                  <p className="text-muted-foreground">Cover image placeholder</p>
-                </div>
-              </div>
-
               {/* Article Sections */}
               {article.sections.map((section, index) => (
                 <div key={index} className="mb-12">
