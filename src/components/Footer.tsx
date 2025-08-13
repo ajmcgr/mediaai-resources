@@ -110,34 +110,42 @@ const Footer = () => {
             <div>
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Free Tools</h4>
               <div className="space-y-3">
-                <Link 
-                  to="/tools/beat-outlet-matcher" 
+                <a 
+                  href="https://tools.trymedia.ai/beat-outlet-matcher"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Beat & Outlet Matcher
-                </Link>
-                <Link 
-                  to="/tools/pitch-personalization-helper" 
+                </a>
+                <a 
+                  href="https://tools.trymedia.ai/pitch-personalization-helper"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Pitch Personalization Helper
-                </Link>
-                <Link 
-                  to="/tools/subject-line-split-tester" 
+                </a>
+                <a 
+                  href="https://tools.trymedia.ai/subject-line-split-tester"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Subject Line Split-Tester
-                </Link>
-                <Link 
-                  to="/tools" 
-                  className="block text-sm font-light transition-colors"
+                </a>
+                <a 
+                  href="https://tools.trymedia.ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm font-semibold transition-colors"
                   style={{ color: '#222529' }}
                 >
                   View All Tools →
-                </Link>
+                </a>
               </div>
             </div>
 
