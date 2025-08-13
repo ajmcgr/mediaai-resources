@@ -654,9 +654,9 @@ const ResourceArticle = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center space-x-2 mb-6">
-              <Link to="/resources" className="text-muted-foreground hover:text-primary">
+              <a href="https://resources.trymedia.ai/" className="text-muted-foreground hover:text-primary">
                 Resources
-              </Link>
+              </a>
               <span className="text-muted-foreground">→</span>
               <Badge variant="secondary">{article.category}</Badge>
             </div>
