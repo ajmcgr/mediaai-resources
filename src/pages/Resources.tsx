@@ -17,7 +17,8 @@ import {
   FileText,
   Shield,
   Lightbulb,
-  Star
+  Star,
+  Zap
 } from "lucide-react";
 
 const Resources = () => {
@@ -30,240 +31,253 @@ const Resources = () => {
     // Pitching Resources
     { 
       title: "How to Build a Media List That Actually Gets Replies", 
-      summary: "Define your audience, map beats, and create targeted lists that earn coverage.", 
+      description: "Define your audience, map beats, and create targeted lists that earn coverage.", 
       readingTime: "8 min read",
       slug: "build-a-media-list-that-gets-replies", 
       category: "Pitching",
       icon: Users,
-      popular: true
+      badge: "Popular" 
     },
     { 
       title: "Crafting Personalized Pitches at Scale", 
-      summary: "Turn research into first-line personalization that wins replies—at scale.", 
+      description: "Turn research into first-line personalization that wins replies—at scale.", 
       readingTime: "6 min read",
       slug: "personalized-pitches-at-scale", 
       category: "Pitching",
       icon: BookOpen,
-      popular: true
+      badge: "Popular" 
     },
     { 
       title: "Embargo Etiquette & Timing", 
-      summary: "When to pitch, who to brief, and how to set fair embargoes.", 
+      description: "When to pitch, who to brief, and how to set fair embargoes.", 
       readingTime: "5 min read",
       slug: "embargo-etiquette-and-timing", 
       category: "Pitching",
       icon: Clock,
-      popular: false
+      badge: null 
     },
     { 
       title: "Follow-Up Without Being Annoying", 
-      summary: "Timing, tone, and templates to follow up like a pro.", 
+      description: "Timing, tone, and templates to follow up like a pro.", 
       readingTime: "4 min read",
       slug: "follow-up-without-being-annoying", 
       category: "Pitching",
       icon: FileText,
-      popular: false
+      badge: null 
     },
     { 
       title: "Data Storytelling for PR", 
-      summary: "Turn product or survey data into defensible, newsworthy angles.", 
+      description: "Turn product or survey data into defensible, newsworthy angles.", 
       readingTime: "9 min read",
       slug: "data-storytelling-for-pr", 
       category: "Pitching",
       icon: TrendingUp,
-      popular: false
+      badge: null 
     },
     { 
       title: "Exclusive vs Wide Pitching: How to Choose", 
-      summary: "A decision framework for coverage quality and speed.", 
+      description: "A decision framework for coverage quality and speed.", 
       readingTime: "6 min read",
       slug: "exclusive-vs-wide-pitching", 
       category: "Pitching",
       icon: BookOpen,
-      popular: false
+      badge: null 
     },
 
     // Releases Resources
     { 
       title: "Press Release Templates by Announcement Type", 
-      summary: "Ready-to-use structures for funding, product, partnership, and event releases.", 
+      description: "Ready-to-use structures for funding, product, partnership, and event releases.", 
       readingTime: "7 min read",
       slug: "press-release-templates-by-announcement-type", 
       category: "Releases",
       icon: FileText,
-      popular: true
+      badge: "Popular" 
     },
     { 
       title: "A 30-Day PR Plan for Product Launches", 
-      summary: "Day-by-day checklist from pre-brief to post-coverage.", 
+      description: "Day-by-day checklist from pre-brief to post-coverage.", 
       readingTime: "10 min read",
       slug: "30-day-pr-plan-for-product-launches", 
       category: "Releases",
       icon: BookOpen,
-      popular: false
+      badge: null 
     },
     { 
       title: "PR for Funding Announcements", 
-      summary: "Exclusives, syndication, and investor quotes done right.", 
+      description: "Exclusives, syndication, and investor quotes done right.", 
       readingTime: "8 min read",
       slug: "pr-for-funding-announcements", 
       category: "Releases",
       icon: TrendingUp,
-      popular: false
+      badge: null 
     },
     { 
       title: "Build a Press Kit Journalists Actually Use", 
-      summary: "Files, formats, and structure that remove friction.", 
+      description: "Files, formats, and structure that remove friction.", 
       readingTime: "5 min read",
       slug: "press-kit-that-journalists-use", 
       category: "Releases",
       icon: FileText,
-      popular: false
+      badge: null 
     },
 
     // Influencer Resources
     { 
       title: "Influencer Briefs That Drive Results", 
-      summary: "Clear deliverables, usage rights, and creative freedom.", 
+      description: "Clear deliverables, usage rights, and creative freedom.", 
       readingTime: "6 min read",
       slug: "influencer-briefs-that-drive-results", 
       category: "Influencer",
       icon: Users,
-      popular: false
+      badge: null 
     },
     { 
       title: "FTC/ASA Disclosure for Influencer Campaigns", 
-      summary: "Simple rules, clear captions, and platform nuances.", 
+      description: "Simple rules, clear captions, and platform nuances.", 
       readingTime: "4 min read",
       slug: "ftc-asa-disclosure-for-campaigns", 
       category: "Influencer",
       icon: Shield,
-      popular: false
+      badge: null 
     },
     { 
       title: "Using Reviews & Social Proof in PR", 
-      summary: "Turn G2/Capterra and UGC into media-worthy angles.", 
+      description: "Turn G2/Capterra and UGC into media-worthy angles.", 
       readingTime: "5 min read",
       slug: "using-reviews-and-social-proof-in-pr", 
       category: "Influencer",
       icon: TrendingUp,
-      popular: false
+      badge: "Trending" 
     },
 
     // Measurement Resources
     { 
       title: "PR Measurement with the AMEC Framework", 
-      summary: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
+      description: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
       readingTime: "9 min read",
       slug: "amec-framework-for-pr-measurement", 
       category: "Measurement",
       icon: TrendingUp,
-      popular: true
+      badge: "Popular" 
     },
     { 
       title: "PR Attribution with UTMs & Post-Coverage Tracking", 
-      summary: "Set UTM standards and measure coverage effects properly.", 
+      description: "Set UTM standards and measure coverage effects properly.", 
       readingTime: "7 min read",
       slug: "pr-attribution-with-utms", 
       category: "Measurement",
       icon: BookOpen,
-      popular: false
+      badge: null 
     },
     { 
       title: "Digital PR for Link Building (Without Spam)", 
-      summary: "Earn high-quality links through stories, not schemes.", 
+      description: "Earn high-quality links through stories, not schemes.", 
       readingTime: "8 min read",
       slug: "digital-pr-link-building", 
       category: "Measurement",
       icon: TrendingUp,
-      popular: false
+      badge: null 
     },
 
     // Workflow Resources
     { 
       title: "Founder Media Training: The Basics", 
-      summary: "Message maps, bridging, and quote-worthy soundbites.", 
+      description: "Message maps, bridging, and quote-worthy soundbites.", 
       readingTime: "6 min read",
       slug: "founder-media-training-basics", 
       category: "Workflow",
       icon: Users,
-      popular: false
+      badge: null 
     },
     { 
       title: "Working with Freelance Journalists", 
-      summary: "Why freelancers matter and how to collaborate well.", 
+      description: "Why freelancers matter and how to collaborate well.", 
       readingTime: "5 min read",
       slug: "working-with-freelance-journalists", 
       category: "Workflow",
       icon: Users,
-      popular: false
+      badge: null 
     },
     { 
       title: "Pitching Podcasts for Brand Story", 
-      summary: "Find, pitch, and prep for high-fit podcasts.", 
+      description: "Find, pitch, and prep for high-fit podcasts.", 
       readingTime: "7 min read",
       slug: "pitching-podcasts-for-brand-story", 
       category: "Workflow",
       icon: BookOpen,
-      popular: false
+      badge: null 
     },
     { 
       title: "Messaging & Positioning for PR Teams", 
-      summary: "Craft narratives editors—and customers—remember.", 
+      description: "Craft narratives editors—and customers—remember.", 
       readingTime: "8 min read",
       slug: "messaging-and-positioning-for-pr", 
       category: "Workflow",
       icon: Lightbulb,
-      popular: false
+      badge: null 
     },
     { 
       title: "International PR: Localize by Market", 
-      summary: "Angles, assets, and timing that respect each region.", 
+      description: "Angles, assets, and timing that respect each region.", 
       readingTime: "9 min read",
       slug: "international-pr-localization", 
       category: "Workflow",
       icon: BookOpen,
-      popular: false
+      badge: null 
     },
 
     // Compliance Resources
     { 
       title: "Crisis Communications Playbook", 
-      summary: "Holding statements, approvals, and rapid triage.", 
+      description: "Holding statements, approvals, and rapid triage.", 
       readingTime: "10 min read",
       slug: "crisis-communications-playbook", 
       category: "Compliance",
       icon: Shield,
-      popular: false
+      badge: null 
     },
     { 
       title: "Seasonality, Calendars & Newsjacking (Safely)", 
-      summary: "Plan content around moments without being tone-deaf.", 
+      description: "Plan content around moments without being tone-deaf.", 
       readingTime: "6 min read",
       slug: "seasonality-calendar-and-newsjacking", 
       category: "Compliance",
       icon: Clock,
-      popular: false
+      badge: null 
     },
 
     // Thought Leadership Resources
     { 
       title: "Thought Leadership: From Idea to Op-Ed", 
-      summary: "Turn founder POVs into publishable bylines.", 
+      description: "Turn founder POVs into publishable bylines.", 
       readingTime: "8 min read",
       slug: "thought-leadership-to-op-ed", 
       category: "Thought Leadership",
       icon: Lightbulb,
-      popular: false
+      badge: null 
     }
   ];
 
   const filteredResources = allResources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.summary.toLowerCase().includes(searchTerm.toLowerCase());
+                         resource.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "All" || resource.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const getBadgeColor = (badge: string | null) => {
+    switch (badge) {
+      case "Popular":
+        return "bg-primary text-primary-foreground";
+      case "New":
+        return "bg-green-500 text-white";
+      case "Trending":
+        return "bg-orange-500 text-white";
+      default:
+        return "";
+    }
+  };
 
   useEffect(() => {
     updatePageSEO(
@@ -343,7 +357,7 @@ const Resources = () => {
 
           {/* Resources Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredResources.map((resource) => {
+            {filteredResources.map((resource, index) => {
               const IconComponent = resource.icon;
               return (
                 <Card key={resource.slug} className="card-tool group cursor-pointer">
@@ -353,9 +367,9 @@ const Resources = () => {
                         <IconComponent className="h-6 w-6 text-primary" />
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        {resource.popular && (
-                          <Badge className="bg-primary text-primary-foreground">
-                            Popular
+                        {resource.badge && (
+                          <Badge className={getBadgeColor(resource.badge)}>
+                            {resource.badge}
                           </Badge>
                         )}
                         <Badge variant="secondary" className="text-xs">
@@ -369,14 +383,13 @@ const Resources = () => {
                     </h3>
                     
                     <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
-                      {resource.summary}
+                      {resource.description}
                     </p>
                     
                     <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>{resource.readingTime}</span>
-                      </div>
+                      <span className="text-sm font-medium text-primary">
+                        Read guide
+                      </span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                     </div>
                   </Link>
@@ -436,7 +449,7 @@ const Resources = () => {
                 target="_blank" 
                 rel="noopener noreferrer"
               >
-                <BookOpen className="mr-2 h-4 w-4" />
+                <Zap className="mr-2 h-4 w-4" />
                 Start Free Trial
               </a>
             </Button>
