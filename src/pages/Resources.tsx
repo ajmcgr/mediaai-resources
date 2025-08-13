@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 
 const Resources = () => {
-  console.log("Resources component is rendering - NEW VERSION");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -308,15 +307,15 @@ const Resources = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Expert PR & Social Media Resources - UPDATED VERSION
+              Free PR & Social Media Resources
             </h1>
             <p className="text-xl text-white/90 mb-8">
-              24 evergreen guides, templates, and playbooks to master your PR strategy. 
-              From building media lists to measuring impact.
+              24 expert guides, templates, and playbooks to streamline your PR workflow. 
+              Build media lists, craft pitches, and measure coverage impact.
             </p>
             <div className="flex items-center justify-center space-x-2 text-white/80">
               <Star className="h-5 w-5 text-yellow-300 fill-current" />
-              <span>Always free • No signup required • Expert insights</span>
+              <span>Always free • No signup required • Expert guides</span>
             </div>
           </div>
         </div>
