@@ -265,8 +265,6 @@ const Resources = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const popularResources = allResources.filter(resource => resource.popular);
-
   useEffect(() => {
     updatePageSEO(
       "Free PR & Social Media Resources Hub | Media AI",
@@ -298,167 +296,131 @@ const Resources = () => {
               Expert PR & Social Media Resources
             </h1>
             <p className="text-xl text-white/90 mb-8">
-              Evergreen guides, templates, and playbooks to master your PR strategy. 
+              24 evergreen guides, templates, and playbooks to master your PR strategy. 
               From building media lists to measuring impact.
             </p>
             <div className="flex items-center justify-center space-x-2 text-white/80">
               <Star className="h-5 w-5 text-yellow-300 fill-current" />
-              <span>24 expert guides • Always free • Industry best practices</span>
+              <span>Always free • No signup required • Expert insights</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Most Popular Section */}
-      <section className="py-12 bg-subtle-gradient">
+      {/* Resources Section */}
+      <section className="py-16 bg-subtle-gradient">
         <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-foreground mb-8 text-center">Most Popular Resources</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {popularResources.map((resource) => {
-                const IconComponent = resource.icon;
-                return (
-                  <Card key={resource.slug} className="card-tool group cursor-pointer">
-                    <Link to={`/resources/${resource.slug}`} className="block">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                          <IconComponent className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex flex-col items-end space-y-2">
+          {/* Search and Filters */}
+          <div className="max-w-4xl mx-auto mb-12">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search resources..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 input-field"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-wrap gap-2">
+                  {categories.map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "secondary"}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category)}
+                      className={selectedCategory === category ? "btn-primary" : "btn-secondary"}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Resources Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredResources.map((resource) => {
+              const IconComponent = resource.icon;
+              return (
+                <Card key={resource.slug} className="card-tool group cursor-pointer">
+                  <Link to={`/resources/${resource.slug}`} className="block">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 bg-primary/10 rounded-xl">
+                        <IconComponent className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex flex-col items-end space-y-2">
+                        {resource.popular && (
                           <Badge className="bg-primary text-primary-foreground">
                             Popular
                           </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {resource.category}
-                          </Badge>
-                        </div>
+                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          {resource.category}
+                        </Badge>
                       </div>
-                      
-                      <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                        {resource.title}
-                      </h3>
-                      
-                      <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
-                        {resource.summary}
-                      </p>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{resource.readingTime}</span>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                    
+                    <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {resource.title}
+                    </h3>
+                    
+                    <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
+                      {resource.summary}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{resource.readingTime}</span>
                       </div>
-                    </Link>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* All Resources Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Search and Filters */}
-            <div className="mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-8 text-center">All Resources</h2>
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search resources..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 input-field"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(category => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? "default" : "secondary"}
-                        size="sm"
-                        onClick={() => setSelectedCategory(category)}
-                        className={selectedCategory === category ? "btn-primary" : "btn-secondary"}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </Link>
+                  
+                  {/* CTA Section */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Ready for the full experience?
+                    </p>
+                    <Button asChild size="sm" variant="outline" className="w-full text-xs">
+                      <a 
+                        href="https://trymedia.ai" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
                       >
-                        {category}
-                      </Button>
-                    ))}
+                        Try Media AI Platform
+                      </a>
+                    </Button>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Resources Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResources.map((resource) => {
-                const IconComponent = resource.icon;
-                return (
-                  <Card key={resource.slug} className="card-tool group cursor-pointer">
-                    <Link to={`/resources/${resource.slug}`} className="block">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                          <IconComponent className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex flex-col items-end space-y-2">
-                          {resource.popular && (
-                            <Badge className="bg-primary text-primary-foreground">
-                              Popular
-                            </Badge>
-                          )}
-                          <Badge variant="secondary" className="text-xs">
-                            {resource.category}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                        {resource.title}
-                      </h3>
-                      
-                      <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
-                        {resource.summary}
-                      </p>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{resource.readingTime}</span>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </Link>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {filteredResources.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No resources found matching your criteria.</p>
-                <Button 
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedCategory("All");
-                  }}
-                  variant="secondary"
-                  className="mt-4"
-                >
-                  Clear filters
-                </Button>
-              </div>
-            )}
+                </Card>
+              );
+            })}
           </div>
+
+          {filteredResources.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No resources found matching your criteria.</p>
+              <Button 
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCategory("All");
+                }}
+                variant="secondary"
+                className="mt-4"
+              >
+                Clear filters
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-subtle-gradient">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-foreground mb-4">
@@ -475,7 +437,7 @@ const Resources = () => {
                 rel="noopener noreferrer"
               >
                 <BookOpen className="mr-2 h-4 w-4" />
-                Open Media AI
+                Start Free Trial
               </a>
             </Button>
           </div>
