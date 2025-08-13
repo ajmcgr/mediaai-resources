@@ -96,13 +96,15 @@ const Footer = () => {
                 >
                   PR Measurement
                 </Link>
-                <Link 
-                  to="/" 
+                <a 
+                  href="https://resources.trymedia.ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-semibold transition-colors"
                   style={{ color: '#222529' }}
                 >
                   View All Resources →
-                </Link>
+                </a>
               </div>
             </div>
 
