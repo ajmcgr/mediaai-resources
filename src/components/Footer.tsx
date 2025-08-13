@@ -98,7 +98,7 @@ const Footer = () => {
                 </Link>
                 <Link 
                   to="/" 
-                  className="block text-sm font-light transition-colors"
+                  className="block text-sm font-semibold transition-colors"
                   style={{ color: '#222529' }}
                 >
                   View All Resources →
