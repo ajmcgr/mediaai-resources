@@ -17,44 +17,6 @@ const Header = () => {
 
           {/* Navigation & Auth */}
           <div className="flex items-center space-x-6">
-            {/* Navigation Links */}
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link 
-                to="/" 
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors"
-              >
-                Home
-              </Link>
-              <Link 
-                to="/tools" 
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors"
-              >
-                Tools
-              </Link>
-              <Link 
-                to="/resources" 
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors"
-              >
-                Resources
-              </Link>
-              <a 
-                href="https://trymedia.ai/pricing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors"
-              >
-                Pricing
-              </a>
-              <a 
-                href="https://help.trymedia.ai" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors"
-              >
-                Documentation
-              </a>
-            </nav>
-            
             <div className="flex items-center space-x-2">
               <Button 
                 asChild
