@@ -128,7 +128,7 @@ const Footer = () => {
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
-                  Pitch Personalization Helper
+                  Pitch Personalization Generator
                 </a>
                 <a 
                   href="https://tools.trymedia.ai/subject-line-split-tester"
