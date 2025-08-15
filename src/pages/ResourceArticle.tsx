@@ -459,7 +459,7 @@ const ResourceArticle = () => {
                 <article.icon className="w-4 h-4 mr-2" />
                 {article.category}
               </Badge>
-              <h1 className="text-4xl md:text-5xl font-heading font-semibold mb-6 text-foreground">
+              <h1 className="text-4xl md:text-5xl font-heading font-medium mb-6 text-foreground">
                 {article.h1}
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
