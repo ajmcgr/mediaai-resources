@@ -89,7 +89,7 @@ const Footer = () => {
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
-                  Personalized Pitches
+                  Press Release Templates
                 </a>
                 <a 
                   href="https://resources.trymedia.ai/amec-framework-for-pr-measurement"
@@ -98,7 +98,7 @@ const Footer = () => {
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
-                  PR Measurement
+                  PR Attribution
                 </a>
                 <a 
                   href="https://resources.trymedia.ai/"
