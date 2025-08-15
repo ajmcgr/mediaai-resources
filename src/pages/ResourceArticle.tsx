@@ -413,7 +413,7 @@ const ResourceArticle = () => {
       <Layout>
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-heading font-bold text-foreground mb-4">Article Not Found</h1>
+            <h1 className="text-3xl font-heading font-semibold text-foreground mb-4">Article Not Found</h1>
             <p className="text-gray-600 mb-8">The resource you're looking for doesn't exist.</p>
             <Button asChild className="bg-primary hover:bg-primary-hover text-white">
               <Link to="/resources">← Back to Resources</Link>
@@ -435,7 +435,7 @@ const ResourceArticle = () => {
                 <article.icon className="w-4 h-4 mr-2" />
                 {article.category}
               </Badge>
-              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-6 text-foreground">
+              <h1 className="text-4xl md:text-5xl font-heading font-semibold mb-6 text-foreground">
                 {article.h1}
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
@@ -469,7 +469,7 @@ const ResourceArticle = () => {
                 {article.sections.map((section, index) => (
                   <div key={index} className="bg-white rounded-xl border border-gray-100 p-8 shadow-sm">
                     <div className="space-y-6">
-                      <h2 className="text-2xl font-heading font-bold text-foreground flex items-center gap-3">
+                      <h2 className="text-2xl font-heading font-semibold text-foreground flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                           <span className="text-primary font-bold text-sm">{index + 1}</span>
                         </div>
@@ -493,7 +493,7 @@ const ResourceArticle = () => {
                       <Sparkles className="w-8 h-8 text-primary" />
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-2xl font-heading font-bold text-foreground">
+                      <h3 className="text-2xl font-heading font-semibold text-foreground">
                         Ready to implement these strategies?
                       </h3>
                       <p className="text-gray-600 max-w-2xl mx-auto">
@@ -540,7 +540,7 @@ const ResourceArticle = () => {
                 {/* FAQs - matching tool page style */}
                 <div className="bg-white rounded-xl border border-gray-100 p-8 shadow-sm">
                   <div className="space-y-6">
-                    <h2 className="text-2xl font-heading font-bold text-foreground flex items-center gap-3">
+                    <h2 className="text-2xl font-heading font-semibold text-foreground flex items-center gap-3">
                       <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                         <HelpCircle className="w-5 h-5 text-primary" />
                       </div>
@@ -568,7 +568,7 @@ const ResourceArticle = () => {
                       <Target className="w-8 h-8 text-primary" />
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-2xl font-heading font-bold text-foreground">
+                      <h3 className="text-2xl font-heading font-semibold text-foreground">
                         {article.cta.split(' →')[0]}
                       </h3>
                       <div className="space-y-3 max-w-2xl mx-auto">
@@ -600,7 +600,7 @@ const ResourceArticle = () => {
             <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-12">
-                  <h2 className="text-3xl font-heading font-bold text-foreground mb-4">
+                  <h2 className="text-3xl font-heading font-semibold text-foreground mb-4">
                     Continue Learning
                   </h2>
                   <p className="text-gray-600">
@@ -612,7 +612,7 @@ const ResourceArticle = () => {
                   {/* Related Articles */}
                   {article.relatedResources.length > 0 && (
                     <div>
-                      <h3 className="text-xl font-heading font-bold text-foreground mb-6 flex items-center gap-3">
+                      <h3 className="text-xl font-heading font-semibold text-foreground mb-6 flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                           <BookOpen className="w-5 h-5 text-primary" />
                         </div>
@@ -638,7 +638,7 @@ const ResourceArticle = () => {
                   {/* Related Tools */}
                   {article.relatedTools.length > 0 && (
                     <div>
-                      <h3 className="text-xl font-heading font-bold text-foreground mb-6 flex items-center gap-3">
+                      <h3 className="text-xl font-heading font-semibold text-foreground mb-6 flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                           <Sparkles className="w-5 h-5 text-primary" />
                         </div>
