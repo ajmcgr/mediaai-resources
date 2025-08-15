@@ -42,7 +42,7 @@ const Resources = () => {
       title: "Crafting Personalized Pitches at Scale", 
       description: "Turn research into first-line personalization that wins replies—at scale.", 
       readingTime: "6 min read",
-      slug: "personalized-pitches-at-scale", 
+      slug: "https://resources.trymedia.ai/personalized-pitches-at-scale", 
       category: "Pitching",
       icon: BookOpen,
       badge: "Popular" 
@@ -156,7 +156,7 @@ const Resources = () => {
       title: "PR Measurement with the AMEC Framework", 
       description: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
       readingTime: "9 min read",
-      slug: "amec-framework-for-pr-measurement", 
+      slug: "https://resources.trymedia.ai/amec-framework-for-pr-measurement", 
       category: "Measurement",
       icon: TrendingUp,
       badge: "Popular" 
@@ -359,40 +359,54 @@ const Resources = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredResources.map((resource, index) => {
               const IconComponent = resource.icon;
+              const isExternalLink = resource.slug.startsWith('http');
+              
+              const cardContent = (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <IconComponent className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex flex-col items-end space-y-2">
+                      {resource.badge && (
+                        <Badge className={getBadgeColor(resource.badge)}>
+                          {resource.badge}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {resource.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    {resource.title}
+                  </h3>
+                  
+                  <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
+                    {resource.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-medium text-primary">
+                      Read guide
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
+                </>
+              );
+
               return (
                 <Card key={resource.slug} className="card-tool group cursor-pointer">
-                  <Link to={`/${resource.slug}`} className="block">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-3 bg-primary/10 rounded-xl">
-                        <IconComponent className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        {resource.badge && (
-                          <Badge className={getBadgeColor(resource.badge)}>
-                            {resource.badge}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary" className="text-xs">
-                          {resource.category}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                      {resource.title}
-                    </h3>
-                    
-                    <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
-                      {resource.description}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm font-medium text-primary">
-                        Read guide
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </Link>
+                  {isExternalLink ? (
+                    <a href={resource.slug} target="_blank" rel="noopener noreferrer" className="block">
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <Link to={`/${resource.slug}`} className="block">
+                      {cardContent}
+                    </Link>
+                  )}
                   
                   {/* CTA Section */}
                   <div className="mt-4 pt-4 border-t border-border">

@@ -26,7 +26,7 @@ const Index = () => {
       title: "Crafting Personalized Pitches at Scale", 
       description: "Turn research into first-line personalization that wins replies—at scale.", 
       icon: BookOpen,
-      slug: "personalized-pitches-at-scale", 
+      slug: "https://resources.trymedia.ai/personalized-pitches-at-scale", 
       category: "Pitching"
     },
     { 
@@ -116,7 +116,7 @@ const Index = () => {
       title: "PR Measurement with the AMEC Framework", 
       description: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
       icon: TrendingUp,
-      slug: "amec-framework-for-pr-measurement", 
+      slug: "https://resources.trymedia.ai/amec-framework-for-pr-measurement", 
       category: "Measurement"
     },
     { 
@@ -208,29 +208,41 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {allResources.map((resource) => {
               const IconComponent = resource.icon;
+              const isExternalLink = resource.slug.startsWith('http');
+              
+              const cardContent = (
+                <div className="flex items-start space-x-4">
+                  <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                    <IconComponent className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-normal text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {resource.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {resource.description}
+                    </p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                        {resource.category}
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </div>
+              );
+
               return (
                 <Card key={resource.slug} className="p-6 hover:shadow-lg transition-all duration-300 group">
-                  <Link to={`/${resource.slug}`} className="block">
-                    <div className="flex items-start space-x-4">
-                      <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                        <IconComponent className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-normal text-foreground mb-2 group-hover:text-primary transition-colors">
-                          {resource.title}
-                        </h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                          {resource.description}
-                        </p>
-                        <div className="flex items-center justify-between mt-3">
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                            {resource.category}
-                          </span>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
+                  {isExternalLink ? (
+                    <a href={resource.slug} target="_blank" rel="noopener noreferrer" className="block">
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <Link to={`/${resource.slug}`} className="block">
+                      {cardContent}
+                    </Link>
+                  )}
                 </Card>
               );
             })}
