@@ -82,20 +82,24 @@ const Footer = () => {
                 >
                   Build a Media List
                 </Link>
-                <Link 
-                  to="/personalized-pitches-at-scale" 
+                <a 
+                  href="https://resources.trymedia.ai/personalized-pitches-at-scale"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Personalized Pitches
-                </Link>
-                <Link 
-                  to="/amec-framework-for-pr-measurement" 
+                </a>
+                <a 
+                  href="https://resources.trymedia.ai/amec-framework-for-pr-measurement"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   PR Measurement
-                </Link>
+                </a>
                 <a 
                   href="https://resources.trymedia.ai/"
                   target="_blank"
