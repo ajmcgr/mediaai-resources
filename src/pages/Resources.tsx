@@ -18,7 +18,9 @@ import {
   Shield,
   Lightbulb,
   Star,
-  Zap
+  Zap,
+  RefreshCw,
+  BarChart3
 } from "lucide-react";
 
 const Resources = () => {
@@ -39,13 +41,13 @@ const Resources = () => {
       badge: "Popular" 
     },
     { 
-      title: "Crafting Personalized Pitches at Scale", 
-      description: "Turn research into first-line personalization that wins replies—at scale.", 
-      readingTime: "6 min read",
-      slug: "https://resources.trymedia.ai/personalized-pitches-at-scale", 
+      title: "The Art of Follow-Up: Converting No-Responses to Coverage", 
+      description: "Strategic follow-up sequences that turn silence into story placements without being pushy.", 
+      readingTime: "7 min read",
+      slug: "follow-up-strategies-for-pr-coverage", 
       category: "Pitching",
-      icon: BookOpen,
-      badge: "Popular" 
+      icon: RefreshCw,
+      badge: "New" 
     },
     { 
       title: "Embargo Etiquette & Timing", 
@@ -153,13 +155,13 @@ const Resources = () => {
 
     // Measurement Resources
     { 
-      title: "PR Measurement with the AMEC Framework", 
-      description: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
-      readingTime: "9 min read",
-      slug: "https://resources.trymedia.ai/amec-framework-for-pr-measurement", 
+      title: "Social Media ROI: Proving PR Value in the Digital Age", 
+      description: "Track engagement, conversions, and brand lift to demonstrate clear PR ROI.", 
+      readingTime: "8 min read",
+      slug: "social-media-roi-measurement-guide", 
       category: "Measurement",
-      icon: TrendingUp,
-      badge: "Popular" 
+      icon: BarChart3,
+      badge: "New" 
     },
     { 
       title: "PR Attribution with UTMs & Post-Coverage Tracking", 

@@ -9,7 +9,9 @@ import {
   Users,
   FileText,
   Shield,
-  Lightbulb
+  Lightbulb,
+  RefreshCw,
+  BarChart3
 } from "lucide-react";
 
 const Index = () => {
@@ -23,10 +25,10 @@ const Index = () => {
       category: "Pitching"
     },
     { 
-      title: "Crafting Personalized Pitches at Scale", 
-      description: "Turn research into first-line personalization that wins replies—at scale.", 
-      icon: BookOpen,
-      slug: "https://resources.trymedia.ai/personalized-pitches-at-scale", 
+      title: "The Art of Follow-Up: Converting No-Responses to Coverage", 
+      description: "Strategic follow-up sequences that turn silence into story placements without being pushy.", 
+      icon: RefreshCw,
+      slug: "follow-up-strategies-for-pr-coverage", 
       category: "Pitching"
     },
     { 
@@ -113,10 +115,10 @@ const Index = () => {
 
     // Measurement Resources
     { 
-      title: "PR Measurement with the AMEC Framework", 
-      description: "Inputs → Outputs → Outcomes: a practical measurement plan.", 
-      icon: TrendingUp,
-      slug: "https://resources.trymedia.ai/amec-framework-for-pr-measurement", 
+      title: "Social Media ROI: Proving PR Value in the Digital Age", 
+      description: "Track engagement, conversions, and brand lift to demonstrate clear PR ROI.", 
+      icon: BarChart3,
+      slug: "social-media-roi-measurement-guide", 
       category: "Measurement"
     },
     { 
