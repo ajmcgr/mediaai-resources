@@ -185,7 +185,7 @@ const Footer = () => {
           <div className="mt-12 pt-8">
             <div className="text-center">
               <p className="text-sm font-light" style={{ color: '#222529' }}>
-                Copyright © 2025 Works App, Inc. Built with ♥️ by{' '}
+                Copyright © 2026 Works App, Inc. Built with ♥️ by{' '}
                 <a 
                   href="https://works.xyz/" 
                   target="_blank" 
