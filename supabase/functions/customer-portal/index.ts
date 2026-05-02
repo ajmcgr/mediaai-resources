@@ -1,0 +1,57 @@
+// Stripe Billing Portal session — lets users manage/cancel their subscription.
+// Auth: requires Supabase JWT.
+
+import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { corsHeaders } from "../_shared/cors.ts";
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+  apiVersion: "2024-11-20.acacia",
+});
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "missing auth" }, 401);
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) return json({ error: "unauthorized" }, 401);
+
+    const admin = createClient(supabaseUrl, serviceKey);
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.stripe_customer_id) {
+      return json({ error: "no stripe customer on file" }, 400);
+    }
+
+    const origin = req.headers.get("origin") ?? "https://resources.trymedia.ai";
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${origin}/account`,
+    });
+
+    return json({ url: session.url });
+  } catch (e) {
+    console.error("customer-portal error", e);
+    return json({ error: (e as Error).message }, 500);
+  }
+});
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
