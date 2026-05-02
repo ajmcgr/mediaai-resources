@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
@@ -22,9 +23,9 @@ const Header = () => {
             className="flex items-center"
           >
             <img
-              src="/lovable-uploads/e30b4157-d7ea-4910-acef-04e28b2e90f8.png"
+              src={logoMedia}
               alt="Media AI"
-              className="h-6"
+              className="h-7"
             />
           </a>
 
