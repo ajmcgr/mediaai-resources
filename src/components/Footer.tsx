@@ -112,42 +112,34 @@ const Footer = () => {
             <div>
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Free Tools</h4>
               <div className="space-y-3">
-                <a 
-                  href="https://tools.trymedia.ai/beat-outlet-matcher"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/tools/beat-outlet-matcher"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Beat & Outlet Matcher
-                </a>
-                <a 
-                  href="https://tools.trymedia.ai/pitch-personalization-helper"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                </Link>
+                <Link
+                  to="/tools/pitch-personalization-helper"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Pitch Personalization Generator
-                </a>
-                <a 
-                  href="https://tools.trymedia.ai/subject-line-split-tester"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                </Link>
+                <Link
+                  to="/tools/subject-line-split-tester"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Subject Line Split-Tester
-                </a>
-                <a 
-                  href="https://tools.trymedia.ai/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                </Link>
+                <Link
+                  to="/tools"
                   className="block text-sm font-semibold transition-colors"
                   style={{ color: '#222529' }}
                 >
                   View All Tools →
-                </a>
+                </Link>
               </div>
             </div>
 
