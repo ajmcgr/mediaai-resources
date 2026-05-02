@@ -32,7 +32,7 @@ const HeroSection = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild className="btn-hero">
-                <Link to="/resources/tools">
+                <Link to="/tools">
                   Explore All Tools
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

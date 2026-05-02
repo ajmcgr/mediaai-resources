@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { 
-  Search, 
+import {
+  Search,
   Filter,
-  Target, 
-  MessageSquare, 
-  TestTube, 
+  Target,
+  MessageSquare,
+  TestTube,
   Calculator,
   Clock,
   Users,
@@ -23,225 +23,65 @@ import {
   Globe,
   Zap,
   ArrowRight,
-  Star
+  Star,
+  Calendar,
 } from "lucide-react";
 
 const ToolsHub = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const categories = ["All", "Pitching", "Lists", "Influencer", "Compliance", "Analytics", "Workflow"];
-
-  const allTools = [
-    // Pitching Tools
-    { 
-      title: "Beat & Outlet Matcher", 
-      description: "Paste your story; get a ranked list of beats/outlet types to target", 
-      icon: Target, 
-      slug: "beat-outlet-matcher", 
-      category: "Pitching",
-      badge: "Popular" 
-    },
-    { 
-      title: "Pitch Personalization Helper", 
-      description: "Enter journalist name + beat; get 3 tailored opening lines", 
-      icon: MessageSquare, 
-      slug: "pitch-personalization-helper", 
-      category: "Pitching",
-      badge: "New" 
-    },
-    { 
-      title: "Subject Line Split-Tester", 
-      description: "Generate/score 10 subject lines; pick 2–3 with highest open-rate likelihood", 
-      icon: TestTube, 
-      slug: "subject-line-split-tester", 
-      category: "Pitching",
-      badge: null 
-    },
-    { 
-      title: "Pitch Fit Score Calculator", 
-      description: "Input your news + audience; receive a 0–100 'fit score' with suggestions", 
-      icon: Calculator, 
-      slug: "pitch-fit-score-calculator", 
-      category: "Pitching",
-      badge: null 
-    },
-    { 
-      title: "Embargo & Timing Planner", 
-      description: "Enter launch date/timezones; get optimal outreach windows", 
-      icon: Clock, 
-      slug: "embargo-timing-planner", 
-      category: "Compliance",
-      badge: null 
-    },
-    { 
-      title: "Follow-Up Cadence Builder", 
-      description: "Create a 2–3 step follow-up plan with timing and copy prompts", 
-      icon: Clock, 
-      slug: "follow-up-cadence-builder", 
-      category: "Compliance",
-      badge: null 
-    },
-
-    // Lists Tools
-    { 
-      title: "List Segmenter (Lite)", 
-      description: "Paste a rough list; get smart segments by region, beat, seniority", 
-      icon: List, 
-      slug: "list-segmenter-lite", 
-      category: "Lists",
-      badge: null 
-    },
-    { 
-      title: "Contact Dedupe & Clean (Lite)", 
-      description: "Paste CSV text; highlight likely duplicates/format errors", 
-      icon: List, 
-      slug: "contact-dedupe-clean", 
-      category: "Lists",
-      badge: null 
-    },
-    { 
-      title: "Outreach Sequence Generator", 
-      description: "Build a 3-email cadence tailored to story type and beat", 
-      icon: MessageSquare, 
-      slug: "outreach-sequence-generator", 
-      category: "Lists",
-      badge: null 
-    },
-    { 
-      title: "Media AI Query Builder", 
-      description: "Wizard that outputs a 'saved search' recipe for Media AI", 
-      icon: Settings, 
-      slug: "media-ai-query-builder", 
-      category: "Lists",
-      badge: null 
-    },
-
-    // Influencer Tools
-    { 
-      title: "Compliance & Disclosure Helper", 
-      description: "Quick checklist for ASA/FTC disclosures; suggested captions", 
-      icon: Shield, 
-      slug: "compliance-disclosure-helper", 
-      category: "Influencer",
-      badge: null 
-    },
-    { 
-      title: "Influencer Brief Builder", 
-      description: "Generate a clear brief with deliverables, messaging, usage rights", 
-      icon: Users, 
-      slug: "influencer-brief-builder", 
-      category: "Influencer",
-      badge: null 
-    },
-    { 
-      title: "Rate Card Estimator (Influencer Lite)", 
-      description: "Estimate ranges based on follower bands and platform benchmarks", 
-      icon: Calculator, 
-      slug: "rate-card-estimator", 
-      category: "Influencer",
-      badge: null 
-    },
-    { 
-      title: "Hashtag & Angle Finder (Campaign)", 
-      description: "Enter topic; get angle ideas + relevant hashtags by platform", 
-      icon: Hash, 
-      slug: "hashtag-angle-finder", 
-      category: "Influencer",
-      badge: "Trending" 
-    },
-
-    // Workflow Tools
-    { 
-      title: "Press Release Structure Builder", 
-      description: "Choose type; get a press release scaffold with fielded sections", 
-      icon: FileText, 
-      slug: "press-release-builder", 
-      category: "Workflow",
-      badge: null 
-    },
-    { 
-      title: "Quote Polisher for PR", 
-      description: "Paste quotes; get stronger, media-friendly versions", 
-      icon: MessageSquare, 
-      slug: "quote-polisher", 
-      category: "Workflow",
-      badge: null 
-    },
-    { 
-      title: "Media Kit Builder (Lite)", 
-      description: "Assemble a lightweight press kit page", 
-      icon: FileText, 
-      slug: "media-kit-builder", 
-      category: "Workflow",
-      badge: null 
-    },
-    { 
-      title: "Boilerplate Refinery", 
-      description: "Paste company boilerplate; get a press-ready version", 
-      icon: FileText, 
-      slug: "boilerplate-refinery", 
-      category: "Workflow",
-      badge: null 
-    },
-
-    // Analytics Tools
-    { 
-      title: "Coverage Tracker (Public Page Template)", 
-      description: "Create a shareable coverage board template", 
-      icon: BarChart3, 
-      slug: "coverage-tracker", 
-      category: "Analytics",
-      badge: null 
-    },
-    { 
-      title: "UTM Builder for PR Links", 
-      description: "Generate consistent UTM parameters for press links", 
-      icon: Globe, 
-      slug: "utm-builder-pr", 
-      category: "Analytics",
-      badge: null 
-    },
-    { 
-      title: "Link Health & No-Follow Checker", 
-      description: "Paste coverage URLs; check status, no-follow, and canonical presence", 
-      icon: Globe, 
-      slug: "link-health-checker", 
-      category: "Analytics",
-      badge: null 
-    },
-    { 
-      title: "PR ROI Snapshot Calculator", 
-      description: "Input coverage metrics/traffic; estimate impact", 
-      icon: BarChart3, 
-      slug: "pr-roi-calculator", 
-      category: "Analytics",
-      badge: null 
-    },
-
-    // Compliance Tools
-    { 
-      title: "Journalist Availability Timezone Converter", 
-      description: "Enter city list; get a friendly window to email", 
-      icon: Globe, 
-      slug: "journalist-timezone-converter", 
-      category: "Compliance",
-      badge: null 
-    },
-    { 
-      title: "Crisis Holding Statement Generator", 
-      description: "Draft a short, neutral, timely statement with approval placeholders", 
-      icon: Shield, 
-      slug: "crisis-holding-statement", 
-      category: "Compliance",
-      badge: null 
-    }
+  const categories = [
+    "All",
+    "Pitching",
+    "Lists",
+    "Influencer",
+    "Compliance",
+    "Analytics",
+    "Workflow",
   ];
 
-  const filteredTools = allTools.filter(tool => {
-    const matchesSearch = tool.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tool.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || tool.category === selectedCategory;
+  const allTools = [
+    { title: "Beat & Outlet Matcher", description: "Paste your story; get a ranked list of beats/outlet types to target", icon: Target, slug: "beat-outlet-matcher", category: "Pitching", badge: "Popular" },
+    { title: "Pitch Personalization Generator", description: "Enter journalist name + beat; get 3 tailored opening lines", icon: MessageSquare, slug: "pitch-personalization-helper", category: "Pitching", badge: "New" },
+    { title: "Subject Line Split-Tester", description: "Generate/score 10 subject lines; pick 2–3 with highest open-rate likelihood", icon: TestTube, slug: "subject-line-split-tester", category: "Pitching", badge: null },
+    { title: "Pitch Fit Score Calculator", description: "Input your news + audience; receive a 0–100 'fit score' with suggestions", icon: Calculator, slug: "pitch-fit-score-calculator", category: "Pitching", badge: null },
+    { title: "Embargo & Timing Planner", description: "Enter launch date/timezones; get optimal outreach windows", icon: Clock, slug: "embargo-timing-planner", category: "Compliance", badge: null },
+    { title: "Follow-Up Cadence Generator", description: "Create a 2–3 step follow-up plan with timing and copy prompts", icon: Clock, slug: "follow-up-cadence-builder", category: "Compliance", badge: null },
+
+    { title: "List Segmenter", description: "Paste a rough list; get smart segments by region, beat, seniority", icon: List, slug: "list-segmenter-lite", category: "Lists", badge: null },
+    { title: "Coverage Analytics Dashboard", description: "Track your coverage performance with engagement metrics and reach analysis", icon: BarChart3, slug: "coverage-analytics-dashboard", category: "Analytics", badge: null },
+    { title: "Outreach Sequence Generator", description: "Build a 3-email cadence tailored to story type and beat", icon: MessageSquare, slug: "outreach-sequence-generator", category: "Lists", badge: null },
+    { title: "Social Media Content Planner", description: "Create month-long content calendars aligned with campaign goals", icon: Calendar, slug: "social-media-content-planner", category: "Influencer", badge: null },
+
+    { title: "Compliance & Disclosure Helper", description: "Quick checklist for ASA/FTC disclosures; suggested captions", icon: Shield, slug: "compliance-disclosure-helper", category: "Influencer", badge: null },
+    { title: "Influencer Brief Generator", description: "Generate a clear brief with deliverables, messaging, usage rights", icon: Users, slug: "influencer-brief-builder", category: "Influencer", badge: null },
+    { title: "Rate Card Estimator", description: "Estimate ranges based on follower bands and platform benchmarks", icon: Calculator, slug: "rate-card-estimator-lite", category: "Influencer", badge: null },
+    { title: "Hashtag & Angle Finder", description: "Enter topic; get angle ideas plus relevant hashtags by platform", icon: Hash, slug: "hashtag-angle-finder", category: "Influencer", badge: "Trending" },
+
+    { title: "Press Release Structure Generator", description: "Choose type; get a press release scaffold with fielded sections", icon: FileText, slug: "press-release-structure-builder", category: "Workflow", badge: null },
+    { title: "Quote Polisher for PR", description: "Paste quotes; get stronger, media-friendly versions", icon: MessageSquare, slug: "quote-polisher-pr", category: "Workflow", badge: null },
+    { title: "Media Kit Generator", description: "Assemble a lightweight press kit page", icon: FileText, slug: "media-kit-builder-lite", category: "Workflow", badge: null },
+    { title: "Boilerplate Refinery", description: "Paste company boilerplate; get a press-ready version", icon: FileText, slug: "boilerplate-refinery", category: "Workflow", badge: null },
+
+    { title: "Coverage Tracker", description: "Create a shareable coverage board template", icon: BarChart3, slug: "coverage-tracker-template", category: "Analytics", badge: null },
+    { title: "UTM Generator for PR Links", description: "Generate consistent UTM parameters for press links", icon: Globe, slug: "utm-builder-pr-links", category: "Analytics", badge: null },
+    { title: "Link Health & No-Follow Checker", description: "Paste coverage URLs; check status, no-follow, and canonical presence", icon: Globe, slug: "link-health-checker", category: "Analytics", badge: null },
+    { title: "PR ROI Snapshot Calculator", description: "Input coverage metrics/traffic; estimate impact", icon: BarChart3, slug: "pr-roi-snapshot-calculator", category: "Analytics", badge: null },
+
+    { title: "Journalist Availability Timezone Converter", description: "Enter city list; get a friendly window to email", icon: Globe, slug: "journalist-timezone-converter", category: "Compliance", badge: null },
+    { title: "Crisis Holding Statement Generator", description: "Draft a short, neutral, timely statement with approval placeholders", icon: Shield, slug: "crisis-holding-statement-generator", category: "Compliance", badge: null },
+
+    { title: "Media AI Query Builder", description: "Wizard that outputs a 'saved search' recipe for Media AI", icon: Settings, slug: "media-ai-query-builder", category: "Lists", badge: null },
+    { title: "Contact Dedupe & Clean (Lite)", description: "Paste CSV text; highlight likely duplicates/format errors", icon: List, slug: "contact-dedupe-clean-lite", category: "Lists", badge: null },
+  ];
+
+  const filteredTools = allTools.filter((tool) => {
+    const matchesSearch =
+      tool.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "All" || tool.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -264,11 +104,11 @@ const ToolsHub = () => {
       <section className="bg-hero-gradient py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-medium text-white mb-4">
               Free PR & Social Media Tools
             </h1>
             <p className="text-xl text-white/90 mb-8">
-              24 powerful tools to streamline your workflow. Find beats, craft pitches, 
+              Powerful tools to streamline your workflow. Find beats, craft pitches,
               manage lists, and track coverage.
             </p>
             <div className="flex items-center justify-center space-x-2 text-white/80">
@@ -282,10 +122,9 @@ const ToolsHub = () => {
       {/* Tools Section */}
       <section className="py-16 bg-subtle-gradient">
         <div className="container mx-auto px-4">
-          {/* Search and Filters */}
           <div className="max-w-4xl mx-auto mb-12">
             <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search tools..."
@@ -297,13 +136,12 @@ const ToolsHub = () => {
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <div className="flex flex-wrap gap-2">
-                  {categories.map(category => (
+                  {categories.map((category) => (
                     <Button
                       key={category}
                       variant={selectedCategory === category ? "default" : "secondary"}
                       size="sm"
                       onClick={() => setSelectedCategory(category)}
-                      className={selectedCategory === category ? "btn-primary" : "btn-secondary"}
                     >
                       {category}
                     </Button>
@@ -313,13 +151,12 @@ const ToolsHub = () => {
             </div>
           </div>
 
-          {/* Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTools.map((tool, index) => {
+            {filteredTools.map((tool) => {
               const IconComponent = tool.icon;
               return (
-                <Card key={tool.slug} className="card-tool group cursor-pointer">
-                  <Link to={`/resources/tools/${tool.slug}`} className="block">
+                <Card key={tool.slug} className="card-tool group cursor-pointer p-6">
+                  <Link to={`/tools/${tool.slug}`} className="block">
                     <div className="flex items-start justify-between mb-4">
                       <div className="p-3 bg-primary/10 rounded-xl">
                         <IconComponent className="h-6 w-6 text-primary" />
@@ -335,15 +172,15 @@ const ToolsHub = () => {
                         </Badge>
                       </div>
                     </div>
-                    
-                    <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+
+                    <h3 className="text-xl font-medium text-foreground mb-2 group-hover:text-primary transition-colors">
                       {tool.title}
                     </h3>
-                    
+
                     <p className="text-muted-foreground mb-4 leading-relaxed text-sm">
                       {tool.description}
                     </p>
-                    
+
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-medium text-primary">
                         Try for free
@@ -351,22 +188,6 @@ const ToolsHub = () => {
                       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                     </div>
                   </Link>
-                  
-                  {/* CTA Section */}
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Ready for the full experience?
-                    </p>
-                    <Button asChild size="sm" variant="outline" className="w-full text-xs">
-                      <a 
-                        href="https://trymedia.ai" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                      >
-                        Try Media AI Platform
-                      </a>
-                    </Button>
-                  </div>
                 </Card>
               );
             })}
@@ -374,8 +195,10 @@ const ToolsHub = () => {
 
           {filteredTools.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground text-lg">No tools found matching your criteria.</p>
-              <Button 
+              <p className="text-muted-foreground text-lg">
+                No tools found matching your criteria.
+              </p>
+              <Button
                 onClick={() => {
                   setSearchTerm("");
                   setSelectedCategory("All");
@@ -391,25 +214,21 @@ const ToolsHub = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
+            <h2 className="text-3xl font-medium text-foreground mb-4">
               Ready to supercharge your PR workflow?
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Use these free tools to prepare your campaigns, then execute with Media AI's 
+              Use these free tools to prepare your campaigns, then execute with Media AI's
               database of 50,000+ journalists and creators.
             </p>
-            <Button asChild className="btn-primary">
-              <a 
-                href="https://trymedia.ai" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
+            <Button asChild>
+              <Link to="/pricing">
                 <Zap className="mr-2 h-4 w-4" />
                 Start Free Trial
-              </a>
+              </Link>
             </Button>
           </div>
         </div>
