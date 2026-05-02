@@ -73,17 +73,19 @@ const App = () => (
               {/* Resources content */}
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
-              <Route path="/resources/tools" element={<ToolsHub />} />
-              <Route path="/resources/tools/:slug" element={<ToolTemplate />} />
               <Route path="/resources/about" element={<About />} />
               <Route path="/resources/:slug" element={<ResourceArticle />} />
+
+              {/* Tools (canonical) */}
+              <Route path="/tools" element={<ToolsHub />} />
+              <Route path="/tools/:slug" element={<ToolTemplate />} />
 
               {/* Root: dashboard for signed-in, marketing for guests */}
               <Route path="/" element={<Root />} />
 
               {/* Legacy redirects */}
-              <Route path="/tools" element={<Navigate to="/resources/tools" replace />} />
-              <Route path="/tools/:slug" element={<RedirectWithSlug to={(s) => `/resources/tools/${s}`} />} />
+              <Route path="/resources/tools" element={<Navigate to="/tools" replace />} />
+              <Route path="/resources/tools/:slug" element={<RedirectWithSlug to={(s) => `/tools/${s}`} />} />
               <Route path="/about" element={<Navigate to="/resources/about" replace />} />
 
               <Route path="/:slug" element={<LegacySlugRedirect />} />
