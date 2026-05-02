@@ -3,8 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PaidRoute from "@/components/PaidRoute";
+import Root from "./pages/Root";
 import Index from "./pages/Index";
 import ToolsHub from "./pages/ToolsHub";
 import ToolTemplate from "./pages/ToolTemplate";
@@ -17,6 +20,9 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/app/Dashboard";
+import Pricing from "./pages/Pricing";
+import Account from "./pages/Account";
+import BillingSuccess from "./pages/BillingSuccess";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +33,8 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "",
-  "login", "signup", "forgot-password", "reset-password", "app",
+  "login", "signup", "forgot-password", "reset-password",
+  "app", "dashboard", "account", "pricing", "billing",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -38,43 +45,55 @@ const LegacySlugRedirect = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Auth */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Auth */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Protected app */}
-            <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              {/* Public marketing/billing */}
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
 
-            {/* Resources content */}
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/resources/home" element={<Index />} />
-            <Route path="/resources/tools" element={<ToolsHub />} />
-            <Route path="/resources/tools/:slug" element={<ToolTemplate />} />
-            <Route path="/resources/about" element={<About />} />
-            <Route path="/resources/:slug" element={<ResourceArticle />} />
+              {/* Authenticated (any plan) */}
+              <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 
-            {/* Legacy redirects */}
-            <Route path="/" element={<Navigate to="/resources" replace />} />
-            <Route path="/tools" element={<Navigate to="/resources/tools" replace />} />
-            <Route path="/tools/:slug" element={<RedirectWithSlug to={(s) => `/resources/tools/${s}`} />} />
-            <Route path="/about" element={<Navigate to="/resources/about" replace />} />
+              {/* Paid-only app */}
+              <Route path="/dashboard" element={<PaidRoute><Dashboard /></PaidRoute>} />
+              <Route path="/app" element={<Navigate to="/dashboard" replace />} />
 
-            <Route path="/:slug" element={<LegacySlugRedirect />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              {/* Resources content */}
+              <Route path="/resources" element={<Resources />} />
+              <Route path="/resources/home" element={<Index />} />
+              <Route path="/resources/tools" element={<ToolsHub />} />
+              <Route path="/resources/tools/:slug" element={<ToolTemplate />} />
+              <Route path="/resources/about" element={<About />} />
+              <Route path="/resources/:slug" element={<ResourceArticle />} />
+
+              {/* Root: dashboard for signed-in, marketing for guests */}
+              <Route path="/" element={<Root />} />
+
+              {/* Legacy redirects */}
+              <Route path="/tools" element={<Navigate to="/resources/tools" replace />} />
+              <Route path="/tools/:slug" element={<RedirectWithSlug to={(s) => `/resources/tools/${s}`} />} />
+              <Route path="/about" element={<Navigate to="/resources/about" replace />} />
+
+              <Route path="/:slug" element={<LegacySlugRedirect />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;
