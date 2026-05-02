@@ -8,11 +8,9 @@ const MobileMenu = () => {
   const [open, setOpen] = useState(false);
 
   const menuItems = [
-    { name: "Home", path: "/" },
-    { name: "Tools", path: "/tools" },
-    { name: "About", path: "/about" },
-    { name: "Documentation", path: "/documentation" },
-    { name: "Sign In", path: "/signin" },
+    { name: "Home", path: "/resources" },
+    { name: "Tools", path: "/resources/tools" },
+    { name: "About", path: "/resources/about" },
   ];
 
   return (

@@ -13,7 +13,7 @@ const Footer = () => {
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Company</h4>
               <div className="space-y-3">
                 <Link 
-                  to="/about" 
+                  to="/resources/about" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
@@ -76,28 +76,28 @@ const Footer = () => {
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Resources</h4>
               <div className="space-y-3">
                 <Link 
-                  to="/build-a-media-list-that-gets-replies" 
+                  to="/resources/build-a-media-list-that-gets-replies" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Build a Media List
                 </Link>
                 <Link 
-                  to="/press-release-templates-by-announcement-type"
+                  to="/resources/press-release-templates-by-announcement-type"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Press Release Templates
                 </Link>
                 <Link 
-                  to="/pr-attribution-with-utms"
+                  to="/resources/pr-attribution-with-utms"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   PR Attribution
                 </Link>
                 <a 
-                  href="https://resources.trymedia.ai/"
+                  href="https://resources.trymedia.ai/resources"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-sm font-semibold transition-colors"

@@ -94,7 +94,7 @@ const FeaturedTools = () => {
             const IconComponent = tool.icon;
             return (
               <Card key={tool.slug} className="card-tool group cursor-pointer">
-                <Link to={`/tools/${tool.slug}`} className="block">
+                <Link to={`/resources/tools/${tool.slug}`} className="block">
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 bg-primary/10 rounded-xl">
                       <IconComponent className="h-6 w-6 text-primary" />
@@ -144,7 +144,7 @@ const FeaturedTools = () => {
 
         <div className="text-center">
           <Button asChild className="btn-primary">
-            <Link to="/tools">
+            <Link to="/resources/tools">
               <Sparkles className="mr-2 h-4 w-4" />
               View All 24 Tools
             </Link>
