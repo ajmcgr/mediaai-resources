@@ -405,7 +405,7 @@ const Resources = () => {
                       {cardContent}
                     </a>
                   ) : (
-                    <Link to={`/${resource.slug}`} className="block">
+                    <Link to={`/resources/${resource.slug}`} className="block">
                       {cardContent}
                     </Link>
                   )}
