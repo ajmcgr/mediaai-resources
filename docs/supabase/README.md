@@ -15,8 +15,8 @@ They are **idempotent** (safe to re-run).
 ## Auth provider config (Supabase dashboard)
 
 1. **Auth → URL Configuration**
-   - **Site URL**: `https://resources.trymedia.ai`
-   - **Redirect URLs** (add all): `https://resources.trymedia.ai/**`, `https://mediaai-resources.lovable.app/**`, `https://id-preview--546fe1b4-503d-4d75-a5e6-a57570fb4403.lovable.app/**`, `http://localhost:5173/**`
+   - **Site URL**: `https://trymedia.ai`
+   - **Redirect URLs** (add all): `https://trymedia.ai/**`, `https://resources.trymedia.ai/**`, `https://mediaai-resources.lovable.app/**`, `https://id-preview--546fe1b4-503d-4d75-a5e6-a57570fb4403.lovable.app/**`, `http://localhost:5173/**`
 2. **Auth → Providers → Email**: Enable. Toggle **"Confirm email"** OFF for fastest dev/testing (turn back on for production).
 3. **Auth → Providers → Google**: Enable, paste your Google OAuth Client ID + Secret. Add `https://uavbphkhomblzkjfuaot.supabase.co/auth/v1/callback` to authorized redirect URIs in Google Cloud Console.
 4. **Auth → Policies → Email**: Enable **"Leaked password protection (HIBP)"** for production.
