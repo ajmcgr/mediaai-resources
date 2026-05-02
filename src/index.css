@@ -6,27 +6,29 @@
 All colors MUST be HSL.
 */
 
-/* Reckless Font Faces */
+/* Reckless (display) — official woff/ttf assets */
 @font-face {
   font-family: 'Reckless';
-  src: url('/Reckless-Regular.otf') format('opentype');
-  font-weight: 400;
+  src: url('/fonts/Reckless-Medium.woff') format('woff'),
+       url('/fonts/Reckless-Medium.ttf') format('truetype');
+  font-weight: 400 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Reckless';
-  src: url('/Reckless-Medium.otf') format('opentype');
-  font-weight: 500;
+  src: url('/fonts/Reckless-SemiBold.otf') format('opentype');
+  font-weight: 600 700;
   font-style: normal;
   font-display: swap;
 }
 
+/* Mabry Pro (body) */
 @font-face {
-  font-family: 'Reckless';
-  src: url('/Reckless-Bold.otf') format('opentype');
-  font-weight: 700;
+  font-family: 'Mabry Pro';
+  src: url('/fonts/MabryPro-Medium.ttf') format('truetype');
+  font-weight: 400 600;
   font-style: normal;
   font-display: swap;
 }
@@ -74,9 +76,9 @@ All colors MUST be HSL.
     --shadow-button: 0 1px 3px 0 hsl(217 91% 60% / 0.1), 0 1px 2px 0 hsl(217 91% 60% / 0.06);
     --shadow-hover: 0 10px 15px -3px hsl(217 91% 60% / 0.1), 0 4px 6px -2px hsl(217 91% 60% / 0.05);
     
-    /* Typography */
-    --font-heading: 'Reckless', 'Inter', system-ui, -apple-system, sans-serif;
-    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Typography — Reckless display + Mabry Pro body */
+    --font-heading: 'Reckless', 'Mabry Pro', 'Inter', system-ui, sans-serif;
+    --font-body: 'Mabry Pro', 'Inter', system-ui, -apple-system, sans-serif;
 
     --sidebar-background: 0 0% 98%;
 
