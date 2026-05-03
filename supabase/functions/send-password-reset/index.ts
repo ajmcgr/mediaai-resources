@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
-const FROM_ADDRESS = "Media AI <noreply@trymedia.ai>";
+const FROM_ADDRESS = "Media AI <onboarding@resend.dev>";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
