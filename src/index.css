@@ -38,10 +38,10 @@ All colors MUST be HSL.
     --popover-foreground: 220 13% 18%;
 
     /* Media AI Blue Gradient System */
-    --primary: 217 91% 60%; /* #4F8EF8 - Media AI Blue */
+    --primary: 212 82% 49%; /* #1675e2 - Media AI Blue */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 55%;
-    --primary-glow: 217 91% 70%;
+    --primary-hover: 212 82% 44%;
+    --primary-glow: 212 82% 60%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 13% 18%;
@@ -99,10 +99,10 @@ All colors MUST be HSL.
     --popover: 220 27% 10%;
     --popover-foreground: 220 14% 96%;
 
-    --primary: 217 91% 60%;
+    --primary: 212 82% 49%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 55%;
-    --primary-glow: 217 91% 70%;
+    --primary-hover: 212 82% 44%;
+    --primary-glow: 212 82% 60%;
 
     --secondary: 220 27% 15%;
     --secondary-foreground: 220 14% 96%;
