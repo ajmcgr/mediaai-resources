@@ -8,23 +8,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { startCheckout } from "@/lib/billing";
 import { toast } from "sonner";
 
-import heroProduct from "@/assets/home/hero-product.png";
+import heroProductMain from "@/assets/home/hero-product-main.png";
+import heroProductDiscover from "@/assets/home/hero-product-discover.png";
 import audiencesImg from "@/assets/home/audiences.png";
 import featureSearch from "@/assets/home/feature-search.png";
 import featureExport from "@/assets/home/feature-export.png";
-import logoMuckrack from "@/assets/home/logo-muckrack.png";
-import logoCision from "@/assets/home/logo-cision.png";
-import logoMeltwater from "@/assets/home/logo-meltwater.png";
-import logoMedia from "@/assets/home/logo-media.png";
+import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
+import logoCision from "@/assets/home/logo-cision-new.png";
+import logoMeltwater from "@/assets/home/logo-meltwater-new.png";
+import logoMedia from "@/assets/home/logo-media-new.png";
 import brand1 from "@/assets/home/brand-1.png";
 import brand2 from "@/assets/home/brand-2.png";
-import brand3 from "@/assets/home/brand-3.png";
+import brand3 from "@/assets/home/brand-3-new.png";
 import brand4 from "@/assets/home/brand-4.png";
 import newBadge from "@/assets/home/new-badge.png";
 import avatar1 from "@/assets/home/avatar-1.png";
 import avatar2 from "@/assets/home/avatar-2.png";
 import avatar3 from "@/assets/home/avatar-3.png";
-import avatar4 from "@/assets/home/avatar-4.png";
+import avatar4 from "@/assets/home/avatar-4-new.jpg";
 import jacksonAvatar from "@/assets/home/testimonial-jackson.png";
 
 type Interval = "monthly" | "yearly";
@@ -64,19 +65,19 @@ const AUDIENCES = [
 ];
 
 const VALUE_PROPS = [
-  { title: "AI Crawler", body: "Our AI crawls the web to find the contact info of the world's leading journalists and creators." },
-  { title: "Proprietary data", body: "Our proprietary database is updated with all key information you need including email and socials." },
-  { title: "Sync and share", body: "Export and download all the contacts you need in whatever format you need including Excel, PDF & more." },
-  { title: "No contracts", body: "We don't tie you down to a contract or require a sales pitch." },
-  { title: "Always updated", body: "Our AI is constantly double checking journalist and creator contact info while always adding new contacts." },
-  { title: "Media experts", body: "Our team is comprised of real PR and Social media experts - not financial or sales types." },
+  { title: "AI Crawler", body: "Our AI crawls the web to find the contact info of the world's leading journalists and creators.", icon: "\n" },
+  { title: "Proprietary data", body: "Our proprietary database is updated with all key information you need including email and socials.", icon: "\n" },
+  { title: "Sync and share", body: "Export and download all the contacts you need in whatever format you need including Excel, PDF & more.", icon: "🤝" },
+  { title: "No contracts", body: "We don't tie you down to a contract or require a sales pitch.", icon: "🤝" },
+  { title: "Always updated", body: "Our AI is constantly double checking journalist and creator contact info while always adding new contacts.", icon: "\n" },
+  { title: "Media experts", body: "Our team is comprised of real PR and Social media experts - not financial or sales types.", icon: "🤝" },
 ];
 
 const FEATURE_BLOCKS = [
   {
     eyebrow: "Discover",
     body: "Effortlessly explore a rich database of creators and journalists, handpicked for their expertise and credibility. Whether you're seeking creative talent for a campaign or a journalist to amplify your story.",
-    image: heroProduct,
+    image: heroProductDiscover,
     bullets: ["Access to a growing network of professionals", "Streamlined interface for intuitive browsing", "Discover fresh talent for topics or industries"],
   },
   {
@@ -217,7 +218,7 @@ const Index = () => {
         </div>
 
         <div className="max-w-6xl mx-auto mt-16">
-          <img src={heroProduct} alt="Media AI dashboard preview" className="w-full h-auto" />
+          <img src={heroProductMain} alt="Media AI dashboard preview" className="w-full h-auto" />
         </div>
       </section>
 
@@ -327,7 +328,7 @@ const Index = () => {
             {VALUE_PROPS.map((v) => (
               <div key={v.title} className="rounded-2xl bg-primary-foreground/10 p-8 backdrop-blur-sm">
                 <div className="h-10 w-10 rounded-lg bg-primary-foreground/15 flex items-center justify-center mb-6">
-                  <span className="text-xl">🤖</span>
+                  <span className="text-xl whitespace-pre-line">{v.icon}</span>
                 </div>
                 <h3 className="text-2xl font-medium mb-3" style={{ fontFamily: "var(--font-heading)" }}>{v.title}</h3>
                 <p className="text-sm text-primary-foreground/80 leading-relaxed">{v.body}</p>
@@ -434,7 +435,7 @@ const Index = () => {
                   { label: "Updated", row: ["AI", "?", "?", "?"] },
                   { label: "Monthly cost***", row: ["$99", "$400+", "$700+", "$1000+"] },
                   { label: "Annual cost****", row: ["$999", "$5,000+", "$8,000+", "$12,000+"] },
-                  { label: "Payment", row: ["Card", "Contract", "Contract", "Contract"] },
+                  { label: "Payment", row: ["Credit Card", "Contract", "Contract", "Contract"] },
                   { label: "Free Trial?", row: [true, false, false, false] },
                 ].map((r) => (
                   <tr key={r.label}>
@@ -514,7 +515,7 @@ const Index = () => {
               </Button>
             </div>
             <div className="hidden md:block">
-              <img src={heroProduct} alt="" className="rounded-xl shadow-2xl" />
+              <img src={heroProductMain} alt="" className="rounded-xl shadow-2xl" />
             </div>
           </div>
         </div>
