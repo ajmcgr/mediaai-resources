@@ -20,8 +20,12 @@ import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { ChatSheet } from "@/components/dashboard/ChatSheet";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
-import { useSavedSearches, useCreateSavedSearch, useDeleteSavedSearch } from "@/hooks/useSavedSearches";
-import { toast } from "sonner";
+import {
+  useSavedSearches,
+  useUpsertSavedSearch,
+  useTogglePinSavedSearch,
+  useDeleteSavedSearch,
+} from "@/hooks/useSavedSearches";
 
 type Tab = "journalists" | "creators";
 
