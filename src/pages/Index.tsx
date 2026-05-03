@@ -220,6 +220,30 @@ const Index = () => {
         <div className="max-w-6xl mx-auto mt-16">
           <img src={heroProductMain} alt="Media AI dashboard preview" className="w-full h-auto" />
         </div>
+
+        <div className="max-w-6xl mx-auto mt-20 text-center">
+          <p className="text-sm text-muted-foreground mb-8">Our users secure coverage in</p>
+          <div className="overflow-hidden relative [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+            <div className="flex gap-12 md:gap-16 animate-[scroll_40s_linear_infinite] whitespace-nowrap w-max">
+              {[
+                "TechCrunch", "Fast Company", "Forbes", "TIME", "Fortune",
+                "Business Insider", "The Economist", "Daily Mail", "CNN", "MarketWatch",
+                "USA Today", "US News", "CNET", "The Verge",
+                "TechCrunch", "Fast Company", "Forbes", "TIME", "Fortune",
+                "Business Insider", "The Economist", "Daily Mail", "CNN", "MarketWatch",
+                "USA Today", "US News", "CNET", "The Verge",
+              ].map((name, i) => (
+                <span
+                  key={i}
+                  className="text-xl md:text-2xl font-semibold text-muted-foreground/70 tracking-tight flex-shrink-0"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FEATURES */}
