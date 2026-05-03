@@ -553,12 +553,12 @@ const Index = () => {
           <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Free Tools</h4>
             <ul className="space-y-2.5 text-muted-foreground">
-              {TOOLS_LINKS.slice(0, 9).map((label) => (
+              {TOOLS_LINKS.slice(0, 9).map(([label, href]) => (
                 <li key={label}>
-                  <a href="https://tools.trymedia.ai/" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">{label}</a>
+                  <Link to={href} className="hover:text-foreground">{label}</Link>
                 </li>
               ))}
-              <li><a href="https://tools.trymedia.ai/" className="hover:text-foreground font-medium">View All Tools →</a></li>
+              <li><Link to="/tools" className="hover:text-foreground font-medium">View All Tools →</Link></li>
             </ul>
           </div>
           <div>
