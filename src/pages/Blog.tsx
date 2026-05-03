@@ -197,16 +197,6 @@ const Blog = () => {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <a
-            href="https://blog.trymedia.ai/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline font-medium"
-          >
-            View all posts on blog.trymedia.ai →
-          </a>
-        </div>
       </section>
     </Layout>
   );
