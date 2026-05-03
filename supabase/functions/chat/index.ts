@@ -138,20 +138,12 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    const { data: keyRow, error: keyErr } = await userClient
-      .from("user_openai_keys")
-      .select("api_key")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (keyErr || !keyRow?.api_key)
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey)
       return new Response(
-        JSON.stringify({
-          error: "missing_key",
-          message: "Add your OpenAI API key in Account → AI to use chat.",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ error: "missing_key", message: "Chat is not configured. Contact support." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
-    const apiKey = keyRow.api_key as string;
 
     const convo = [
       { role: "system", content: SYSTEM_PROMPT },

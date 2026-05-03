@@ -4,18 +4,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Loader2, KeyRound } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { MessageSquare, Send, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useOpenAIKey } from "@/hooks/useOpenAIKey";
-import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export const ChatSheet = () => {
-  const { user } = useAuth();
-  const keyQ = useOpenAIKey(user?.id);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -38,10 +33,10 @@ export const ChatSheet = () => {
         body: { messages: next },
       });
       if (error) throw error;
-      if (data?.error === "missing_key") {
-        setMessages((m) => [...m, { role: "assistant", content: data.message }]);
-      } else if (data?.content) {
+      if (data?.content) {
         setMessages((m) => [...m, { role: "assistant", content: data.content }]);
+      } else if (data?.message) {
+        setMessages((m) => [...m, { role: "assistant", content: data.message }]);
       } else {
         setMessages((m) => [...m, { role: "assistant", content: "(no response)" }]);
       }
@@ -55,8 +50,6 @@ export const ChatSheet = () => {
     }
   };
 
-  const hasKey = !!keyQ.data?.api_key;
-
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -68,20 +61,6 @@ export const ChatSheet = () => {
         <SheetHeader className="px-4 py-3 border-b border-border">
           <SheetTitle>Assistant</SheetTitle>
         </SheetHeader>
-
-        {!keyQ.isLoading && !hasKey ? (
-          <div className="p-4 m-4 rounded-lg border border-border bg-secondary/40 text-sm space-y-2">
-            <div className="flex items-center gap-2 font-medium">
-              <KeyRound className="h-4 w-4" />Connect your OpenAI key
-            </div>
-            <p className="text-muted-foreground">
-              Bring your own OpenAI API key to use chat. It's stored privately to your account.
-            </p>
-            <Button asChild size="sm">
-              <Link to="/account">Add key in Account</Link>
-            </Button>
-          </div>
-        ) : null}
 
         <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-3 space-y-3">
           {messages.length === 0 ? (
@@ -121,9 +100,9 @@ export const ChatSheet = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
             placeholder="Ask anything…"
-            disabled={loading || !hasKey}
+            disabled={loading}
           />
-          <Button onClick={send} disabled={loading || !input.trim() || !hasKey}>
+          <Button onClick={send} disabled={loading || !input.trim()}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
