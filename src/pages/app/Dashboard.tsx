@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Search, Users, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  MessageSquare, Database, Inbox as InboxIcon, ListChecks, Download,
+  Database, ListChecks, Download,
   User as UserIcon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
