@@ -65,12 +65,12 @@ const AUDIENCES = [
 ];
 
 const VALUE_PROPS = [
-  { title: "AI Crawler", body: "Our AI crawls the web to find the contact info of the world's leading journalists and creators.", icon: "⚡\n" },
-  { title: "Proprietary data", body: "Our proprietary database is updated with all key information you need including email and socials.", icon: "⚡\n" },
-  { title: "Sync and share", body: "Export and download all the contacts you need in whatever format you need including Excel, PDF & more.", icon: "🚫" },
+  { title: "AI Crawler", body: "Our AI crawls the web to find the contact info of the world's leading journalists and creators.", icon: "🤖" },
+  { title: "Proprietary data", body: "Our proprietary database is updated with all key information you need including email and socials.", icon: "📊" },
+  { title: "Sync and share", body: "Export and download all the contacts you need in whatever format you need including Excel, PDF & more.", icon: "📎" },
   { title: "No contracts", body: "We don't tie you down to a contract or require a sales pitch.", icon: "🚫" },
   { title: "Always updated", body: "Our AI is constantly double checking journalist and creator contact info while always adding new contacts.", icon: "⚡\n" },
-  { title: "Media experts", body: "Our team is comprised of real PR and Social media experts - not financial or sales types.", icon: "🚫" },
+  { title: "Media experts", body: "Our team is comprised of real PR and Social media experts - not financial or sales types.", icon: "🤝" },
 ];
 
 const FEATURE_BLOCKS = [
