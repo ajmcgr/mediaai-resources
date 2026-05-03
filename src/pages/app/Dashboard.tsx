@@ -81,8 +81,10 @@ const Dashboard = () => {
           <Button variant="outline" size="sm" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" />Chat</Button>
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
           <Button variant="outline" size="sm" className="gap-1.5"><InboxIcon className="h-3.5 w-3.5" />Inbox</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><ListChecks className="h-3.5 w-3.5" />Lists</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><Download className="h-3.5 w-3.5" />Export</Button>
+          <ListsSheet />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!active.data?.rows.length}>
+            <Download className="h-3.5 w-3.5" />Export
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
