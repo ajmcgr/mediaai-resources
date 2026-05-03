@@ -121,18 +121,11 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <div className="px-3 pt-2 pb-3 border-t border-border">
-            <div className="text-xs font-medium text-muted-foreground px-3 py-2">Filters</div>
-            <div className="space-y-0.5">
-              {FILTERS.map(({ label, icon: Icon }) => (
-                <button key={label} type="button"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                  <Icon className="h-4 w-4" />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <SavedSearchesList
+            currentTab={tab}
+            currentQuery={search}
+            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setPage(0); }}
+          />
         </aside>
 
         <main className="flex-1 min-w-0 overflow-auto flex flex-col">
