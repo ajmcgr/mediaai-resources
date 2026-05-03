@@ -37,13 +37,27 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!profile?.stripe_customer_id) {
-      return json({ error: "no stripe customer on file" }, 400);
+    let customerId = profile?.stripe_customer_id ?? null;
+
+    // Fallback: look up by email (covers users migrated from Bubble before checkout)
+    if (!customerId && user.email) {
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
+        await admin
+          .from("profiles")
+          .update({ stripe_customer_id: customerId })
+          .eq("id", user.id);
+      }
+    }
+
+    if (!customerId) {
+      return json({ error: "no_customer", message: "No Stripe customer on file. Subscribe first." }, 404);
     }
 
     const origin = req.headers.get("origin") ?? "https://resources.trymedia.ai";
     const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: customerId,
       return_url: `${origin}/account`,
     });
 
