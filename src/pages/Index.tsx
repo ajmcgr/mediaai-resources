@@ -247,12 +247,16 @@ const Index = () => {
                   { name: "The Verge", src: "/press-logos/theverge.png" },
                 ];
                 return [...logos, ...logos].map((logo, i) => (
-                  <img
+                  <div
                     key={i}
-                    src={logo.src}
-                    alt={logo.name}
-                    className="h-8 md:h-10 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
-                  />
+                    className="flex items-center justify-center w-32 md:w-40 h-10 md:h-12 flex-shrink-0"
+                  >
+                    <img
+                      src={logo.src}
+                      alt={logo.name}
+                      className="max-h-full max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                    />
+                  </div>
                 ));
               })()}
             </div>
