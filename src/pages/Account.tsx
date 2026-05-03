@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { openBillingPortal } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { OpenAIKeyCard } from "@/components/account/OpenAIKeyCard";
 
 const PLAN_LABELS: Record<string, string> = {
   journalist: "Journalist Database",
@@ -98,6 +99,8 @@ const Account = () => {
             </>
           )}
         </section>
+
+        <OpenAIKeyCard />
 
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
