@@ -14,6 +14,9 @@ import ToolTemplate from "./pages/ToolTemplate";
 import Resources from "./pages/Resources";
 import ResourceArticle from "./pages/ResourceArticle";
 import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
@@ -32,7 +35,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 };
 
 const RESERVED_ROOT = new Set([
-  "resources", "tools", "about", "",
+  "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
   "app", "dashboard", "account", "pricing", "billing",
 ]);
@@ -74,6 +77,9 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
               <Route path="/resources/about" element={<About />} />
+              <Route path="/resources/blog" element={<Blog />} />
+              <Route path="/resources/privacy" element={<Privacy />} />
+              <Route path="/resources/terms" element={<Terms />} />
               <Route path="/resources/:slug" element={<ResourceArticle />} />
 
               {/* Tools (canonical) */}
@@ -87,6 +93,11 @@ const App = () => (
               <Route path="/resources/tools" element={<Navigate to="/tools" replace />} />
               <Route path="/resources/tools/:slug" element={<RedirectWithSlug to={(s) => `/tools/${s}`} />} />
               <Route path="/about" element={<Navigate to="/resources/about" replace />} />
+              <Route path="/blog" element={<Navigate to="/resources/blog" replace />} />
+              <Route path="/privacy" element={<Navigate to="/resources/privacy" replace />} />
+              <Route path="/privacy-policy" element={<Navigate to="/resources/privacy" replace />} />
+              <Route path="/terms" element={<Navigate to="/resources/terms" replace />} />
+              <Route path="/terms-of-service" element={<Navigate to="/resources/terms" replace />} />
 
               <Route path="/:slug" element={<LegacySlugRedirect />} />
               <Route path="*" element={<NotFound />} />
