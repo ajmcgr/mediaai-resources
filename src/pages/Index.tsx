@@ -204,7 +204,7 @@ const Index = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">PR & Social Media pros love us :)</p>
               </div>
-              <img src={newBadge} alt="" className="h-9 w-auto" />
+              
             </div>
           </div>
 
