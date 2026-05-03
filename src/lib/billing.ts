@@ -21,9 +21,13 @@ async function authedPost(path: string, body: unknown) {
   return res.json() as Promise<{ url: string }>;
 }
 
-export async function startCheckout(planIdentifier: "journalist" | "creator" | "both") {
+export async function startCheckout(
+  planIdentifier: "journalist" | "creator" | "both",
+  interval: "monthly" | "yearly" = "monthly",
+) {
   const { url } = await authedPost("create-checkout", {
     plan_identifier: planIdentifier,
+    interval,
   });
   window.location.href = url;
 }
