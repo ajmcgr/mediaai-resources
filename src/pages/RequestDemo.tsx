@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-
-const RECIPIENT = "alex@trylaunch.ai";
+import { supabase } from "@/integrations/supabase/client";
 
 const RequestDemo = () => {
   const [submitting, setSubmitting] = useState(false);
