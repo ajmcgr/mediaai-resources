@@ -146,3 +146,7 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+function isPlanIdentifier(value: unknown): value is PlanIdentifier {
+  return value === "journalist" || value === "creator" || value === "both";
+}
