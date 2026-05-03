@@ -33,20 +33,25 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user?.email) return json({ error: "unauthorized" }, 401);
 
-    const { plan_identifier, success_url, cancel_url } = await req.json();
+    const { plan_identifier, interval, success_url, cancel_url } = await req.json();
     if (!plan_identifier) return json({ error: "plan_identifier required" }, 400);
+    const billingInterval: "monthly" | "yearly" = interval === "yearly" ? "yearly" : "monthly";
 
     // Service-role client to read plans + profile.stripe_customer_id
     const admin = createClient(supabaseUrl, serviceKey);
 
     const { data: plan, error: planErr } = await admin
       .from("plans")
-      .select("identifier, name, monthly_price_id")
+      .select("identifier, name, monthly_price_id, yearly_price_id")
       .eq("identifier", plan_identifier)
       .maybeSingle();
-    if (planErr || !plan?.monthly_price_id) {
-      return json({ error: "plan not found or missing live price id" }, 400);
+    if (planErr || !plan) {
+      return json({ error: "plan not found" }, 400);
     }
+    let priceId = billingInterval === "yearly" ? plan.yearly_price_id : plan.monthly_price_id;
+    // Defensive fallback: if yearly missing, fall back to monthly so checkout never breaks
+    if (!priceId && billingInterval === "yearly") priceId = plan.monthly_price_id;
+    if (!priceId) return json({ error: "plan missing stripe price id" }, 400);
 
     // Reuse Stripe customer if profile already has one
     const { data: profile } = await admin
