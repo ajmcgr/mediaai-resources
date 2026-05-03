@@ -1,5 +1,11 @@
 import { Link } from "react-router-dom";
-import { Twitter, Linkedin } from "lucide-react";
+import { Linkedin } from "lucide-react";
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-6.99L4.6 22H1.34l8.02-9.16L1 2h7.02l4.84 6.39L18.244 2zm-1.2 18h1.86L7.04 4H5.06l11.984 16z" />
+  </svg>
+);
 
 const RESOURCES_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Build a Media List", "/resources/build-a-media-list-that-gets-replies"],
@@ -81,7 +87,7 @@ const Footer = () => {
         <div>
           <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Connect</h4>
           <div className="flex items-center gap-3">
-            <a href="https://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Twitter className="h-4 w-4" /></a>
+            <a href="http://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><XIcon className="h-4 w-4" /></a>
             <a href="https://www.linkedin.com/company/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Linkedin className="h-4 w-4" /></a>
           </div>
         </div>
