@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "Media AI <onboarding@resend.dev>",
+        from: "Media AI <hello@trymedia.ai>",
         to: ["alex@trylaunch.ai"],
         reply_to: email,
         subject: `Demo request — ${company}`,
