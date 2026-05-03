@@ -17,7 +17,7 @@ import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
 import logoCision from "@/assets/home/logo-cision-new.png";
 import logoMeltwater from "@/assets/home/logo-meltwater-new.png";
 import logoMedia from "@/assets/home/logo-media-new.png";
-import brand1 from "@/assets/home/brand-1-new.png";
+import brand1 from "@/assets/home/brand-1-v3.png";
 import brand2 from "@/assets/home/brand-2.png";
 import brand3 from "@/assets/home/brand-3-new.png";
 import brand4 from "@/assets/home/brand-4.png";
