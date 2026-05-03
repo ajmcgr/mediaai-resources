@@ -2,9 +2,8 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Search, Users, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  Database, ListChecks, Download,
-  User as UserIcon, ChevronLeft, ChevronRight,
+  Search, Users, Database, Download,
+  ChevronLeft, ChevronRight, Bookmark, BookmarkPlus, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,19 +20,11 @@ import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { ChatSheet } from "@/components/dashboard/ChatSheet";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { useSavedSearches, useCreateSavedSearch, useDeleteSavedSearch } from "@/hooks/useSavedSearches";
+import { toast } from "sonner";
 
 type Tab = "journalists" | "creators";
 
-const FILTERS: { label: string; icon: typeof Search }[] = [
-  { label: "Search by Names", icon: UserIcon },
-  { label: "Search by Emails", icon: Mail },
-  { label: "Filter by Category", icon: Tag },
-  { label: "Search by Country", icon: Globe },
-  { label: "Search by xHandles", icon: AtSign },
-  { label: "Search by Outlet", icon: Building2 },
-  { label: "Search by Title", icon: Briefcase },
-  { label: "Search by Topics", icon: Hash },
-];
 
 const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "Topics", "xHandle", "Outlet", "Country"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
