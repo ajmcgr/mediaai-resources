@@ -92,11 +92,13 @@ Deno.serve(async (req) => {
         metadata: {
           supabase_user_id: user.id,
           plan_identifier: plan.identifier,
+          billing_interval: billingInterval,
         },
       },
       metadata: {
         supabase_user_id: user.id,
         plan_identifier: plan.identifier,
+        billing_interval: billingInterval,
       },
     });
 
