@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
-// v2: use HUBSPOT_API_KEY directly (no gateway)
+const HUBSPOT_GATEWAY_BASE = "https://connector-gateway.lovable.dev/hubspot";
 
 interface Body {
   email: string;
@@ -39,10 +39,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const TOKEN =
-      Deno.env.get("HUBSPOT_ACCESS_TOKEN") ||
-      Deno.env.get("HUBSPOT_API_KEY");
-    if (!TOKEN) throw new Error("HUBSPOT_ACCESS_TOKEN is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const HUBSPOT_API_KEY = Deno.env.get("HUBSPOT_API_KEY");
+    const HUBSPOT_ACCESS_TOKEN = Deno.env.get("HUBSPOT_ACCESS_TOKEN");
+    if (!HUBSPOT_ACCESS_TOKEN && (!LOVABLE_API_KEY || !HUBSPOT_API_KEY)) {
+      throw new Error("HubSpot is not configured");
+    }
 
     const parsed = validate(await req.json().catch(() => null));
     if (!parsed.ok) {
@@ -68,13 +70,21 @@ Deno.serve(async (req) => {
     if (company) properties.company = company;
     if (source) properties.hs_lead_source = source;
 
-    const headers = {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-    };
+    const useGateway = Boolean(LOVABLE_API_KEY && HUBSPOT_API_KEY);
+    const baseUrl = useGateway ? HUBSPOT_GATEWAY_BASE : HUBSPOT_BASE;
+    const headers: Record<string, string> = useGateway
+      ? {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": HUBSPOT_API_KEY!,
+          "Content-Type": "application/json",
+        }
+      : {
+          Authorization: `Bearer ${HUBSPOT_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        };
 
     // Try to create the contact
-    let res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/contacts`, {
+    let res = await fetch(`${baseUrl}/crm/v3/objects/contacts`, {
       method: "POST",
       headers,
       body: JSON.stringify({ properties }),
@@ -87,7 +97,7 @@ Deno.serve(async (req) => {
         data?.message?.match(/Existing ID:\s*(\d+)/i)?.[1] ||
         data?.context?.id?.[0];
       if (existingId) {
-        res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/contacts/${existingId}`, {
+        res = await fetch(`${baseUrl}/crm/v3/objects/contacts/${existingId}`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({ properties }),

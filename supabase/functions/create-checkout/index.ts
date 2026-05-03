@@ -41,12 +41,26 @@ Deno.serve(async (req) => {
     // Service-role client to read plans + profile.stripe_customer_id
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: plan, error: planErr } = await admin
+    let { data: plan, error: planErr } = await admin
       .from("plans")
       .select("identifier, name, monthly_price_id, yearly_price_id")
       .eq("identifier", plan_identifier)
       .maybeSingle();
+
+    // Older Media AI plan tables do not have yearly_price_id yet.
+    // Fall back to the legacy schema so monthly checkout still works.
+    if (planErr?.message?.includes("yearly_price_id")) {
+      const legacyPlan = await admin
+        .from("plans")
+        .select("identifier, name, monthly_price_id")
+        .eq("identifier", plan_identifier)
+        .maybeSingle();
+      plan = legacyPlan.data as typeof plan;
+      planErr = legacyPlan.error;
+    }
+
     if (planErr || !plan) {
+      console.error("plan lookup error", planErr);
       return json({ error: "plan not found" }, 400);
     }
     let priceId = billingInterval === "yearly" ? plan.yearly_price_id : plan.monthly_price_id;
