@@ -19,17 +19,15 @@ const Footer = () => {
                 >
                   About
                 </Link>
-                <a 
-                  href="https://blog.trymedia.ai/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <Link
+                  to="/resources/blog"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Blog
-                </a>
+                </Link>
                 <a 
-                  href="https://discord.gg/zrFtSbzQ2W" 
+                  href="https://chat.whatsapp.com/KKjLvfjPY2ND11cexE0Tae?mode=gi_t" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block text-sm font-light transition-colors"
@@ -50,24 +48,20 @@ const Footer = () => {
                 >
                   Support
                 </a>
-                <a 
-                  href="https://trymedia.ai/privacy-policy" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <Link
+                  to="/resources/privacy"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Privacy Policy
-                </a>
-                <a 
-                  href="https://trymedia.ai/terms-of-service" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                </Link>
+                <Link
+                  to="/resources/terms"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   Terms of Service
-                </a>
+                </Link>
               </div>
             </div>
 

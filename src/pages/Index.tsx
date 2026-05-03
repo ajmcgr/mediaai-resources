@@ -524,14 +524,14 @@ const Index = () => {
       <footer className="px-6 py-16 mt-12">
         <div className="max-w-6xl mx-auto grid md:grid-cols-5 gap-8 text-sm">
           <FooterCol title="Company" links={[
-            ["About", "https://trymedia.ai/about"],
-            ["Blog", "https://blog.trymedia.ai/"],
-            ["Community", "https://discord.gg/zrFtSbzQ2W"],
+            ["About", "/resources/about"],
+            ["Blog", "/resources/blog"],
+            ["Community", "https://chat.whatsapp.com/KKjLvfjPY2ND11cexE0Tae?mode=gi_t"],
           ]} />
           <FooterCol title="Support" links={[
             ["Support", "mailto:support@trymedia.ai"],
-            ["Privacy Policy", "https://trymedia.ai/privacy-policy"],
-            ["Terms of Service", "https://trymedia.ai/terms-of-service"],
+            ["Privacy Policy", "/resources/privacy"],
+            ["Terms of Service", "/resources/terms"],
           ]} />
           <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Resources</h4>
