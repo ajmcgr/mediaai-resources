@@ -20,7 +20,7 @@ import logoMedia from "@/assets/home/logo-media-new.png";
 import brand1 from "@/assets/home/brand-1-v3.png";
 import brand2 from "@/assets/home/brand-2.png";
 import brand3 from "@/assets/home/brand-3-new-v2.png";
-import brand4 from "@/assets/home/brand-4.png";
+import brand4 from "@/assets/home/brand-4-v2.png";
 import newBadge from "@/assets/home/new-badge.png";
 import avatar1 from "@/assets/home/avatar-1.png";
 import avatar2 from "@/assets/home/avatar-2-new-v2.jpg";
