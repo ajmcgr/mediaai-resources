@@ -26,7 +26,13 @@ const Account = () => {
       setOpening(true);
       await openBillingPortal();
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not open billing portal");
+      const msg = (e as Error).message ?? "";
+      if (msg.includes("no_customer")) {
+        toast.message("No Stripe customer yet — choose a plan to get started.");
+        navigate("/pricing");
+      } else {
+        toast.error(msg || "Could not open billing portal");
+      }
       setOpening(false);
     }
   };

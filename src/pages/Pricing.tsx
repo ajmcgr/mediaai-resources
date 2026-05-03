@@ -69,7 +69,7 @@ const Pricing = () => {
     }
     try {
       setPendingPlan(plan);
-      await startCheckout(plan);
+      await startCheckout(plan, interval);
     } catch (e) {
       toast.error((e as Error).message ?? "Could not start checkout");
       setPendingPlan(null);
