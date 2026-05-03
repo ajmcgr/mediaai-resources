@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-
-const RECIPIENT = "alex@trylaunch.ai";
+import { supabase } from "@/integrations/supabase/client";
 
 const RequestDemo = () => {
   const [submitting, setSubmitting] = useState(false);
@@ -23,27 +22,31 @@ const RequestDemo = () => {
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.company.trim()) {
       toast({ title: "Please fill in name, email, and company.", variant: "destructive" });
       return;
     }
     setSubmitting(true);
-    const subject = `Demo request — ${form.company}`;
-    const body =
-      `Name: ${form.name}\n` +
-      `Email: ${form.email}\n` +
-      `Company: ${form.company}\n` +
-      `Role: ${form.role}\n` +
-      `Team size: ${form.teamSize}\n\n` +
-      `Message:\n${form.message}\n`;
-    const mailto = `mailto:${RECIPIENT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke("send-demo-request", {
+        body: form,
+      });
+      if (error || (data && data.success === false)) {
+        throw new Error(error?.message || data?.error || "Failed to send");
+      }
+      toast({
+        title: "Request sent!",
+        description: "Thanks — we'll be in touch within one business day.",
+      });
+      setForm({ name: "", email: "", company: "", role: "", teamSize: "", message: "" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast({ title: "Could not send request", description: msg, variant: "destructive" });
+    } finally {
       setSubmitting(false);
-      toast({ title: "Opening your email client…", description: "Send the prefilled email to complete your request." });
-    }, 400);
+    }
   };
 
   return (
@@ -95,7 +98,7 @@ const RequestDemo = () => {
           </div>
 
           <Button type="submit" disabled={submitting} className="w-full h-12 text-sm font-medium">
-            {submitting ? "Opening email…" : "Request demo"}
+            {submitting ? "Sending…" : "Request demo"}
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
