@@ -181,8 +181,12 @@ const Dashboard = () => {
                 <div className="p-12 text-center text-sm text-muted-foreground">No journalists match your search.</div>
               ) : (
                 journalists.data!.rows.map((r) => (
-                  <div key={r.id} className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
-                    <Cell>{r.name}</Cell><Cell>{r.email}</Cell><Cell>{r.category}</Cell>
+                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                      <AddToListMenu journalistId={r.id} />
+                    </div>
+                    <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
                     <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
                     <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
                   </div>
