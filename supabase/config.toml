@@ -14,3 +14,12 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = true
+
+[functions.nylas-auth-start]
+verify_jwt = true
+
+[functions.nylas-auth-callback]
+verify_jwt = false
+
+[functions.nylas-inbox]
+verify_jwt = true
