@@ -13,14 +13,14 @@ const Footer = () => {
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Company</h4>
               <div className="space-y-3">
                 <Link 
-                  to="/resources/about" 
+                  to="/about" 
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
                   About
                 </Link>
                 <Link
-                  to="/resources/blog"
+                  to="/blog"
                   className="block text-sm font-light transition-colors"
                   style={{ color: '#222529' }}
                 >
