@@ -1,192 +1,95 @@
 import { Link } from "react-router-dom";
+import { Twitter, Linkedin } from "lucide-react";
+
+const RESOURCES_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Build a Media List", "/resources/build-a-media-list-that-gets-replies"],
+  ["Pitching Framework", "/resources/exclusive-vs-wide-pitching"],
+  ["Press Release Templates", "/resources/press-release-templates-by-announcement-type"],
+  ["30 Day PR Plan", "/resources/30-day-pr-plan-for-product-launches"],
+  ["PR For Funding", "/resources/pr-for-funding-announcements"],
+  ["Build a Press Kit", "/resources/press-kit-that-journalists-use"],
+  ["Influencer Briefs", "/resources/influencer-briefs-that-drive-results"],
+  ["FTC Disclosures", "/resources/ftc-asa-disclosure-for-campaigns"],
+  ["Social Proof in PR", "/resources/using-reviews-and-social-proof-in-pr"],
+];
+
+const TOOLS_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Beat & Outlet Matcher", "/tools/beat-outlet-matcher"],
+  ["Pitch Personalization Generator", "/tools/pitch-personalization-helper"],
+  ["Subject Line Split-Tester", "/tools/subject-line-split-tester"],
+  ["Pitch Fit Score Calculator", "/tools/pitch-fit-score-calculator"],
+  ["Embargo & Timing Planner", "/tools/embargo-timing-planner"],
+  ["List Segmenter", "/tools/list-segmenter-lite"],
+  ["Outreach Sequence Generator", "/tools/outreach-sequence-generator"],
+  ["Press Release Structure Generator", "/tools/press-release-structure-builder"],
+  ["Quote Polisher for PR", "/tools/quote-polisher-pr"],
+];
+
+const FooterCol = ({ title, links }: { title: string; links: readonly (readonly [string, string])[] }) => (
+  <div>
+    <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>{title}</h4>
+    <ul className="space-y-2.5 text-muted-foreground">
+      {links.map(([label, href]) => (
+        <li key={label}>
+          {href.startsWith("http") || href.startsWith("mailto:") ? (
+            <a href={href} className="hover:text-foreground" target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">{label}</a>
+          ) : (
+            <Link to={href} className="hover:text-foreground">{label}</Link>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-border py-16">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Footer Links */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 text-left justify-center">
-
-            {/* Company */}
-            <div>
-              <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Company</h4>
-              <div className="space-y-3">
-                <Link 
-                  to="/about" 
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  About
-                </Link>
-                <Link
-                  to="/blog"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Blog
-                </Link>
-                <a 
-                  href="https://chat.whatsapp.com/KKjLvfjPY2ND11cexE0Tae?mode=gi_t" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Community
-                </a>
-              </div>
-            </div>
-            {/* Support */}
-            <div>
-              <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Support</h4>
-              <div className="space-y-3">
-                <a 
-                  href="mailto:support@trymedia.ai"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Support
-                </a>
-                <Link
-                  to="/resources/privacy"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Privacy Policy
-                </Link>
-                <Link
-                  to="/resources/terms"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Terms of Service
-                </Link>
-              </div>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Resources</h4>
-              <div className="space-y-3">
-                <Link 
-                  to="/resources/build-a-media-list-that-gets-replies" 
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Build a Media List
-                </Link>
-                <Link 
-                  to="/resources/press-release-templates-by-announcement-type"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Press Release Templates
-                </Link>
-                <Link 
-                  to="/resources/pr-attribution-with-utms"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  PR Attribution
-                </Link>
-                <a 
-                  href="https://resources.trymedia.ai/resources"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-sm font-semibold transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  View All Resources →
-                </a>
-              </div>
-            </div>
-
-            {/* Free Tools */}
-            <div>
-              <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Free Tools</h4>
-              <div className="space-y-3">
-                <Link
-                  to="/tools/beat-outlet-matcher"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Beat & Outlet Matcher
-                </Link>
-                <Link
-                  to="/tools/pitch-personalization-helper"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Pitch Personalization Generator
-                </Link>
-                <Link
-                  to="/tools/subject-line-split-tester"
-                  className="block text-sm font-light transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  Subject Line Split-Tester
-                </Link>
-                <Link
-                  to="/tools"
-                  className="block text-sm font-semibold transition-colors"
-                  style={{ color: '#222529' }}
-                >
-                  View All Tools →
-                </Link>
-              </div>
-            </div>
-
-            {/* Connect */}
-            <div>
-              <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Connect</h4>
-              <div className="flex space-x-4">
-                <a 
-                  href="https://x.com/trymediaai" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:opacity-70 transition-opacity"
-                  style={{ color: '#222529' }}
-                >
-                  <svg width="20" height="20" fill="currentColor">
-                    <use href="/phosphor-icons.svg#x-logo"></use>
-                  </svg>
-                </a>
-                <a 
-                  href="https://www.linkedin.com/company/trymediaai" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:opacity-70 transition-opacity"
-                  style={{ color: '#222529' }}
-                >
-                  <svg width="20" height="20" fill="currentColor">
-                    <use href="/phosphor-icons.svg#linkedin-logo"></use>
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          {/* Copyright */}
-          <div className="mt-12 pt-8">
-            <div className="text-center">
-              <p className="text-sm font-light" style={{ color: '#222529' }}>
-                Copyright © 2026 Works App, Inc. Built with 🫶🏻 by{' '}
-                <a 
-                  href="https://works.xyz/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:opacity-70 transition-opacity"
-                  style={{ color: '#222529' }}
-                >
-                  Works
-                </a>
-                .
-              </p>
-            </div>
+    <footer className="px-6 py-16 mt-12">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-5 gap-8 text-sm">
+        <FooterCol title="Company" links={[
+          ["About", "/about"],
+          ["Blog", "/blog"],
+          ["Community", "https://chat.whatsapp.com/KKjLvfjPY2ND11cexE0Tae?mode=gi_t"],
+        ]} />
+        <FooterCol title="Support" links={[
+          ["Support", "mailto:support@trymedia.ai"],
+          ["Privacy Policy", "/privacy"],
+          ["Terms of Service", "/terms"],
+        ]} />
+        <div>
+          <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Resources</h4>
+          <ul className="space-y-2.5 text-muted-foreground">
+            {RESOURCES_LINKS.map(([label, href]) => (
+              <li key={label}>
+                <Link to={href} className="hover:text-foreground">{label}</Link>
+              </li>
+            ))}
+            <li><Link to="/resources" className="hover:text-foreground font-medium">View All Resources →</Link></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Free Tools</h4>
+          <ul className="space-y-2.5 text-muted-foreground">
+            {TOOLS_LINKS.map(([label, href]) => (
+              <li key={label}>
+                <Link to={href} className="hover:text-foreground">{label}</Link>
+              </li>
+            ))}
+            <li><Link to="/tools" className="hover:text-foreground font-medium">View All Tools →</Link></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Connect</h4>
+          <div className="flex items-center gap-3">
+            <a href="https://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Twitter className="h-4 w-4" /></a>
+            <a href="https://www.linkedin.com/company/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Linkedin className="h-4 w-4" /></a>
           </div>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground text-center mt-12">
+        Copyright © {new Date().getFullYear()} Works App, Inc. Built with 🫶🏻 by{" "}
+        <a href="https://works.xyz" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Works</a>.
+      </p>
     </footer>
   );
 };
