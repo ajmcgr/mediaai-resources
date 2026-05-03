@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
+// v2: use HUBSPOT_API_KEY directly (no gateway)
 
 interface Body {
   email: string;
