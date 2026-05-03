@@ -100,6 +100,8 @@ const Account = () => {
           )}
         </section>
 
+        <OpenAIKeyCard />
+
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
             Session
