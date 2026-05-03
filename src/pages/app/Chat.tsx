@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Download, Loader2, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, Database, Download, Loader2, MessageSquare, Plus, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
