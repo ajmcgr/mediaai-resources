@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/hubspot";
+const HUBSPOT_BASE = "https://api.hubapi.com";
 
 interface Body {
   email: string;
@@ -38,10 +38,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const HUBSPOT_API_KEY = Deno.env.get("HUBSPOT_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-    if (!HUBSPOT_API_KEY) throw new Error("HUBSPOT_API_KEY is not configured");
+    const TOKEN =
+      Deno.env.get("HUBSPOT_ACCESS_TOKEN") ||
+      Deno.env.get("HUBSPOT_API_KEY");
+    if (!TOKEN) throw new Error("HUBSPOT_ACCESS_TOKEN is not configured");
 
     const parsed = validate(await req.json().catch(() => null));
     if (!parsed.ok) {
@@ -68,13 +68,12 @@ Deno.serve(async (req) => {
     if (source) properties.hs_lead_source = source;
 
     const headers = {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": HUBSPOT_API_KEY,
+      Authorization: `Bearer ${TOKEN}`,
       "Content-Type": "application/json",
     };
 
     // Try to create the contact
-    let res = await fetch(`${GATEWAY_URL}/crm/v3/objects/contacts`, {
+    let res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/contacts`, {
       method: "POST",
       headers,
       body: JSON.stringify({ properties }),
@@ -87,7 +86,7 @@ Deno.serve(async (req) => {
         data?.message?.match(/Existing ID:\s*(\d+)/i)?.[1] ||
         data?.context?.id?.[0];
       if (existingId) {
-        res = await fetch(`${GATEWAY_URL}/crm/v3/objects/contacts/${existingId}`, {
+        res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/contacts/${existingId}`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({ properties }),
