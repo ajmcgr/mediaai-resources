@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import {
   useNylasStatus, useConnectNylas, useDisconnectNylas,
@@ -79,7 +80,7 @@ export function InboxSheet() {
             </div>
             <div className="flex-1 overflow-auto">
               {threads.isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</div>
+                <div className="p-8 flex justify-center"><Spinner /></div>
               ) : threads.error ? (
                 <div className="p-8 text-center text-sm text-destructive">{(threads.error as Error).message}</div>
               ) : (threads.data?.threads.length ?? 0) === 0 ? (
@@ -141,7 +142,7 @@ function ThreadView({ threadId, onBack, onReply }: {
           }}>Reply</Button>
         )}
       </div>
-      {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div> :
+      {isLoading ? <div className="p-8 flex justify-center"><Spinner /></div> :
         error ? <div className="p-8 text-center text-sm text-destructive">{(error as Error).message}</div> :
           data && (
             <div className="p-5 space-y-4">

@@ -70,7 +70,7 @@ const Account = () => {
           </h2>
 
           {sub.loading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="py-2"><Spinner /></div>
           ) : sub.active ? (
             <>
               <dl className="space-y-3 text-sm mb-6">
