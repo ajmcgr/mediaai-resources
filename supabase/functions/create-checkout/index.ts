@@ -41,32 +41,30 @@ Deno.serve(async (req) => {
     // Service-role client to read plans + profile.stripe_customer_id
     const admin = createClient(supabaseUrl, serviceKey);
 
-    let { data: plan, error: planErr } = await admin
+    const { data: plan, error: planErr } = await admin
       .from("plans")
-      .select("identifier, name, monthly_price_id, yearly_price_id")
+      .select("identifier, name, monthly_price_id, testmode_monthly_price_id, testmode_yearly_price_id")
       .eq("identifier", plan_identifier)
       .maybeSingle();
-
-    // Older Media AI plan tables do not have yearly_price_id yet.
-    // Fall back to the legacy schema so monthly checkout still works.
-    if (planErr?.message?.includes("yearly_price_id")) {
-      const legacyPlan = await admin
-        .from("plans")
-        .select("identifier, name, monthly_price_id")
-        .eq("identifier", plan_identifier)
-        .maybeSingle();
-      plan = legacyPlan.data as typeof plan;
-      planErr = legacyPlan.error;
-    }
 
     if (planErr || !plan) {
       console.error("plan lookup error", planErr);
       return json({ error: "plan not found" }, 400);
     }
-    let priceId = billingInterval === "yearly" ? plan.yearly_price_id : plan.monthly_price_id;
-    // Defensive fallback: if yearly missing, fall back to monthly so checkout never breaks
-    if (!priceId && billingInterval === "yearly") priceId = plan.monthly_price_id;
-    if (!priceId) return json({ error: "plan missing stripe price id" }, 400);
+
+    // Detect mode from the configured Stripe key
+    const isTestMode = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test") ||
+      (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("rk_test");
+
+    let priceId: string | null = null;
+    if (isTestMode) {
+      priceId = billingInterval === "yearly"
+        ? (plan.testmode_yearly_price_id ?? plan.testmode_monthly_price_id)
+        : plan.testmode_monthly_price_id;
+    } else {
+      priceId = plan.monthly_price_id;
+    }
+    if (!priceId) return json({ error: `plan missing stripe price id (mode=${isTestMode ? "test" : "live"}, interval=${billingInterval})` }, 400);
 
     // Reuse Stripe customer if profile already has one
     const { data: profile } = await admin
