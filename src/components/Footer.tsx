@@ -153,7 +153,7 @@ const Footer = () => {
                   </svg>
                 </a>
                 <a 
-                  href="https://linkedin.com/company/trymediaai" 
+                  href="https://www.linkedin.com/company/trymediaai" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"
