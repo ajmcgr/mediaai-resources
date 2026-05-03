@@ -29,6 +29,7 @@ import Chat from "./pages/app/Chat";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
+import RequestDemo from "./pages/RequestDemo";
 
 const queryClient = new QueryClient();
 
