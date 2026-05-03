@@ -53,6 +53,22 @@ const Dashboard = () => {
   const creators = useCreators(page, filters);
   const active = tab === "journalists" ? journalists : creators;
 
+  // Auto-save searches with a small debounce after typing stops
+  const upsertSearch = useUpsertSavedSearch();
+  const debounceRef = useRef<number | null>(null);
+  useEffect(() => {
+    const q = search.trim();
+    if (!q || !user) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      upsertSearch.mutate({ tab, query: { q } });
+    }, 800);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, tab, user?.id]);
+
   const handleSignOut = async () => { await signOut(); navigate("/"); };
   const handleSearch = (v: string) => { setSearch(v); setPage(0); };
   const handleTab = (t: Tab) => { setTab(t); setPage(0); };
