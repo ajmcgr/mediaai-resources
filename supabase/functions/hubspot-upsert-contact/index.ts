@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     const useGateway = Boolean(LOVABLE_API_KEY && HUBSPOT_API_KEY);
     const baseUrl = useGateway ? HUBSPOT_GATEWAY_BASE : HUBSPOT_BASE;
-    const headers = useGateway
+    const headers: Record<string, string> = useGateway
       ? {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "X-Connection-Api-Key": HUBSPOT_API_KEY!,
