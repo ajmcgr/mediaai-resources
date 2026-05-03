@@ -94,8 +94,6 @@ const FEATURE_BLOCKS = [
 ];
 
 const RESOURCES_LINKS = [
-  ["Link-in-bio Creator ↗", "https://trybio.ai/"],
-  ["AI Visibility Optimization ↗", "https://www.promptmonitor.io/"],
   ["Build a Media List", "/resources/build-a-media-list-that-gets-replies"],
   ["Pitching Framework", "/resources/exclusive-vs-wide-pitching"],
   ["Press Release Templates", "/resources/press-release-templates-by-announcement-type"],
