@@ -2,8 +2,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Max-Age": "86400",
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
@@ -11,7 +13,7 @@ const FROM_ADDRESS = "Media AI <noreply@trymedia.ai>";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -67,7 +69,7 @@ Deno.serve(async (req) => {
           Click the button below to choose a new password. This link expires in 1 hour.
         </p>
         <p style="margin:0 0 24px;">
-          <a href="${actionLink}" style="display:inline-block; background:#4F8EF8; color:#fff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:500;">
+          <a href="${actionLink}" style="display:inline-block; background:#1675e2; color:#fff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:500;">
             Reset password
           </a>
         </p>
