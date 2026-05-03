@@ -23,7 +23,7 @@ import brand3 from "@/assets/home/brand-3-new.png";
 import brand4 from "@/assets/home/brand-4.png";
 import newBadge from "@/assets/home/new-badge.png";
 import avatar1 from "@/assets/home/avatar-1.png";
-import avatar2 from "@/assets/home/avatar-2-new.png";
+import avatar2 from "@/assets/home/avatar-2-new-v2.jpg";
 import avatar3 from "@/assets/home/avatar-3.png";
 import avatar4 from "@/assets/home/avatar-4-new.jpg";
 import jacksonAvatar from "@/assets/home/testimonial-jackson.png";
