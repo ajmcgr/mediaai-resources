@@ -41,7 +41,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "chat", "account", "pricing", "billing",
+  "app", "dashboard", "chat", "account", "pricing", "billing", "request-demo",
 ]);
 
 const LegacySlugRedirect = () => {
