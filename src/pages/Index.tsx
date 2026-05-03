@@ -222,7 +222,7 @@ const Index = () => {
             src={heroProductMain}
             alt="Media AI dashboard preview"
             className="w-full h-auto"
-            style={{ filter: "drop-shadow(0 25px 30px rgba(0,0,0,0.15)) drop-shadow(-25px 0 30px rgba(0,0,0,0.1)) drop-shadow(25px 0 30px rgba(0,0,0,0.1))" }}
+            style={{ filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.1)) drop-shadow(-8px 0 10px rgba(0,0,0,0.06)) drop-shadow(8px 0 10px rgba(0,0,0,0.06))" }}
           />
         </div>
 
