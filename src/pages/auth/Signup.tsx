@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import GoogleIcon from "@/components/GoogleIcon";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
