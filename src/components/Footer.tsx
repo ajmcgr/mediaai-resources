@@ -142,7 +142,7 @@ const Footer = () => {
               <h4 className="font-inter font-semibold text-base mb-4" style={{ color: '#222529' }}>Connect</h4>
               <div className="flex space-x-4">
                 <a 
-                  href="https://twitter.com/trymediaai" 
+                  href="https://x.com/trymediaai" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"
@@ -153,7 +153,7 @@ const Footer = () => {
                   </svg>
                 </a>
                 <a 
-                  href="https://linkedin.com/company/trymediaai" 
+                  href="https://www.linkedin.com/company/trymediaai" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity"

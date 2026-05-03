@@ -29,6 +29,7 @@ import Chat from "./pages/app/Chat";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
+import RequestDemo from "./pages/RequestDemo";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +41,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "chat", "account", "pricing", "billing",
+  "app", "dashboard", "chat", "account", "pricing", "billing", "request-demo",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -68,6 +69,7 @@ const App = () => (
 
               {/* Public marketing/billing */}
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/request-demo" element={<RequestDemo />} />
               <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
 
               {/* Authenticated (any plan) */}
