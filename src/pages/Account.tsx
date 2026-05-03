@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { openBillingPortal } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 
 const PLAN_LABELS: Record<string, string> = {
@@ -70,7 +71,7 @@ const Account = () => {
           </h2>
 
           {sub.loading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="py-2"><Spinner /></div>
           ) : sub.active ? (
             <>
               <dl className="space-y-3 text-sm mb-6">

@@ -23,6 +23,7 @@ import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { Spinner } from "@/components/ui/spinner";
 import {
   useSavedSearches,
   useUpsertSavedSearch,
@@ -273,7 +274,7 @@ const Dashboard = () => {
                 </div>
               </div>
               {journalists.isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+                <div className="p-12 flex justify-center"><Spinner size="lg" /></div>
               ) : journalists.error ? (
                 <div className="p-8 text-center text-sm text-destructive">Failed to load journalists.</div>
               ) : allRows.length === 0 ? (
@@ -305,7 +306,7 @@ const Dashboard = () => {
                 </div>
               </div>
               {creators.isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+                <div className="p-12 flex justify-center"><Spinner size="lg" /></div>
               ) : creators.error ? (
                 <div className="p-8 text-center text-sm text-destructive">Failed to load creators.</div>
               ) : allRows.length === 0 ? (
