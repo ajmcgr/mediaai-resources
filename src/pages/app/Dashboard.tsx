@@ -208,8 +208,11 @@ const Dashboard = () => {
                 <div className="p-12 text-center text-sm text-muted-foreground">No creators match your search.</div>
               ) : (
                 creators.data!.rows.map((r) => (
-                  <div key={r.id} className="grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
-                    <Cell>{r.name}</Cell>
+                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
+                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                      <AddToListMenu creatorId={r.id} />
+                    </div>
                     <Cell>{r.ig_handle}</Cell>
                     <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                     <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
