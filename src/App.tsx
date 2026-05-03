@@ -56,6 +56,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <RecoveryRedirect />
             <Routes>
               {/* Auth */}
               <Route path="/login" element={<Login />} />
