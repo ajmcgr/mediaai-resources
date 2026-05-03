@@ -224,23 +224,30 @@ const Index = () => {
         <div className="max-w-6xl mx-auto mt-20 text-center">
           <p className="text-sm text-muted-foreground mb-8">Our users secure coverage in</p>
           <div className="overflow-hidden relative [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-            <div className="flex gap-12 md:gap-16 animate-[scroll_40s_linear_infinite] whitespace-nowrap w-max">
-              {[
-                "TechCrunch", "Fast Company", "Forbes", "TIME", "Fortune",
-                "Business Insider", "The Economist", "Daily Mail", "CNN", "MarketWatch",
-                "USA Today", "US News", "CNET", "The Verge",
-                "TechCrunch", "Fast Company", "Forbes", "TIME", "Fortune",
-                "Business Insider", "The Economist", "Daily Mail", "CNN", "MarketWatch",
-                "USA Today", "US News", "CNET", "The Verge",
-              ].map((name, i) => (
-                <span
-                  key={i}
-                  className="text-xl md:text-2xl font-semibold text-muted-foreground/70 tracking-tight flex-shrink-0"
-                  style={{ fontFamily: "var(--font-heading)" }}
-                >
-                  {name}
-                </span>
-              ))}
+            <div className="flex items-center gap-12 md:gap-16 animate-[scroll_40s_linear_infinite] whitespace-nowrap w-max">
+              {(() => {
+                const logos = [
+                  { name: "TechCrunch", src: "/press-logos/techcrunch.svg" },
+                  { name: "TIME", src: "/press-logos/time.png" },
+                  { name: "Fortune", src: "/press-logos/fortune.png" },
+                  { name: "Business Insider", src: "/press-logos/businessinsider.jpg" },
+                  { name: "The Economist", src: "/press-logos/economist.png" },
+                  { name: "Daily Mail", src: "/press-logos/dailymail.png" },
+                  { name: "CNN", src: "/press-logos/cnn.svg" },
+                  { name: "MarketWatch", src: "/press-logos/marketwatch.png" },
+                  { name: "USA Today", src: "/press-logos/usatoday.png" },
+                  { name: "CNET", src: "/press-logos/cnet.png" },
+                  { name: "The Verge", src: "/press-logos/theverge.png" },
+                ];
+                return [...logos, ...logos].map((logo, i) => (
+                  <img
+                    key={i}
+                    src={logo.src}
+                    alt={logo.name}
+                    className="h-8 md:h-10 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
+                  />
+                ));
+              })()}
             </div>
           </div>
         </div>
