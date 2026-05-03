@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Database, Download, Loader2, MessageSquare, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,11 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import {
+  useSavedSearches, useUpsertSavedSearch,
+  useTogglePinSavedSearch, useDeleteSavedSearch,
+} from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 
@@ -50,14 +55,19 @@ const Chat = () => {
   const [results, setResults] = useState<Results>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const savedSearches = useSavedSearches(!!user);
+  const upsertSearch = useUpsertSavedSearch();
+  const togglePin = useTogglePinSavedSearch();
+  const deleteSearch = useDeleteSavedSearch();
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    const next: Msg[] = [...messages, { role: "user", content: text }];
+  const sendText = async (text: string, reset = false) => {
+    if (!text.trim() || loading) return;
+    const base = reset ? [] : messages;
+    const next: Msg[] = [...base, { role: "user", content: text }];
     setMessages(next);
     setInput("");
     setLoading(true);
@@ -70,7 +80,10 @@ const Chat = () => {
         ...m,
         { role: "assistant", content: data?.content || "(no response)" },
       ]);
-      if (data?.results) setResults(data.results);
+      if (data?.results) {
+        setResults(data.results);
+        upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
+      }
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -80,6 +93,8 @@ const Chat = () => {
       setLoading(false);
     }
   };
+
+  const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
   const newChat = () => { setMessages([]); setResults(null); setInput(""); };
@@ -147,6 +162,54 @@ const Chat = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
+        {/* Left: saved searches */}
+        <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
+          </div>
+          <div className="flex-1 overflow-auto px-2 py-2">
+            {savedSearches.isLoading ? (
+              <div className="px-2 py-3 text-xs text-muted-foreground">Loading…</div>
+            ) : (savedSearches.data?.length ?? 0) === 0 ? (
+              <div className="px-2 py-3 text-xs text-muted-foreground">
+                Your searches will appear here.
+              </div>
+            ) : (
+              <ul className="space-y-0.5">
+                {savedSearches.data!.map((s) => (
+                  <li key={s.id} className="group flex items-center gap-1 rounded-md hover:bg-secondary/60">
+                    <button
+                      type="button"
+                      onClick={() => sendText(s.query.q ?? s.name, true)}
+                      className="flex-1 text-left px-2 py-1.5 text-sm truncate"
+                      title={s.query.q ?? s.name}
+                    >
+                      {s.pinned && <Pin className="inline h-3 w-3 mr-1 text-primary" />}
+                      {s.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => togglePin.mutate({ id: s.id, pinned: !s.pinned })}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground"
+                      aria-label={s.pinned ? "Unpin" : "Pin"}
+                    >
+                      {s.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSearch.mutate(s.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </aside>
+
         {/* Center: chat */}
         <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
@@ -226,30 +289,42 @@ const Chat = () => {
               <table className="w-full text-sm">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
+                    <th className="w-8" />
                     {cols.map((c) => (
                       <th key={c.key} className="text-left font-medium px-4 py-2.5">{c.label}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {results.rows.map((r, i) => (
-                    <tr key={(r.id as string) ?? i} className="border-b border-border hover:bg-secondary/30">
-                      {cols.map((c) => {
-                        const v = r[c.key];
-                        return (
-                          <td key={c.key} className="px-4 py-2.5 align-top">
-                            {v == null || v === "" ? (
-                              <span className="text-muted-foreground">—</span>
-                            ) : typeof v === "number" ? (
-                              v.toLocaleString()
-                            ) : (
-                              String(v)
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                  {results.rows.map((r, i) => {
+                    const id = Number(r.id);
+                    return (
+                      <tr key={(r.id as string) ?? i} className="group border-b border-border hover:bg-secondary/30">
+                        <td className="px-2 py-2.5 align-top">
+                          {Number.isFinite(id) && (
+                            <AddToListMenu
+                              journalistId={results.kind === "journalists" ? id : undefined}
+                              creatorId={results.kind === "creators" ? id : undefined}
+                            />
+                          )}
+                        </td>
+                        {cols.map((c) => {
+                          const v = r[c.key];
+                          return (
+                            <td key={c.key} className="px-4 py-2.5 align-top">
+                              {v == null || v === "" ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : typeof v === "number" ? (
+                                v.toLocaleString()
+                              ) : (
+                                String(v)
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
