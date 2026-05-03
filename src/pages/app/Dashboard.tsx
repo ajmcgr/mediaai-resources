@@ -142,8 +142,6 @@ const Dashboard = () => {
           </div>
 
           <SavedSearchesList
-            currentTab={tab}
-            currentQuery={search}
             onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setPage(0); }}
           />
         </aside>
