@@ -93,17 +93,7 @@ const Header = () => {
                 </Button>
                 <Button
                   asChild
-                  className="font-medium text-sm h-auto border border-solid"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#22252a",
-                    borderColor: "#e3e4e5",
-                    borderRadius: "8px",
-                    padding: "10px 20px",
-                    minHeight: "48px",
-                    fontWeight: 500,
-                    fontSize: "14px",
-                  }}
+                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg px-6 h-12 text-sm"
                 >
                   <Link to="/signup">Sign Up</Link>
                 </Button>

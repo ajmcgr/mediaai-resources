@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import GoogleIcon from "@/components/GoogleIcon";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -46,7 +47,8 @@ const Login = () => {
         <h1 className="text-3xl font-medium mb-2">Welcome back</h1>
         <p className="text-muted-foreground mb-8">Sign in to your Media AI account.</p>
 
-        <Button variant="outline" className="w-full" onClick={handleGoogle}>
+        <Button variant="outline" className="w-full gap-2" onClick={handleGoogle}>
+          <GoogleIcon className="h-5 w-5" />
           Continue with Google
         </Button>
 
