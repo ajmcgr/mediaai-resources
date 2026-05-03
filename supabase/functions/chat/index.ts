@@ -150,6 +150,9 @@ serve(async (req) => {
       ...messages,
     ];
 
+    let lastToolKind: "journalists" | "creators" | null = null;
+    let lastToolRows: unknown[] = [];
+
     // Tool-calling loop (max 4 iterations)
     for (let i = 0; i < 4; i++) {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -183,6 +186,10 @@ serve(async (req) => {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
           const result = await runTool(tc.function.name, parsed, authHeader);
+          if (Array.isArray((result as { rows?: unknown[] })?.rows)) {
+            lastToolKind = tc.function.name === "search_creators" ? "creators" : "journalists";
+            lastToolRows = (result as { rows: unknown[] }).rows;
+          }
           convo.push({
             role: "tool",
             tool_call_id: tc.id,
@@ -193,13 +200,19 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ content: msg.content ?? "" }),
+        JSON.stringify({
+          content: msg.content ?? "",
+          results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows } : null,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
-      JSON.stringify({ content: "(no response)" }),
+      JSON.stringify({
+        content: "(no response)",
+        results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows } : null,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

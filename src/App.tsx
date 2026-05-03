@@ -24,6 +24,7 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/app/Dashboard";
+import Chat from "./pages/app/Chat";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
@@ -38,7 +39,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "account", "pricing", "billing",
+  "app", "dashboard", "chat", "account", "pricing", "billing",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -73,6 +74,7 @@ const App = () => (
 
               {/* Paid-only app */}
               <Route path="/dashboard" element={<PaidRoute><Dashboard /></PaidRoute>} />
+              <Route path="/chat" element={<PaidRoute><Chat /></PaidRoute>} />
               <Route path="/app" element={<Navigate to="/dashboard" replace />} />
 
               {/* Marketing pages at root */}

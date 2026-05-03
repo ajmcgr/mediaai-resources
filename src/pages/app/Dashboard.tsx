@@ -17,7 +17,7 @@ import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
-import { ChatSheet } from "@/components/dashboard/ChatSheet";
+import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import {
@@ -98,7 +98,9 @@ const Dashboard = () => {
           <div className="text-sm text-muted-foreground mr-2 hidden md:block">
             {active.isLoading ? "Loading…" : `${total.toLocaleString()} results`}
           </div>
-          <ChatSheet />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
+            <MessageSquare className="h-3.5 w-3.5" />Chat
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
           <InboxSheet />
           <ListsSheet />
