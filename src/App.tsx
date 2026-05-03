@@ -24,6 +24,7 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/app/Dashboard";
+import Chat from "./pages/app/Chat";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
