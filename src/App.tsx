@@ -74,6 +74,7 @@ const App = () => (
 
               {/* Paid-only app */}
               <Route path="/dashboard" element={<PaidRoute><Dashboard /></PaidRoute>} />
+              <Route path="/chat" element={<PaidRoute><Chat /></PaidRoute>} />
               <Route path="/app" element={<Navigate to="/dashboard" replace />} />
 
               {/* Marketing pages at root */}
