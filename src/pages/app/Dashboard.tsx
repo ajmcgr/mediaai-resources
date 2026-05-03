@@ -16,6 +16,9 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { toCsv, downloadCsv } from "@/lib/csv";
 
 type Tab = "journalists" | "creators";
 
@@ -57,6 +60,13 @@ const Dashboard = () => {
   const handleSearch = (v: string) => { setSearch(v); setPage(0); };
   const handleTab = (t: Tab) => { setTab(t); setPage(0); };
 
+  const handleExportView = () => {
+    const rows = active.data?.rows ?? [];
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0]);
+    downloadCsv(`${tab}-page${page + 1}-${Date.now()}.csv`, toCsv(rows as Record<string, unknown>[] as never, headers));
+  };
+
   const total = active.data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -78,8 +88,10 @@ const Dashboard = () => {
           <Button variant="outline" size="sm" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" />Chat</Button>
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
           <Button variant="outline" size="sm" className="gap-1.5"><InboxIcon className="h-3.5 w-3.5" />Inbox</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><ListChecks className="h-3.5 w-3.5" />Lists</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><Download className="h-3.5 w-3.5" />Export</Button>
+          <ListsSheet />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!active.data?.rows.length}>
+            <Download className="h-3.5 w-3.5" />Export
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
@@ -169,8 +181,12 @@ const Dashboard = () => {
                 <div className="p-12 text-center text-sm text-muted-foreground">No journalists match your search.</div>
               ) : (
                 journalists.data!.rows.map((r) => (
-                  <div key={r.id} className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
-                    <Cell>{r.name}</Cell><Cell>{r.email}</Cell><Cell>{r.category}</Cell>
+                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                      <AddToListMenu journalistId={r.id} />
+                    </div>
+                    <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
                     <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
                     <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
                   </div>
@@ -192,8 +208,11 @@ const Dashboard = () => {
                 <div className="p-12 text-center text-sm text-muted-foreground">No creators match your search.</div>
               ) : (
                 creators.data!.rows.map((r) => (
-                  <div key={r.id} className="grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
-                    <Cell>{r.name}</Cell>
+                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
+                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                      <AddToListMenu creatorId={r.id} />
+                    </div>
                     <Cell>{r.ig_handle}</Cell>
                     <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                     <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
