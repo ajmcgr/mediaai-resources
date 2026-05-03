@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Search, Users, Database, Download,
-  ChevronLeft, ChevronRight, Pin, PinOff, Trash2,
+  Search, Users, Database, Download, Pin, PinOff, Trash2,
+  User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
+  ChevronDown, ChevronRight, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
-import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
+import {
+  useJournalistsInfinite, useCreatorsInfinite, type DirectoryFilters,
+} from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { MessageSquare } from "lucide-react";
@@ -29,7 +32,6 @@ import {
 
 type Tab = "journalists" | "creators";
 
-
 const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "Topics", "xHandle", "Outlet", "Country"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
 
@@ -39,21 +41,56 @@ const Cell = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
+type FilterKey = "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics";
+
+const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+  { key: "name", label: "Search by Names", icon: UserIcon },
+  { key: "email", label: "Search by Emails", icon: Mail },
+  { key: "category", label: "Filter by Category", icon: Tag },
+  { key: "country", label: "Search by Country", icon: Globe },
+  { key: "xhandle", label: "Search by xHandles", icon: AtSign },
+  { key: "outlet", label: "Search by Outlet", icon: Building2 },
+  { key: "title", label: "Search by Title", icon: Briefcase },
+  { key: "topics", label: "Search by Topics", icon: Hash },
+];
+
+const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+  { key: "name", label: "Search by Names", icon: UserIcon },
+  { key: "email", label: "Search by Emails", icon: Mail },
+  { key: "category", label: "Filter by Category", icon: Tag },
+];
+
 const Dashboard = () => {
   const [tab, setTab] = useState<Tab>("journalists");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
+  const [filterValues, setFilterValues] = useState<Partial<Record<FilterKey, string>>>({});
+  const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
-  const filters = useMemo(() => ({ q: search.trim() || undefined }), [search]);
+  const filters: DirectoryFilters = useMemo(() => {
+    const f: DirectoryFilters = { q: search.trim() || undefined };
+    for (const [k, v] of Object.entries(filterValues)) {
+      const val = v?.trim();
+      if (val) (f as Record<string, string>)[k] = val;
+    }
+    return f;
+  }, [search, filterValues]);
 
-  const journalists = useJournalists(page, filters);
-  const creators = useCreators(page, filters);
+  const hasActiveFilters = !!search.trim() || Object.values(filterValues).some(v => v?.trim());
+
+  const journalists = useJournalistsInfinite(filters);
+  const creators = useCreatorsInfinite(filters);
   const active = tab === "journalists" ? journalists : creators;
 
-  // Auto-save searches with a small debounce after typing stops
+  const allRows = useMemo(
+    () => active.data?.pages.flatMap(p => p.rows) ?? [],
+    [active.data]
+  );
+  const total = active.data?.pages[0]?.count ?? 0;
+
+  // Auto-save searches with debounce
   const upsertSearch = useUpsertSavedSearch();
   const debounceRef = useRef<number | null>(null);
   useEffect(() => {
@@ -69,19 +106,35 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, tab, user?.id]);
 
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    const root = scrollContainerRef.current;
+    if (!node || !root) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && active.hasNextPage && !active.isFetchingNextPage) {
+          active.fetchNextPage();
+        }
+      },
+      { root, rootMargin: "400px" }
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, [active]);
+
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const handleSearch = (v: string) => { setSearch(v); setPage(0); };
-  const handleTab = (t: Tab) => { setTab(t); setPage(0); };
+  const handleTab = (t: Tab) => { setTab(t); setFilterValues({}); setOpenFilter(null); };
 
   const handleExportView = () => {
-    const rows = active.data?.rows ?? [];
-    if (!rows.length) return;
-    const headers = Object.keys(rows[0]);
-    downloadCsv(`${tab}-page${page + 1}-${Date.now()}.csv`, toCsv(rows as Record<string, unknown>[] as never, headers));
+    if (!allRows.length) return;
+    const headers = Object.keys(allRows[0]);
+    downloadCsv(`${tab}-${Date.now()}.csv`, toCsv(allRows as Record<string, unknown>[] as never, headers));
   };
 
-  const total = active.data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const filterDefs = tab === "journalists" ? JOURNALIST_FILTERS : CREATOR_FILTERS;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -95,16 +148,18 @@ const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground mr-2 hidden md:block">
-            {active.isLoading ? "Loading…" : `${total.toLocaleString()} results`}
-          </div>
+          {hasActiveFilters && (
+            <div className="text-sm text-muted-foreground mr-2 hidden md:block">
+              {active.isLoading ? "Loading…" : `${total.toLocaleString()} results`}
+            </div>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
           <InboxSheet />
           <ListsSheet />
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!active.data?.rows.length}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!allRows.length}>
             <Download className="h-3.5 w-3.5" />Export
           </Button>
           <DropdownMenu>
@@ -131,7 +186,7 @@ const Dashboard = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-64 border-r border-border bg-white flex flex-col flex-shrink-0">
+        <aside className="w-64 border-r border-border bg-white flex flex-col flex-shrink-0 overflow-auto">
           <div className="p-3 space-y-1">
             <button type="button" onClick={() => handleTab("journalists")}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "journalists" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
@@ -144,37 +199,75 @@ const Dashboard = () => {
           </div>
 
           <SavedSearchesList
-            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setPage(0); }}
+            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setFilterValues({}); }}
           />
+
+          <div className="px-3 pt-2 pb-3 border-t border-border">
+            <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Filters</div>
+            <div className="space-y-0.5">
+              {filterDefs.map(({ key, label, icon: Icon }) => {
+                const value = filterValues[key] ?? "";
+                const isOpen = openFilter === key;
+                const isActive = !!value.trim();
+                return (
+                  <div key={key}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenFilter(isOpen ? null : key)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "text-primary font-medium" : "text-foreground"} hover:bg-secondary`}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate text-left flex-1">{label}</span>
+                      {isActive && (
+                        <X
+                          className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFilterValues((f) => ({ ...f, [key]: "" }));
+                          }}
+                        />
+                      )}
+                      {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </button>
+                    {isOpen && (
+                      <div className="px-3 pb-2 pt-1">
+                        <Input
+                          autoFocus
+                          value={value}
+                          onChange={(e) => setFilterValues((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={label.replace(/^Search by |^Filter by /, "")}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </aside>
 
-        <main className="flex-1 min-w-0 overflow-auto flex flex-col">
-          <div className="p-3 border-b border-border bg-white flex items-center gap-3">
+        <main ref={scrollContainerRef} className="flex-1 min-w-0 overflow-auto flex flex-col">
+          <div className="p-3 border-b border-border bg-white flex items-center gap-3 sticky top-0 z-10">
             <div className="relative flex-1 max-w-md">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder={tab === "journalists" ? "Search names, outlets, topics…" : "Search names, handles, bio…"}
                 className="pl-9 h-9"
               />
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {page + 1} / {totalPages}
+            {hasActiveFilters && (
+              <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+                {allRows.length.toLocaleString()} of {total.toLocaleString()}
               </span>
-              <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            )}
           </div>
 
           {tab === "journalists" ? (
             <div className="min-w-[1100px]">
-              <div className="border-b border-border bg-secondary/40 sticky top-0">
+              <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
                 <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
                   {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
@@ -183,25 +276,30 @@ const Dashboard = () => {
                 <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
               ) : journalists.error ? (
                 <div className="p-8 text-center text-sm text-destructive">Failed to load journalists.</div>
-              ) : (journalists.data?.rows.length ?? 0) === 0 ? (
+              ) : allRows.length === 0 ? (
                 <div className="p-12 text-center text-sm text-muted-foreground">No journalists match your search.</div>
               ) : (
-                journalists.data!.rows.map((r) => (
-                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
-                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
-                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
-                      <AddToListMenu journalistId={r.id} />
+                <>
+                  {(allRows as any[]).map((r) => (
+                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                      <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                        <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                        <AddToListMenu journalistId={r.id} />
+                      </div>
+                      <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
+                      <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
+                      <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
                     </div>
-                    <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
-                    <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
-                    <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
+                  ))}
+                  <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
+                    {active.isFetchingNextPage ? "Loading more…" : active.hasNextPage ? "Scroll for more" : "End of results"}
                   </div>
-                ))
+                </>
               )}
             </div>
           ) : (
             <div className="min-w-[1100px]">
-              <div className="border-b border-border bg-secondary/40 sticky top-0">
+              <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
                 <div className="grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
                   {CREATOR_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
@@ -210,29 +308,34 @@ const Dashboard = () => {
                 <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
               ) : creators.error ? (
                 <div className="p-8 text-center text-sm text-destructive">Failed to load creators.</div>
-              ) : (creators.data?.rows.length ?? 0) === 0 ? (
+              ) : allRows.length === 0 ? (
                 <div className="p-12 text-center text-sm text-muted-foreground">No creators match your search.</div>
               ) : (
-                creators.data!.rows.map((r) => (
-                  <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
-                    <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
-                      <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
-                      <AddToListMenu creatorId={r.id} />
+                <>
+                  {(allRows as any[]).map((r) => (
+                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
+                      <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
+                        <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                        <AddToListMenu creatorId={r.id} />
+                      </div>
+                      <Cell>{r.ig_handle}</Cell>
+                      <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
+                      <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
+                      <Cell>{r.category}</Cell>
+                      <Cell>{r.type}</Cell>
+                      <Cell>
+                        {r.youtube_url ? (
+                          <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
+                            {r.youtube_subscribers != null ? `${r.youtube_subscribers.toLocaleString()} subs` : "YouTube"}
+                          </a>
+                        ) : null}
+                      </Cell>
                     </div>
-                    <Cell>{r.ig_handle}</Cell>
-                    <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
-                    <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
-                    <Cell>{r.category}</Cell>
-                    <Cell>{r.type}</Cell>
-                    <Cell>
-                      {r.youtube_url ? (
-                        <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
-                          {r.youtube_subscribers != null ? `${r.youtube_subscribers.toLocaleString()} subs` : "YouTube"}
-                        </a>
-                      ) : null}
-                    </Cell>
+                  ))}
+                  <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
+                    {active.isFetchingNextPage ? "Loading more…" : active.hasNextPage ? "Scroll for more" : "End of results"}
                   </div>
-                ))
+                </>
               )}
             </div>
           )}
@@ -252,11 +355,11 @@ function SavedSearchesList({
   const togglePin = useTogglePinSavedSearch();
 
   return (
-    <div className="px-3 pt-2 pb-3 border-t border-border flex-1 min-h-0 flex flex-col">
+    <div className="px-3 pt-2 pb-3 border-t border-border">
       <div className="flex items-center justify-between px-3 py-2">
         <div className="text-xs font-medium text-muted-foreground">Saved searches</div>
       </div>
-      <div className="space-y-0.5 overflow-auto">
+      <div className="space-y-0.5">
         {isLoading ? (
           <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
         ) : items.length === 0 ? (
