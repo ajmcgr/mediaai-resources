@@ -222,4 +222,65 @@ const Dashboard = () => {
   );
 };
 
+function SavedSearchesList({
+  currentTab, currentQuery, onApply,
+}: {
+  currentTab: Tab;
+  currentQuery: string;
+  onApply: (s: { tab: Tab; query: { q?: string } }) => void;
+}) {
+  const { data: items = [], isLoading } = useSavedSearches();
+  const create = useCreateSavedSearch();
+  const remove = useDeleteSavedSearch();
+
+  const handleSave = () => {
+    const q = currentQuery.trim();
+    if (!q) return toast.error("Type a search first");
+    const name = window.prompt("Name this search", q.slice(0, 40));
+    if (!name) return;
+    create.mutate(
+      { name: name.trim(), tab: currentTab, query: { q } },
+      { onSuccess: () => toast.success("Saved"), onError: (e) => toast.error((e as Error).message) },
+    );
+  };
+
+  return (
+    <div className="px-3 pt-2 pb-3 border-t border-border flex-1 min-h-0 flex flex-col">
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="text-xs font-medium text-muted-foreground">Saved searches</div>
+        <button type="button" onClick={handleSave} title="Save current search"
+          className="text-muted-foreground hover:text-foreground">
+          <BookmarkPlus className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="space-y-0.5 overflow-auto">
+        {isLoading ? (
+          <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
+        ) : items.length === 0 ? (
+          <div className="px-3 py-2 text-xs text-muted-foreground">
+            No saved searches yet. Type a query and tap the bookmark to save it.
+          </div>
+        ) : (
+          items.map((s) => (
+            <div key={s.id} className="group flex items-center rounded-lg hover:bg-secondary">
+              <button type="button" onClick={() => onApply({ tab: s.tab as Tab, query: s.query })}
+                className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-foreground min-w-0 text-left">
+                <Bookmark className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{s.name}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">
+                  {s.tab === "journalists" ? "J" : "C"}
+                </span>
+              </button>
+              <button type="button" onClick={() => remove.mutate(s.id)}
+                className="opacity-0 group-hover:opacity-100 px-2 text-muted-foreground hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default Dashboard;
