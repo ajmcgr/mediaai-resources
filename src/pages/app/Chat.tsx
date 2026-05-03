@@ -101,6 +101,22 @@ const Chat = () => {
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          <InboxSheet />
+          <ListsSheet />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={!results?.rows.length}
+            onClick={() => {
+              const rows = (results?.rows ?? []) as Record<string, unknown>[];
+              if (!rows.length) return;
+              const headers = Object.keys(rows[0]);
+              downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
+            }}
+          >
+            <Download className="h-3.5 w-3.5" />Export
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={newChat}>
             <Plus className="h-3.5 w-3.5" />New chat
           </Button>
