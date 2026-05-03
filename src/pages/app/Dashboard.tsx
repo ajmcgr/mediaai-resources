@@ -19,6 +19,7 @@ import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { ChatSheet } from "@/components/dashboard/ChatSheet";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 
 type Tab = "journalists" | "creators";
@@ -88,7 +89,7 @@ const Dashboard = () => {
           </div>
           <ChatSheet />
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><InboxIcon className="h-3.5 w-3.5" />Inbox</Button>
+          <InboxSheet />
           <ListsSheet />
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!active.data?.rows.length}>
             <Download className="h-3.5 w-3.5" />Export
