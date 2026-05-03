@@ -36,6 +36,17 @@ const RequestDemo = () => {
       if (error || (data && data.success === false)) {
         throw new Error(error?.message || data?.error || "Failed to send");
       }
+      // Push to HubSpot (non-blocking)
+      supabase.functions
+        .invoke("hubspot-upsert-contact", {
+          body: {
+            email: form.email,
+            fullName: form.name,
+            company: form.company,
+            source: "Demo Request",
+          },
+        })
+        .catch((e) => console.warn("HubSpot sync failed", e));
       toast({
         title: "Request sent!",
         description: "Thanks — we'll be in touch within one business day.",
