@@ -9,7 +9,7 @@ import { startCheckout } from "@/lib/billing";
 import { toast } from "sonner";
 
 import heroProductMain from "@/assets/home/hero-product-main.png";
-import heroProductDiscover from "@/assets/home/hero-product-discover.png";
+import heroProductDiscover from "@/assets/home/hero-product-discover-v2.png";
 import audiencesImg from "@/assets/home/audiences.png";
 import featureSearch from "@/assets/home/feature-search-new.png";
 import featureExport from "@/assets/home/feature-export.png";
