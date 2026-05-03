@@ -69,6 +69,7 @@ const App = () => (
 
               {/* Public marketing/billing */}
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/request-demo" element={<RequestDemo />} />
               <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
 
               {/* Authenticated (any plan) */}
