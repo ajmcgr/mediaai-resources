@@ -8,6 +8,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 type PlanIdentifier = "journalist" | "creator" | "both";
 type BillingInterval = "monthly" | "yearly";
 
+const PLAN_CHECKOUT: Record<PlanIdentifier, { name: string; monthly: number; yearly: number }> = {
+  journalist: { name: "Journalist Database", monthly: 9900, yearly: 99900 },
+  creator: { name: "Creators Database", monthly: 9900, yearly: 99900 },
+  both: { name: "Full Database", monthly: 14900, yearly: 149900 },
+};
+
 const LIVE_PRICE_IDS: Record<PlanIdentifier, Record<BillingInterval, string>> = {
   journalist: {
     monthly: "price_1QodmaPui4jUsxXGqb12D7d6",
@@ -82,7 +88,22 @@ Deno.serve(async (req) => {
     } else {
       priceId = LIVE_PRICE_IDS[plan_identifier][billingInterval] ?? plan.monthly_price_id;
     }
-    if (!priceId) return json({ error: `plan missing stripe price id (mode=${isTestMode ? "test" : "live"}, interval=${billingInterval})` }, 400);
+
+    const checkoutConfig = PLAN_CHECKOUT[plan_identifier];
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
+      ? [{ price: priceId, quantity: 1 }]
+      : [{
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: checkoutConfig[billingInterval],
+          recurring: { interval: billingInterval === "yearly" ? "year" : "month" },
+          product_data: {
+            name: plan.name ?? checkoutConfig.name,
+            metadata: { plan_identifier },
+          },
+        },
+      }];
 
     // Reuse Stripe customer if profile already has one
     const { data: profile } = await admin
@@ -115,11 +136,12 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: lineItems,
       allow_promotion_codes: true,
       success_url: success_url ?? `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancel_url ?? `${origin}/pricing?canceled=1`,
       subscription_data: {
+        trial_period_days: 30,
         metadata: {
           supabase_user_id: user.id,
           plan_identifier: plan.identifier,
