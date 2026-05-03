@@ -33,7 +33,7 @@ const Header = () => {
             rel="noopener noreferrer"
             className="flex items-center"
           >
-            <img src={logoMedia} alt="Media AI" className="h-6" />
+            <img src={logoMedia} alt="Media AI" className="h-5" />
           </a>
 
           <div className="flex items-center space-x-2">
