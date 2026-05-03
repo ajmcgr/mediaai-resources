@@ -53,6 +53,16 @@ const Signup = () => {
         <h1 className="text-3xl font-medium mb-2">Create your account</h1>
         <p className="text-muted-foreground mb-8">Start finding journalists and creators in seconds.</p>
 
+        <Button variant="outline" className="w-full" onClick={handleGoogle}>
+          Continue with Google
+        </Button>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <Label htmlFor="name">Full name</Label>
@@ -74,16 +84,6 @@ const Signup = () => {
             {busy ? "Creating account…" : "Create account"}
           </Button>
         </form>
-
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button variant="outline" className="w-full" onClick={handleGoogle}>
-          Continue with Google
-        </Button>
 
         <p className="mt-6 text-sm text-muted-foreground text-center">
           Already have an account?{" "}

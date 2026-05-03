@@ -46,6 +46,16 @@ const Login = () => {
         <h1 className="text-3xl font-medium mb-2">Welcome back</h1>
         <p className="text-muted-foreground mb-8">Sign in to your Media AI account.</p>
 
+        <Button variant="outline" className="w-full" onClick={handleGoogle}>
+          Continue with Google
+        </Button>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
@@ -59,16 +69,6 @@ const Login = () => {
             {busy ? "Signing in…" : "Sign in"}
           </Button>
         </form>
-
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button variant="outline" className="w-full" onClick={handleGoogle}>
-          Continue with Google
-        </Button>
 
         <div className="mt-6 flex justify-between text-sm">
           <Link to="/forgot-password" className="text-muted-foreground hover:text-foreground">
