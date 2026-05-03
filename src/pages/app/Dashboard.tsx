@@ -17,7 +17,7 @@ import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
-import { ChatSheet } from "@/components/dashboard/ChatSheet";
+import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import {
