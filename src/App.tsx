@@ -73,13 +73,15 @@ const App = () => (
               <Route path="/dashboard" element={<PaidRoute><Dashboard /></PaidRoute>} />
               <Route path="/app" element={<Navigate to="/dashboard" replace />} />
 
+              {/* Marketing pages at root */}
+              <Route path="/about" element={<About />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+
               {/* Resources content */}
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
-              <Route path="/resources/about" element={<About />} />
-              <Route path="/resources/blog" element={<Blog />} />
-              <Route path="/resources/privacy" element={<Privacy />} />
-              <Route path="/resources/terms" element={<Terms />} />
               <Route path="/resources/:slug" element={<ResourceArticle />} />
 
               {/* Tools (canonical) */}
@@ -92,12 +94,12 @@ const App = () => (
               {/* Legacy redirects */}
               <Route path="/resources/tools" element={<Navigate to="/tools" replace />} />
               <Route path="/resources/tools/:slug" element={<RedirectWithSlug to={(s) => `/tools/${s}`} />} />
-              <Route path="/about" element={<Navigate to="/resources/about" replace />} />
-              <Route path="/blog" element={<Navigate to="/resources/blog" replace />} />
-              <Route path="/privacy" element={<Navigate to="/resources/privacy" replace />} />
-              <Route path="/privacy-policy" element={<Navigate to="/resources/privacy" replace />} />
-              <Route path="/terms" element={<Navigate to="/resources/terms" replace />} />
-              <Route path="/terms-of-service" element={<Navigate to="/resources/terms" replace />} />
+              <Route path="/resources/about" element={<Navigate to="/about" replace />} />
+              <Route path="/resources/blog" element={<Navigate to="/blog" replace />} />
+              <Route path="/resources/privacy" element={<Navigate to="/privacy" replace />} />
+              <Route path="/resources/terms" element={<Navigate to="/terms" replace />} />
+              <Route path="/privacy-policy" element={<Navigate to="/privacy" replace />} />
+              <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
 
               <Route path="/:slug" element={<LegacySlugRedirect />} />
               <Route path="*" element={<NotFound />} />

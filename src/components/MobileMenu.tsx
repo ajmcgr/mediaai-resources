@@ -10,7 +10,7 @@ const MobileMenu = () => {
   const menuItems = [
     { name: "Home", path: "/resources" },
     { name: "Tools", path: "/tools" },
-    { name: "About", path: "/resources/about" },
+    { name: "About", path: "/about" },
   ];
 
   return (
