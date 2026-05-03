@@ -98,7 +98,7 @@ const RequestDemo = () => {
           </div>
 
           <Button type="submit" disabled={submitting} className="w-full h-12 text-sm font-medium">
-            {submitting ? "Opening email…" : "Request demo"}
+            {submitting ? "Sending…" : "Request demo"}
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
