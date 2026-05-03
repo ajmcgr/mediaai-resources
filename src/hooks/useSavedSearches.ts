@@ -7,6 +7,8 @@ export type SavedSearch = {
   name: string;
   tab: "journalists" | "creators";
   query: { q?: string };
+  pinned: boolean;
+  last_used_at: string;
   created_at: string;
 };
 
@@ -18,25 +20,52 @@ export const useSavedSearches = (enabled = true) =>
       const { data, error } = await supabase
         .from("saved_searches")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("pinned", { ascending: false })
+        .order("last_used_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as SavedSearch[];
     },
   });
 
-export const useCreateSavedSearch = () => {
+/** Upsert a search (auto-save). Updates last_used_at on collisions. */
+export const useUpsertSavedSearch = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; tab: "journalists" | "creators"; query: { q?: string } }) => {
+    mutationFn: async (input: { tab: "journalists" | "creators"; query: { q?: string } }) => {
+      const q = (input.query.q ?? "").trim();
+      if (!q) return null;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
       const { error, data } = await supabase
         .from("saved_searches")
-        .insert({ ...input, user_id: user.id })
+        .upsert(
+          {
+            user_id: user.id,
+            tab: input.tab,
+            query: { q },
+            name: q,
+            last_used_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,tab,(query->>'q')", ignoreDuplicates: false },
+        )
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as SavedSearch;
+      return data as SavedSearch | null;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
+  });
+};
+
+export const useTogglePinSavedSearch = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; pinned: boolean }) => {
+      const { error } = await supabase
+        .from("saved_searches")
+        .update({ pinned: input.pinned })
+        .eq("id", input.id);
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
   });
