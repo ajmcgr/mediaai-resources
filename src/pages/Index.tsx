@@ -424,7 +424,7 @@ const Index = () => {
                   <th className="px-4 py-4"><img src={logoMedia} alt="Media AI" className="h-6 mx-auto" /></th>
                   <th className="px-4 py-4"><img src={logoMuckrack} alt="Muck Rack" className="h-6 mx-auto opacity-70" /></th>
                   <th className="px-4 py-4"><img src={logoCision} alt="Cision" className="h-6 mx-auto opacity-70" /></th>
-                  <th className="px-4 py-4"><img src={logoMeltwater} alt="Meltwater" className="h-5 mx-auto opacity-70" /></th>
+                  <th className="px-4 py-4"><img src={logoMeltwater} alt="Meltwater" className="h-6 mx-auto opacity-70" /></th>
                 </tr>
               </thead>
               <tbody className="[&>tr]:border-t [&>tr]:border-border">
