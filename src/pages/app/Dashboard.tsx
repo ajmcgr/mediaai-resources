@@ -2,9 +2,8 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Search, Users, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  Database, ListChecks, Download,
-  User as UserIcon, ChevronLeft, ChevronRight,
+  Search, Users, Database, Download,
+  ChevronLeft, ChevronRight, Bookmark, BookmarkPlus, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,19 +20,11 @@ import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { ChatSheet } from "@/components/dashboard/ChatSheet";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { useSavedSearches, useCreateSavedSearch, useDeleteSavedSearch } from "@/hooks/useSavedSearches";
+import { toast } from "sonner";
 
 type Tab = "journalists" | "creators";
 
-const FILTERS: { label: string; icon: typeof Search }[] = [
-  { label: "Search by Names", icon: UserIcon },
-  { label: "Search by Emails", icon: Mail },
-  { label: "Filter by Category", icon: Tag },
-  { label: "Search by Country", icon: Globe },
-  { label: "Search by xHandles", icon: AtSign },
-  { label: "Search by Outlet", icon: Building2 },
-  { label: "Search by Title", icon: Briefcase },
-  { label: "Search by Topics", icon: Hash },
-];
 
 const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "Topics", "xHandle", "Outlet", "Country"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
@@ -130,18 +121,11 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <div className="px-3 pt-2 pb-3 border-t border-border">
-            <div className="text-xs font-medium text-muted-foreground px-3 py-2">Filters</div>
-            <div className="space-y-0.5">
-              {FILTERS.map(({ label, icon: Icon }) => (
-                <button key={label} type="button"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                  <Icon className="h-4 w-4" />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <SavedSearchesList
+            currentTab={tab}
+            currentQuery={search}
+            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setPage(0); }}
+          />
         </aside>
 
         <main className="flex-1 min-w-0 overflow-auto flex flex-col">
@@ -237,5 +221,66 @@ const Dashboard = () => {
     </div>
   );
 };
+
+function SavedSearchesList({
+  currentTab, currentQuery, onApply,
+}: {
+  currentTab: Tab;
+  currentQuery: string;
+  onApply: (s: { tab: Tab; query: { q?: string } }) => void;
+}) {
+  const { data: items = [], isLoading } = useSavedSearches();
+  const create = useCreateSavedSearch();
+  const remove = useDeleteSavedSearch();
+
+  const handleSave = () => {
+    const q = currentQuery.trim();
+    if (!q) return toast.error("Type a search first");
+    const name = window.prompt("Name this search", q.slice(0, 40));
+    if (!name) return;
+    create.mutate(
+      { name: name.trim(), tab: currentTab, query: { q } },
+      { onSuccess: () => toast.success("Saved"), onError: (e) => toast.error((e as Error).message) },
+    );
+  };
+
+  return (
+    <div className="px-3 pt-2 pb-3 border-t border-border flex-1 min-h-0 flex flex-col">
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="text-xs font-medium text-muted-foreground">Saved searches</div>
+        <button type="button" onClick={handleSave} title="Save current search"
+          className="text-muted-foreground hover:text-foreground">
+          <BookmarkPlus className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="space-y-0.5 overflow-auto">
+        {isLoading ? (
+          <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
+        ) : items.length === 0 ? (
+          <div className="px-3 py-2 text-xs text-muted-foreground">
+            No saved searches yet. Type a query and tap the bookmark to save it.
+          </div>
+        ) : (
+          items.map((s) => (
+            <div key={s.id} className="group flex items-center rounded-lg hover:bg-secondary">
+              <button type="button" onClick={() => onApply({ tab: s.tab as Tab, query: s.query })}
+                className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-foreground min-w-0 text-left">
+                <Bookmark className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{s.name}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">
+                  {s.tab === "journalists" ? "J" : "C"}
+                </span>
+              </button>
+              <button type="button" onClick={() => remove.mutate(s.id)}
+                className="opacity-0 group-hover:opacity-100 px-2 text-muted-foreground hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default Dashboard;
