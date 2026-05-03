@@ -6,6 +6,7 @@ type Post = {
   excerpt: string;
   url: string;
   image: string;
+  date?: string;
 };
 
 const POSTS: Post[] = [
