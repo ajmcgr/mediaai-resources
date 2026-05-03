@@ -218,7 +218,12 @@ const Index = () => {
         </div>
 
         <div className="max-w-6xl mx-auto mt-16">
-          <img src={heroProductMain} alt="Media AI dashboard preview" className="w-full h-auto" />
+          <img
+            src={heroProductMain}
+            alt="Media AI dashboard preview"
+            className="w-full h-auto"
+            style={{ filter: "drop-shadow(0 25px 30px rgba(0,0,0,0.15)) drop-shadow(-25px 0 30px rgba(0,0,0,0.1)) drop-shadow(25px 0 30px rgba(0,0,0,0.1))" }}
+          />
         </div>
 
         <div className="max-w-6xl mx-auto mt-20 text-center">
