@@ -1,5 +1,11 @@
 import { Link } from "react-router-dom";
-import { Twitter, Linkedin } from "lucide-react";
+import { Linkedin } from "lucide-react";
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-6.99L4.6 22H1.34l8.02-9.16L1 2h7.02l4.84 6.39L18.244 2zm-1.2 18h1.86L7.04 4H5.06l11.984 16z" />
+  </svg>
+);
 
 const RESOURCES_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Build a Media List", "/resources/build-a-media-list-that-gets-replies"],
