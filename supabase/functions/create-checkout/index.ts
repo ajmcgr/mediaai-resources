@@ -5,6 +5,24 @@
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
+type PlanIdentifier = "journalist" | "creator" | "both";
+type BillingInterval = "monthly" | "yearly";
+
+const LIVE_PRICE_IDS: Record<PlanIdentifier, Record<BillingInterval, string>> = {
+  journalist: {
+    monthly: "price_1QodmaPui4jUsxXGqb12D7d6",
+    yearly: "price_1QodmaPui4jUsxXGyRpOLqpb",
+  },
+  creator: {
+    monthly: "price_1QodnmPui4jUsxXGiMlK5EGW",
+    yearly: "price_1QodnmPui4jUsxXG2pycLHdT",
+  },
+  both: {
+    monthly: "price_1QodoVPui4jUsxXGmQmhv1jI",
+    yearly: "price_1QodoVPui4jUsxXGl30lFTtf",
+  },
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -35,8 +53,8 @@ Deno.serve(async (req) => {
     if (userErr || !user?.email) return json({ error: "unauthorized" }, 401);
 
     const { plan_identifier, interval, success_url, cancel_url } = await req.json();
-    if (!plan_identifier) return json({ error: "plan_identifier required" }, 400);
-    const billingInterval: "monthly" | "yearly" = interval === "yearly" ? "yearly" : "monthly";
+    if (!isPlanIdentifier(plan_identifier)) return json({ error: "valid plan_identifier required" }, 400);
+    const billingInterval: BillingInterval = interval === "yearly" ? "yearly" : "monthly";
 
     // Service-role client to read plans + profile.stripe_customer_id
     const admin = createClient(supabaseUrl, serviceKey);
@@ -62,7 +80,7 @@ Deno.serve(async (req) => {
         ? (plan.testmode_yearly_price_id ?? plan.testmode_monthly_price_id)
         : plan.testmode_monthly_price_id;
     } else {
-      priceId = plan.monthly_price_id;
+      priceId = LIVE_PRICE_IDS[plan_identifier][billingInterval] ?? plan.monthly_price_id;
     }
     if (!priceId) return json({ error: `plan missing stripe price id (mode=${isTestMode ? "test" : "live"}, interval=${billingInterval})` }, 400);
 
