@@ -60,6 +60,13 @@ const Dashboard = () => {
   const handleSearch = (v: string) => { setSearch(v); setPage(0); };
   const handleTab = (t: Tab) => { setTab(t); setPage(0); };
 
+  const handleExportView = () => {
+    const rows = active.data?.rows ?? [];
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0]);
+    downloadCsv(`${tab}-page${page + 1}-${Date.now()}.csv`, toCsv(rows as Record<string, unknown>[] as never, headers));
+  };
+
   const total = active.data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
