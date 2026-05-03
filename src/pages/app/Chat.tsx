@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Download, Loader2, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, Database, Download, Loader2, MessageSquare, Plus, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,16 +91,19 @@ const Chat = () => {
       <Helmet><title>Chat — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <NavLink to="/dashboard" className="flex items-center">
-            <img src={logoMedia} alt="Media AI" className="h-6" />
+            <img src={logoMedia} alt="Media AI" className="h-5" />
           </NavLink>
-          <nav className="flex items-center gap-1 text-sm">
-            <NavLink to="/dashboard" className="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary">Database</NavLink>
-            <NavLink to="/chat" className="px-3 py-1.5 rounded-md bg-secondary text-foreground font-medium">Chat</NavLink>
-          </nav>
         </div>
+
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
+            <MessageSquare className="h-3.5 w-3.5" />Chat
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/dashboard")}>
+            <Database className="h-3.5 w-3.5" />Database
+          </Button>
           <InboxSheet />
           <ListsSheet />
           <Button
@@ -135,6 +138,8 @@ const Chat = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
