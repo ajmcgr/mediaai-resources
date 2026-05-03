@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Loader2, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, Download, Loader2, Plus, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,9 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
