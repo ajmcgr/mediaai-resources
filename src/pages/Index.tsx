@@ -114,21 +114,21 @@ const RESOURCES_LINKS = [
   ["Thought Leadership", "/resources/thought-leadership-to-op-ed"],
 ] as const;
 
-const TOOLS_LINKS = [
-  "Beat & Outlet Matcher",
-  "Pitch Personalization Generator",
-  "Subject Line Split-Tester",
-  "Pitch Score Calculator",
-  "Embargo & Timing Calculator",
-  "List Segmentor",
-  "Outreach Sequence Generator",
-  "Press Release Generator",
-  "Quote Polisher",
-  "UTM Generator",
-  "Link & No-Follow Checker",
-  "Media Kit Generator",
-  "Influencer Brief Generator",
-  "Rate Card Estimator",
+const TOOLS_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Beat & Outlet Matcher", "/tools/beat-outlet-matcher"],
+  ["Pitch Personalization Generator", "/tools/pitch-personalization-helper"],
+  ["Subject Line Split-Tester", "/tools/subject-line-split-tester"],
+  ["Pitch Score Calculator", "/tools/pitch-score-calculator"],
+  ["Embargo & Timing Calculator", "/tools/embargo-timing-calculator"],
+  ["List Segmentor", "/tools/list-segmentor"],
+  ["Outreach Sequence Generator", "/tools/outreach-sequence-generator"],
+  ["Press Release Generator", "/tools/press-release-generator"],
+  ["Quote Polisher", "/tools/quote-polisher"],
+  ["UTM Generator", "/tools/utm-generator"],
+  ["Link & No-Follow Checker", "/tools/link-nofollow-checker"],
+  ["Media Kit Generator", "/tools/media-kit-generator"],
+  ["Influencer Brief Generator", "/tools/influencer-brief-generator"],
+  ["Rate Card Estimator", "/tools/rate-card-estimator"],
 ];
 
 const Index = () => {
