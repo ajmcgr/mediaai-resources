@@ -13,7 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.nylas-auth-start]
 verify_jwt = true
