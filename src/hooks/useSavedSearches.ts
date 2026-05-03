@@ -27,7 +27,7 @@ export const useSavedSearches = (enabled = true) =>
     },
   });
 
-/** Upsert a search (auto-save). Updates last_used_at on collisions. */
+/** Auto-save / touch a search. If a row with the same q exists, just bump last_used_at. */
 export const useUpsertSavedSearch = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -36,22 +36,33 @@ export const useUpsertSavedSearch = () => {
       if (!q) return null;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
-      const { error, data } = await supabase
+
+      const { data: existing } = await supabase
         .from("saved_searches")
-        .upsert(
-          {
-            user_id: user.id,
-            tab: input.tab,
-            query: { q },
-            name: q,
-            last_used_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,tab,(query->>'q')", ignoreDuplicates: false },
-        )
-        .select()
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("tab", input.tab)
+        .filter("query->>q", "eq", q)
         .maybeSingle();
+
+      const nowIso = new Date().toISOString();
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("saved_searches")
+          .update({ last_used_at: nowIso })
+          .eq("id", existing.id);
+        if (error) throw error;
+        return null;
+      }
+      const { error } = await supabase.from("saved_searches").insert({
+        user_id: user.id,
+        tab: input.tab,
+        query: { q },
+        name: q,
+        last_used_at: nowIso,
+      });
       if (error) throw error;
-      return data as SavedSearch | null;
+      return null;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
   });
