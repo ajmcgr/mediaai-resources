@@ -25,7 +25,7 @@ import newBadge from "@/assets/home/new-badge.png";
 import avatar1 from "@/assets/home/avatar-1.png";
 import avatar2 from "@/assets/home/avatar-2-new-v2.jpg";
 import avatar3 from "@/assets/home/avatar-3.png";
-import avatar4 from "@/assets/home/avatar-4-new.jpg";
+import avatar4 from "@/assets/home/avatar-4-v2.png";
 import jacksonAvatar from "@/assets/home/testimonial-jackson.png";
 
 type Interval = "monthly" | "yearly";
