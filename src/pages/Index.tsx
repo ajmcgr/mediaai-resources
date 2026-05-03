@@ -227,7 +227,9 @@ const Index = () => {
             <div className="flex items-center gap-12 md:gap-16 animate-[scroll_40s_linear_infinite] whitespace-nowrap w-max">
               {(() => {
                 const logos = [
-                  { name: "TechCrunch", src: "/press-logos/techcrunch.svg" },
+                  { name: "TechCrunch", src: "/press-logos/techcrunch.png" },
+                  { name: "Forbes", src: "/press-logos/forbes.png" },
+                  { name: "Fast Company", src: "/press-logos/fastcompany.png" },
                   { name: "TIME", src: "/press-logos/time.png" },
                   { name: "Fortune", src: "/press-logos/fortune.png" },
                   { name: "Business Insider", src: "/press-logos/businessinsider.jpg" },
