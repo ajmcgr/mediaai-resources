@@ -119,6 +119,19 @@ async function upsertSubscription(sub: Stripe.Subscription) {
     .from("subscriptions")
     .upsert(row, { onConflict: "stripe_subscription_id" });
   if (error) throw error;
+
+  // Mirror to profiles so useSubscription (single source of truth) stays in sync
+  const isActive = ["active", "trialing", "past_due"].includes(sub.status);
+  const { error: profErr } = await admin
+    .from("profiles")
+    .update({
+      sub_active: isActive,
+      plan_identifier: planIdentifier,
+      sub_period_end: toIso(sub.current_period_end),
+      stripe_customer_id: sub.customer as string,
+    })
+    .eq("id", userId);
+  if (profErr) console.error("profile sync error", profErr);
 }
 
 function toIso(unix: number | null | undefined) {
