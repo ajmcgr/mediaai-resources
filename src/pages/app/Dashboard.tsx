@@ -16,6 +16,9 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useJournalists, useCreators, PAGE_SIZE } from "@/hooks/useDirectory";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { toCsv, downloadCsv } from "@/lib/csv";
 
 type Tab = "journalists" | "creators";
 
