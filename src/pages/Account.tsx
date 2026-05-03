@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { openBillingPortal } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 
 const PLAN_LABELS: Record<string, string> = {
