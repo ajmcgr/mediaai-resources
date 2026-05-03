@@ -152,6 +152,62 @@ const POSTS: Post[] = [
     image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/09/image-1757911757330.jpeg",
     date: "2026-04-23",
   },
+  {
+    title: "Newsroom Trends 2026: What Journalists Want From PR Teams",
+    excerpt: "Survey-backed insights into how reporters prefer to be pitched, what formats convert, and where AI helps vs. hurts.",
+    url: "https://blog.trymedia.ai/newsroom-trends-2026-what-journalists-want/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/10/image-1761532963454.jpeg",
+    date: "2026-04-16",
+  },
+  {
+    title: "Building a Thought Leadership Engine With AI",
+    excerpt: "A repeatable workflow for sourcing ideas, drafting executive bylines, and placing them in tier-one publications.",
+    url: "https://blog.trymedia.ai/building-a-thought-leadership-engine-with-ai/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/10/image-1761038351304.jpeg",
+    date: "2026-04-09",
+  },
+  {
+    title: "B2B Influencer Marketing: A Practical Starter Guide",
+    excerpt: "How B2B brands are partnering with niche creators on LinkedIn, YouTube, and podcasts to drive pipeline.",
+    url: "https://blog.trymedia.ai/b2b-influencer-marketing-starter-guide/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/10/image-1760332316096.jpeg",
+    date: "2026-04-02",
+  },
+  {
+    title: "Press Release SEO: Ranking Announcements in 2026",
+    excerpt: "Modern on-page tactics, schema markup, and distribution choices that help press releases earn organic traffic.",
+    url: "https://blog.trymedia.ai/press-release-seo-ranking-announcements-2026/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/10/image-1759726334649.jpeg",
+    date: "2026-03-26",
+  },
+  {
+    title: "Sentiment Analysis for Comms Teams: A Buyer's Guide",
+    excerpt: "What to look for in sentiment tooling, common pitfalls of LLM scoring, and how to align metrics with stakeholders.",
+    url: "https://blog.trymedia.ai/sentiment-analysis-for-comms-teams-buyers-guide/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/09/image-1759121130250.jpeg",
+    date: "2026-03-19",
+  },
+  {
+    title: "From Mention to Meeting: Turning Earned Media Into Pipeline",
+    excerpt: "Workflows that connect press coverage to inbound demand, with AI handoffs between PR, marketing, and sales.",
+    url: "https://blog.trymedia.ai/from-mention-to-meeting-earned-media-pipeline/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/09/image-1758884526640.jpeg",
+    date: "2026-03-12",
+  },
+  {
+    title: "Creator Contracts 101: Deliverables, Usage Rights, and Exclusivity",
+    excerpt: "A plain-English guide to the contract clauses that matter most when working with influencers and content creators.",
+    url: "https://blog.trymedia.ai/creator-contracts-101-deliverables-usage-rights/",
+    image: "https://storage.ghost.io/c/dc/51/dc517523-dce5-4e03-ac18-63c2dc714b15/content/images/size/w600/2025/09/image-1758878406054.jpeg",
+    date: "2026-03-05",
+  },
+  {
+    title: "AI Briefing Books: Prepping Spokespeople in Minutes",
+    excerpt: "How AI compiles reporter backgrounds, prior coverage, and likely questions into briefing docs your execs actually read.",
+    url: "https://blog.trymedia.ai/ai-briefing-books-prepping-spokespeople/",
+    image: "https://assets.seobotai.com/cdn-cgi/image/quality=75,w=1536,h=1024/trymedia.ai/68cc9fa87b5c01ae36893a32-1758247466961.jpg",
+    date: "2026-02-26",
+  },
 ];
 
 const Blog = () => {
