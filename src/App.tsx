@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PaidRoute from "@/components/PaidRoute";
+import RecoveryRedirect from "@/components/RecoveryRedirect";
 import Root from "./pages/Root";
 import Index from "./pages/Index";
 import ToolsHub from "./pages/ToolsHub";
