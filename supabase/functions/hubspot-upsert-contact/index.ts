@@ -42,8 +42,13 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const HUBSPOT_API_KEY = Deno.env.get("HUBSPOT_API_KEY");
     const HUBSPOT_ACCESS_TOKEN = Deno.env.get("HUBSPOT_ACCESS_TOKEN");
+    console.log("hubspot-upsert-contact env check", {
+      hasLovable: !!LOVABLE_API_KEY,
+      hasHubspotKey: !!HUBSPOT_API_KEY,
+      hasAccessToken: !!HUBSPOT_ACCESS_TOKEN,
+    });
     if (!HUBSPOT_ACCESS_TOKEN && (!LOVABLE_API_KEY || !HUBSPOT_API_KEY)) {
-      throw new Error("HubSpot is not configured");
+      throw new Error("HubSpot is not configured (missing LOVABLE_API_KEY/HUBSPOT_API_KEY)");
     }
 
     const parsed = validate(await req.json().catch(() => null));
