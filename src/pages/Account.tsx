@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { openBillingPortal } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { OpenAIKeyCard } from "@/components/account/OpenAIKeyCard";
 
 const PLAN_LABELS: Record<string, string> = {
   journalist: "Journalist Database",
