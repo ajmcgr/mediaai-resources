@@ -54,7 +54,8 @@ const Signup = () => {
         <h1 className="text-3xl font-medium mb-2">Create your account</h1>
         <p className="text-muted-foreground mb-8">Start finding journalists and creators in seconds.</p>
 
-        <Button variant="outline" className="w-full" onClick={handleGoogle}>
+        <Button variant="outline" className="w-full gap-2" onClick={handleGoogle}>
+          <GoogleIcon className="h-5 w-5" />
           Continue with Google
         </Button>
 
