@@ -114,21 +114,21 @@ const RESOURCES_LINKS = [
   ["Thought Leadership", "/resources/thought-leadership-to-op-ed"],
 ] as const;
 
-const TOOLS_LINKS = [
-  "Beat & Outlet Matcher",
-  "Pitch Personalization Generator",
-  "Subject Line Split-Tester",
-  "Pitch Score Calculator",
-  "Embargo & Timing Calculator",
-  "List Segmentor",
-  "Outreach Sequence Generator",
-  "Press Release Generator",
-  "Quote Polisher",
-  "UTM Generator",
-  "Link & No-Follow Checker",
-  "Media Kit Generator",
-  "Influencer Brief Generator",
-  "Rate Card Estimator",
+const TOOLS_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Beat & Outlet Matcher", "/tools/beat-outlet-matcher"],
+  ["Pitch Personalization Generator", "/tools/pitch-personalization-helper"],
+  ["Subject Line Split-Tester", "/tools/subject-line-split-tester"],
+  ["Pitch Fit Score Calculator", "/tools/pitch-fit-score-calculator"],
+  ["Embargo & Timing Planner", "/tools/embargo-timing-planner"],
+  ["List Segmenter", "/tools/list-segmenter-lite"],
+  ["Outreach Sequence Generator", "/tools/outreach-sequence-generator"],
+  ["Press Release Structure Generator", "/tools/press-release-structure-builder"],
+  ["Quote Polisher for PR", "/tools/quote-polisher-pr"],
+  ["UTM Generator for PR Links", "/tools/utm-builder-pr-links"],
+  ["Link Health & No-Follow Checker", "/tools/link-health-checker"],
+  ["Media Kit Generator", "/tools/media-kit-builder-lite"],
+  ["Influencer Brief Generator", "/tools/influencer-brief-builder"],
+  ["Rate Card Estimator", "/tools/rate-card-estimator-lite"],
 ];
 
 const Index = () => {
@@ -553,12 +553,12 @@ const Index = () => {
           <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Free Tools</h4>
             <ul className="space-y-2.5 text-muted-foreground">
-              {TOOLS_LINKS.slice(0, 9).map((label) => (
+              {TOOLS_LINKS.slice(0, 9).map(([label, href]) => (
                 <li key={label}>
-                  <a href="https://tools.trymedia.ai/" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">{label}</a>
+                  <Link to={href} className="hover:text-foreground">{label}</Link>
                 </li>
               ))}
-              <li><a href="https://tools.trymedia.ai/" className="hover:text-foreground font-medium">View All Tools →</a></li>
+              <li><Link to="/tools" className="hover:text-foreground font-medium">View All Tools →</Link></li>
             </ul>
           </div>
           <div>
