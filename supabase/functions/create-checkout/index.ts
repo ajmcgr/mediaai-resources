@@ -79,9 +79,9 @@ Deno.serve(async (req) => {
       allow_promotion_codes: true,
       subscription_data: {
         trial_period_days: 30,
-        metadata: { supabase_user_id: user_id, plan_identifier, billing_interval: interval },
+        metadata: { supabase_user_id: user_id, plan_identifier: normalizedPlan, billing_interval: interval },
       },
-      metadata: { supabase_user_id: user_id, plan_identifier, billing_interval: interval },
+      metadata: { supabase_user_id: user_id, plan_identifier: normalizedPlan, billing_interval: interval },
       success_url: `${SITE_URL}/success`,
       cancel_url: `${SITE_URL}/pricing`,
     });
