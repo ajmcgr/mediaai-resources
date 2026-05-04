@@ -1,6 +1,8 @@
 // Stripe Checkout — creates a SUBSCRIPTION session for new plans (starter/growth).
 // Uses inline price_data to avoid maintaining Stripe price IDs.
 // Body: { user_id, user_email, plan: "starter"|"growth", interval: "monthly"|"yearly" }
+// v2 — inline pricing, no plan lookup
+
 
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 
