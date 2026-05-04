@@ -150,7 +150,7 @@ const FEATURE_BLOCKS = [
   {
     eyebrow: "Brand Monitor",
     body: "Track your brand and competitors across the web. Media AI checks the URLs you care about every day, detects meaningful changes, and surfaces the PR opportunities — with a suggested pitch angle ready to go.",
-    image: featureSearch,
+    image: featureBrandMonitor,
     bullets: ["Daily monitoring of your brand and competitor URLs", "AI scores each change for PR opportunity", "Instant, daily, or weekly email alerts"],
   },
   {
