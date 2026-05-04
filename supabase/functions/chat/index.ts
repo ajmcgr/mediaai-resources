@@ -335,17 +335,33 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
   add(intent.topics, ["category", "bio", "name"]);
   add(intent.freeTerms, ["name", "category", "bio", "ig_handle", "youtube_url"]);
 
+  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
   let q = admin.from("creators")
     .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
-    .limit(400);
+    .limit(limit);
   if (orParts.length) q = q.or(orParts.join(","));
   let { data, error } = await q;
-  if (error) { console.log("[db.creators.error]", error.message); return []; }
-  if ((data?.length ?? 0) < Math.min(intent.count, 5) && (intent.topics.length || intent.freeTerms.length)) {
-    const fallback = await admin.from("creators")
-      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
-      .limit(400);
-    if (!fallback.error && (fallback.data?.length ?? 0) > (data?.length ?? 0)) data = fallback.data;
+  if (error) {
+    console.log("[db.creators.error]", error.message);
+    return fetchBroadCreators(admin, limit);
+  }
+  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.freeTerms.length)) {
+    const fallbackRows = await fetchBroadCreators(admin, limit);
+    const currentRows = (data ?? []).map((r) => ({
+      source: "database" as const,
+      source_id: r.id as number,
+      source_table: "creators" as const,
+      name: (r.name as string) ?? null,
+      outlet: (r.type as string) ?? null,
+      title: null,
+      category: (r.category as string) ?? null,
+      country: null,
+      email: (r.email as string) ?? null,
+      ig_handle: (r.ig_handle as string) ?? null,
+      ig_followers: (r.ig_followers as number) ?? null,
+      youtube_url: (r.youtube_url as string) ?? null,
+    }));
+    return dedupe([...currentRows, ...fallbackRows]);
   }
   return (data ?? []).map((r) => ({
     source: "database" as const,
