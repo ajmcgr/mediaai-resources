@@ -1,4 +1,4 @@
-// Stripe webhook → upserts public.subscriptions (source of truth).
+// Stripe webhook → upserts public.subscriptions (source of truth). Public endpoint; Stripe auth is via signature.
 // IMPORTANT: deploy with --no-verify-jwt; auth is via Stripe signature.
 //   supabase functions deploy stripe-webhook --no-verify-jwt
 //
