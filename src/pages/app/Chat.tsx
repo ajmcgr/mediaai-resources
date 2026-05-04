@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -280,6 +280,9 @@ const Chat = () => {
               <Database className="h-3.5 w-3.5" />Database
             </Button>
           )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+            <Bell className="h-3.5 w-3.5" />Monitor
+          </Button>
           <InboxSheet />
           <ListsSheet />
           <Button
