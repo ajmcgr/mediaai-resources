@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { renderBrandedEmail, escapeHtml } from "../_shared/email-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
-const FROM_ADDRESS = "Media AI <onboarding@resend.dev>";
+const FROM_ADDRESS = "Media <hello@trymedia.ai>";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,29 +62,13 @@ Deno.serve(async (req) => {
 
     const actionLink = data.properties.action_link;
 
-    const html = `
-      <div style="font-family: -apple-system, system-ui, Helvetica, Arial, sans-serif; color:#22252a; max-width:560px; margin:0 auto; padding:24px;">
-        <h1 style="font-size:20px; font-weight:600; margin:0 0 16px;">Reset your password</h1>
-        <p style="font-size:15px; line-height:1.5; margin:0 0 20px;">
-          We received a request to reset the password for your Media AI account.
-          Click the button below to choose a new password. This link expires in 1 hour.
-        </p>
-        <p style="margin:0 0 24px;">
-          <a href="${actionLink}" style="display:inline-block; background:#1675e2; color:#fff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:500;">
-            Reset password
-          </a>
-        </p>
-        <p style="font-size:13px; color:#6b7076; line-height:1.5; margin:0 0 8px;">
-          Or paste this link into your browser:
-        </p>
-        <p style="font-size:12px; color:#6b7076; word-break:break-all; margin:0 0 24px;">
-          ${actionLink}
-        </p>
-        <p style="font-size:12px; color:#6b7076; margin:0;">
-          If you didn't request this, you can safely ignore this email.
-        </p>
-      </div>
-    `;
+    const html = renderBrandedEmail({
+      preheader: "Reset your Media password",
+      heading: "Reset your password",
+      body: `Thanks for using Media. Click the button below to choose a new password. This link expires in 1 hour.<br/><br/><span style="font-size:12px;color:#9aa0a6;word-break:break-all;">Or paste this link: ${escapeHtml(actionLink)}</span>`,
+      cta: { label: "Reset password", url: actionLink },
+      footerNote: "If you didn't request this email, you can safely ignore it.",
+    });
 
     const sendRes = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
