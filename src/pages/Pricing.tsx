@@ -57,6 +57,7 @@ const TIERS: Tier[] = [
       "100% database access — no row limits",
       "Sort, filter, save views, export",
       "Share contacts via link, email, or CSV",
+      "Brand Monitor — daily PR signal alerts",
       "1-month free trial",
     ],
   },
