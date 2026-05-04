@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { EnrichCell } from "@/components/dashboard/EnrichCell";
 import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
@@ -33,7 +34,7 @@ import {
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "Topics", "xHandle", "Outlet", "Country"];
+const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "xHandle", "Outlet", "Country"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
@@ -269,7 +270,7 @@ const Dashboard = () => {
           {tab === "journalists" ? (
             <div className="min-w-[1100px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
                   {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
               </div>
@@ -282,14 +283,17 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
                       </div>
-                      <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
-                      <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
-                      <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
+                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" />
+                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" />
+                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" />
+                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" />
+                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" />
+                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
@@ -319,11 +323,11 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
                       </div>
-                      <Cell>{r.ig_handle}</Cell>
+                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" />
                       <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                       <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
-                      <Cell>{r.category}</Cell>
-                      <Cell>{r.type}</Cell>
+                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" />
+                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" />
                       <Cell>
                         {r.youtube_url ? (
                           <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
