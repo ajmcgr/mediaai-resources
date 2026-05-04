@@ -1,6 +1,6 @@
 // Stripe Checkout — Starter & Growth subscriptions only.
 // Body: { user_id, user_email, plan: "starter"|"growth", interval: "monthly"|"yearly" }
-// v3 — fixed price IDs
+// v4 — Starter & Growth only, no plan_identifier required
 
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 
