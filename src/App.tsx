@@ -77,9 +77,9 @@ const App = () => (
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 
               {/* Paid-only app */}
-              <Route path="/dashboard" element={<PaidRoute allowedPlans={["growth", "both", "media-pro", "pro"]}><Dashboard /></PaidRoute>} />
+              <Route path="/dashboard" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
               <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-              <Route path="/monitor" element={<ProtectedRoute><Monitor /></ProtectedRoute>} />
+              <Route path="/monitor" element={<PaidRoute requireGrowth><Monitor /></PaidRoute>} />
               <Route path="/app" element={<Navigate to="/dashboard" replace />} />
 
               {/* Marketing pages at root */}
