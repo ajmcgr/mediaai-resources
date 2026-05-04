@@ -33,7 +33,7 @@ import {
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "Topics", "xHandle", "Outlet", "Country"];
+const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "xHandle", "Outlet", "Country"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
@@ -269,7 +269,7 @@ const Dashboard = () => {
           {tab === "journalists" ? (
             <div className="min-w-[1100px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
                   {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
               </div>
@@ -282,13 +282,13 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.4fr)_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
                       </div>
                       <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
-                      <Cell>{r.titles}</Cell><Cell>{r.topics}</Cell><Cell>{r.xhandle}</Cell>
+                      <Cell>{r.titles}</Cell><Cell>{r.xhandle}</Cell>
                       <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
                     </div>
                   ))}
