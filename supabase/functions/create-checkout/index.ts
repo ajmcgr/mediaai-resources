@@ -65,7 +65,13 @@ Deno.serve(async (req) => {
     const plan = (body.plan_identifier ?? body.plan ?? "") as string;
     const normalizedPlan = String(plan || "").toLowerCase().trim();
     const rawInterval = String(body.interval ?? "monthly").toLowerCase().trim();
-    const interval: BillingInterval = rawInterval === "yearly" ? "yearly" : "monthly";
+    const interval: BillingInterval = normalizedPlan === "yearly"
+      ? "yearly"
+      : normalizedPlan === "monthly"
+        ? "monthly"
+        : rawInterval === "yearly"
+          ? "yearly"
+          : "monthly";
 
     console.log("create-checkout plan mapping", { plan, normalizedPlan, interval, user_id, user_email });
 
