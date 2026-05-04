@@ -28,6 +28,8 @@ import {
   useUpdateMonitor, useRunMonitorCheck, type AlertFrequency, type BrandMonitor,
 } from "@/hooks/useMonitor";
 import { toast } from "sonner";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
 
 const Monitor = () => {
   const { user, signOut } = useAuth();
