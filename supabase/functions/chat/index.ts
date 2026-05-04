@@ -284,6 +284,7 @@ function journalistRow(r: Record<string, unknown>): Row {
     category: (r.category as string) ?? null,
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
+    reason: (r.bio as string) ?? undefined,
   };
 }
 
@@ -317,14 +318,14 @@ function ilikeOr(terms: string[], fields: string[]): string {
 async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const limit = Math.max(1000, Math.min(5000, intent.count * 30));
   const topicTerms = intent.topics.length ? intent.topics : intent.freeTerms;
-  const topicOr = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles"]);
+  const topicOr = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles", "bio"]);
   const locationOr = ilikeOr(intent.countries, ["country", "outlet", "topics", "titles"]);
   const outletOr = ilikeOr(intent.outlets, ["outlet", "titles"]);
-  const freeOr = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
+  const freeOr = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "bio", "country", "email", "xhandle"]);
 
   const run = async (withLocation: boolean) => {
     let q = admin.from("journalist")
-      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+      .select("*")
       .limit(limit);
     if (topicOr) q = q.or(topicOr);
     else if (freeOr) q = q.or(freeOr);
