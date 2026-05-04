@@ -47,9 +47,23 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+                  className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
                 >
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to="/chat">Chat</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <Link to="/dashboard">Database</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <Link to="/monitor">Monitor</Link>
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
