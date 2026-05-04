@@ -10,16 +10,20 @@ const BillingSuccess = () => {
   const navigate = useNavigate();
   const sub = useSubscription();
 
-  // Webhook may take a moment to land — poll a few times
+  // Redirect to /chat as soon as subscription is active
   useEffect(() => {
-    if (sub.active) return;
-    const interval = window.setInterval(() => {
-      sub.refresh();
-    }, 2500);
-    const timeout = window.setTimeout(() => window.clearInterval(interval), 30000);
+    if (sub.active) {
+      navigate("/chat", { replace: true });
+      return;
+    }
+    const interval = window.setInterval(() => { sub.refresh(); }, 1500);
+    // Hard fallback: redirect after 8s even if webhook hasn't landed yet
+    const fallback = window.setTimeout(() => {
+      navigate("/chat", { replace: true });
+    }, 8000);
     return () => {
       window.clearInterval(interval);
-      window.clearTimeout(timeout);
+      window.clearTimeout(fallback);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sub.active]);
