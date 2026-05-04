@@ -10,6 +10,9 @@
 alter table public.profiles
   add column if not exists chat_credits bigint not null default 0;
 
+-- Needed because Postgres cannot change OUT-parameter return shapes with create or replace.
+drop function if exists public.chat_usage_summary();
+
 -- Updated allowance map for new plans
 create or replace function public.chat_token_allowance(_user uuid)
 returns bigint
