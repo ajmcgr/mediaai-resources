@@ -49,3 +49,6 @@ verify_jwt = false
 
 [functions.monitor-run-all]
 verify_jwt = false
+
+[functions.blog-generate]
+verify_jwt = false
