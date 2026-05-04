@@ -32,18 +32,70 @@ import jacksonAvatar from "@/assets/home/testimonial-jackson-v2.jpg";
 type Interval = "monthly" | "yearly";
 type PlanId = "starter" | "growth" | "enterprise";
 
-const TIERS: { id: PlanId; name: string; tagline: string; monthly: number | null; yearly: number | null; cta: string }[] = [
-  { id: "starter",    name: "Starter",    tagline: "AI chat. No database access.",                 monthly: 29,  yearly: 290,  cta: "Start Free Trial" },
-  { id: "growth",     name: "Growth",     tagline: "AI chat + full journalist & creator database.", monthly: 99,  yearly: 990,  cta: "Start Free Trial" },
-  { id: "enterprise", name: "Enterprise", tagline: "Custom API, volume tokens, dedicated support.",  monthly: null, yearly: null, cta: "Contact us" },
-];
+type Tier = {
+  id: PlanId;
+  name: string;
+  tagline: string;
+  monthly: number | null;
+  yearly: number | null;
+  features: string[];
+  highlight?: boolean;
+  badge?: string;
+  cta: string;
+};
 
-const PLAN_FEATURES = [
-  { title: "AI chat assistant:", body: "Natural-language search across the database with monthly token allowance." },
-  { title: "Database access (Growth):", body: "100% access to journalists and creators — no row limits." },
-  { title: "Top-up tokens any time:", body: "Out of monthly tokens? Buy 100k / 500k / 2M packs that never expire." },
-  { title: "No contracts:", body: "Cancel any time. Each subscription is month-to-month or yearly." },
-  { title: "Delivery:", body: "Immediate access upon payment." },
+const TIERS: Tier[] = [
+  {
+    id: "starter",
+    name: "Starter",
+    tagline: "Media AI chat. No database access.",
+    monthly: 29,
+    yearly: 290,
+    cta: "Start Free Trial",
+    features: [
+      "Verified journalist and creator contact emails",
+      "Media AI chat assistant",
+      "200,000 chat tokens / month",
+      "Top-up tokens any time",
+      "Email support",
+      "1-month free trial",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    tagline: "Media AI chat + full journalist & creator database.",
+    monthly: 99,
+    yearly: 990,
+    highlight: true,
+    badge: "Most popular",
+    cta: "Start Free Trial",
+    features: [
+      "Verified journalist and creator contact emails",
+      "Everything in Starter",
+      "1,000,000 chat tokens / month",
+      "100% database access — no row limits",
+      "Sort, filter, save views, export",
+      "Share contacts via link, email, or CSV",
+      "1-month free trial",
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    tagline: "Custom API, volume tokens, dedicated support.",
+    monthly: null,
+    yearly: null,
+    cta: "Contact us",
+    features: [
+      "Verified journalist and creator contact emails",
+      "Everything in Growth",
+      "Custom API access",
+      "Volume token pricing",
+      "SSO + dedicated support",
+      "Custom contracts",
+    ],
+  },
 ];
 
 
