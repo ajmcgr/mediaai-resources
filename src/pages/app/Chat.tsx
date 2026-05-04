@@ -28,27 +28,40 @@ import { Link } from "react-router-dom";
 const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
 
 type Msg = { role: "user" | "assistant"; content: string };
-type Results =
-  | { kind: "journalists"; rows: Array<Record<string, unknown>> }
-  | { kind: "creators"; rows: Array<Record<string, unknown>> }
-  | null;
-type ExaResult = { name?: string; outlet?: string; title?: string; url: string; reason: string };
-type ExaPayload = { kind: "journalists" | "creators"; query: string; results: ExaResult[] } | null;
 
-const JOURNALIST_COLS = [
+type Row = {
+  source: "database" | "exa";
+  source_id?: number | string;
+  source_url?: string;
+  source_table?: "journalist" | "creators";
+  name: string | null;
+  outlet: string | null;
+  title: string | null;
+  category: string | null;
+  country: string | null;
+  email: string | null;
+  ig_handle?: string | null;
+  ig_followers?: number | null;
+  youtube_url?: string | null;
+  reason?: string;
+};
+type Results =
+  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null }
+  | null;
+
+const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "outlet", label: "Outlet" },
-  { key: "category", label: "Category" },
-  { key: "topics", label: "Topics" },
-  { key: "email", label: "Email" },
+  { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
+  { key: "email", label: "Email" },
 ];
-const CREATOR_COLS = [
+const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
-  { key: "ig_handle", label: "IG Handle" },
+  { key: "ig_handle", label: "Handle" },
   { key: "ig_followers", label: "Followers" },
-  { key: "category", label: "Category" },
-  { key: "type", label: "Type" },
+  { key: "category", label: "Topic" },
+  { key: "email", label: "Email" },
 ];
 
 const Chat = () => {
@@ -60,8 +73,7 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
-  const [exa, setExa] = useState<ExaPayload>(null);
-  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
+  const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const savedSearches = useSavedSearches(!!user);
@@ -113,11 +125,11 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         setResults(data.results);
+        setSavingIdx({});
         upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
       } else {
         setResults(null);
       }
-      setExa(data?.exa ?? null);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -131,24 +143,42 @@ const Chat = () => {
   const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setExa(null); setInput(""); };
+  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setInput(""); };
 
-  const enrichRow = async (id: number) => {
+  const saveExaRow = async (idx: number) => {
     if (!results) return;
-    setEnriching((s) => ({ ...s, [id]: true }));
+    const row = results.rows[idx];
+    if (!row || row.source !== "exa") return;
+    setSavingIdx((s) => ({ ...s, [idx]: "saving" }));
     try {
-      const kind = results.kind === "journalists" ? "journalist" : "creator";
-      const { data, error } = await supabase.functions.invoke("enrich-contact", { body: { kind, id } });
-      if (error) throw error;
-      if (data?.ok && data.email) {
-        setResults((prev) => {
-          if (!prev) return prev;
-          const rows = prev.rows.map((r) => Number(r.id) === id ? { ...r, email: data.email, enrichment_source_url: data.source_url } : r);
-          return { ...prev, rows } as Results;
-        });
-      }
-    } catch (_) { /* ignore */ } finally {
-      setEnriching((s) => { const c = { ...s }; delete c[id]; return c; });
+      const { data, error } = await supabase.functions.invoke("save-contact", {
+        body: {
+          kind: results.kind,
+          row: {
+            name: row.name,
+            outlet: row.outlet,
+            title: row.title,
+            category: row.category,
+            country: row.country,
+            email: row.email,
+            ig_handle: row.ig_handle,
+            youtube_url: row.youtube_url,
+            source_url: row.source_url,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Save failed");
+      setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
+      setResults((prev) => {
+        if (!prev) return prev;
+        const newSourceTable: "journalist" | "creators" = prev.kind === "journalists" ? "journalist" : "creators";
+        const rows: Row[] = prev.rows.map((r, i) => i === idx
+          ? { ...r, source: "database", source_id: data.id, source_table: newSourceTable }
+          : r);
+        return { ...prev, rows };
+      });
+    } catch (_) {
+      setSavingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
     }
   };
 
@@ -276,8 +306,8 @@ const Chat = () => {
         </aside>
 
         {/* Center: chat */}
-        <section className={`flex flex-col ${(results || exa) ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
-          <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${(results || exa) ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
+        <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
+          <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
             {messages.length === 0 ? (
               <div className="text-center mt-24">
                 <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-primary/10 text-primary mb-4">
@@ -310,7 +340,7 @@ const Chat = () => {
             )}
           </div>
 
-          <div className={`w-full ${(results || exa) ? "" : "max-w-2xl"} px-4 pb-6`}>
+          <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
             <div className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60">
               <Textarea
                 value={input}
@@ -340,113 +370,97 @@ const Chat = () => {
         </section>
 
         {/* Right: results */}
-        {(results || exa) && (
+        {results && (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
-            {results && (
-              <>
-                <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
-                  <div>
-                    <div className="text-sm font-medium capitalize">{results.kind}</div>
-                    <div className="text-xs text-muted-foreground">{results.rows.length} results</div>
-                  </div>
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <div className="text-sm font-medium capitalize">{results.kind}</div>
+                <div className="text-xs text-muted-foreground">
+                  {results.rows.length} results
+                  {(() => {
+                    const dbN = results.rows.filter((r) => r.source === "database").length;
+                    const exaN = results.rows.length - dbN;
+                    return ` · ${dbN} from database · ${exaN} from web`;
+                  })()}
                 </div>
-                {results.rows.length === 0 ? (
-                  <div className="p-12 text-center text-sm text-muted-foreground">No matches in your database.</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary/40 text-xs text-muted-foreground">
-                      <tr>
-                        <th className="w-8" />
-                        {cols.map((c) => (
-                          <th key={c.key} className="text-left font-medium px-4 py-2.5">{c.label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.rows.map((r, i) => {
-                        const id = Number(r.id);
-                        return (
-                          <tr key={(r.id as string) ?? i} className="group border-b border-border hover:bg-secondary/30">
-                            <td className="px-2 py-2.5 align-top">
-                              {Number.isFinite(id) && (
-                                <AddToListMenu
-                                  journalistId={results.kind === "journalists" ? id : undefined}
-                                  creatorId={results.kind === "creators" ? id : undefined}
-                                />
+              </div>
+            </div>
+            {results.rows.length === 0 ? (
+              <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/40 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="w-8" />
+                    <th className="text-left font-medium px-3 py-2.5">Source</th>
+                    {cols.map((c) => (
+                      <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.rows.map((r, i) => {
+                    const dbId = r.source === "database" && typeof r.source_id === "number" ? r.source_id : null;
+                    return (
+                      <tr key={i} className="group border-b border-border hover:bg-secondary/30 align-top">
+                        <td className="px-2 py-2.5">
+                          {dbId !== null && (
+                            <AddToListMenu
+                              journalistId={results.kind === "journalists" ? dbId : undefined}
+                              creatorId={results.kind === "creators" ? dbId : undefined}
+                            />
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {r.source === "database" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Database
+                            </span>
+                          ) : savingIdx[i] === "saving" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />Saving
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => saveExaRow(i)}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                              title="Save this web result to your database"
+                            >
+                              Exa web · Save
+                            </button>
+                          )}
+                        </td>
+                        {cols.map((c) => {
+                          const v = r[c.key];
+                          return (
+                            <td key={String(c.key)} className="px-4 py-2.5">
+                              {c.key === "email" ? (
+                                v ? (
+                                  <span className="break-all">{String(v)}</span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Email not found</span>
+                                )
+                              ) : v == null || v === "" ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : typeof v === "number" ? (
+                                v.toLocaleString()
+                              ) : (
+                                String(v)
                               )}
                             </td>
-                            {cols.map((c) => {
-                              const v = r[c.key];
-                              const isEmail = c.key === "email";
-                              return (
-                                <td key={c.key} className="px-4 py-2.5 align-top">
-                                  {v == null || v === "" ? (
-                                    isEmail && Number.isFinite(id) ? (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-xs"
-                                        disabled={!!enriching[id]}
-                                        onClick={() => enrichRow(id)}
-                                      >
-                                        {enriching[id] ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                                        Find email
-                                      </Button>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )
-                                  ) : typeof v === "number" ? (
-                                    v.toLocaleString()
-                                  ) : (
-                                    String(v)
-                                  )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </>
-            )}
-
-            {exa && exa.results.length > 0 && (
-              <div className="border-t border-border">
-                <div className="px-5 py-3 bg-amber-50/50 border-b border-amber-100">
-                  <div className="text-sm font-medium">Suggested from web</div>
-                  <div className="text-xs text-muted-foreground">
-                    {results && results.rows.length < 5 ? "Expanding search with web sources… " : ""}
-                    External results — review before saving.
-                  </div>
-                </div>
-                <ul className="divide-y divide-border">
-                  {exa.results.map((r, i) => (
-                    <li key={i} className="px-5 py-3 hover:bg-secondary/30">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {r.name || r.title || r.url}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {[r.outlet, r.title].filter(Boolean).join(" · ")}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.reason}</p>
-                          <a
-                            href={r.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-primary hover:underline break-all"
-                          >
-                            {r.url}
-                          </a>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                          );
+                        })}
+                        {r.source === "exa" && r.source_url && (
+                          <td className="px-2 py-2.5">
+                            <a href={r.source_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">source</a>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </section>
         )}
