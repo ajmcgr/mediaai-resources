@@ -125,11 +125,11 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         setResults(data.results);
+        setSavingIdx({});
         upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
       } else {
         setResults(null);
       }
-      setExa(data?.exa ?? null);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -143,24 +143,41 @@ const Chat = () => {
   const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setExa(null); setInput(""); };
+  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setInput(""); };
 
-  const enrichRow = async (id: number) => {
+  const saveExaRow = async (idx: number) => {
     if (!results) return;
-    setEnriching((s) => ({ ...s, [id]: true }));
+    const row = results.rows[idx];
+    if (!row || row.source !== "exa") return;
+    setSavingIdx((s) => ({ ...s, [idx]: "saving" }));
     try {
-      const kind = results.kind === "journalists" ? "journalist" : "creator";
-      const { data, error } = await supabase.functions.invoke("enrich-contact", { body: { kind, id } });
-      if (error) throw error;
-      if (data?.ok && data.email) {
-        setResults((prev) => {
-          if (!prev) return prev;
-          const rows = prev.rows.map((r) => Number(r.id) === id ? { ...r, email: data.email, enrichment_source_url: data.source_url } : r);
-          return { ...prev, rows } as Results;
-        });
-      }
-    } catch (_) { /* ignore */ } finally {
-      setEnriching((s) => { const c = { ...s }; delete c[id]; return c; });
+      const { data, error } = await supabase.functions.invoke("save-contact", {
+        body: {
+          kind: results.kind,
+          row: {
+            name: row.name,
+            outlet: row.outlet,
+            title: row.title,
+            category: row.category,
+            country: row.country,
+            email: row.email,
+            ig_handle: row.ig_handle,
+            youtube_url: row.youtube_url,
+            source_url: row.source_url,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error || new Error(data?.error || "Save failed");
+      setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
+      setResults((prev) => {
+        if (!prev) return prev;
+        const rows = prev.rows.map((r, i) => i === idx
+          ? { ...r, source: "database" as const, source_id: data.id, source_table: results.kind === "journalists" ? "journalist" : "creators" }
+          : r);
+        return { ...prev, rows };
+      });
+    } catch (_) {
+      setSavingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
     }
   };
 
