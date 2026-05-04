@@ -32,6 +32,8 @@ type Results =
   | { kind: "journalists"; rows: Array<Record<string, unknown>> }
   | { kind: "creators"; rows: Array<Record<string, unknown>> }
   | null;
+type ExaResult = { name?: string; outlet?: string; title?: string; url: string; reason: string };
+type ExaPayload = { kind: "journalists" | "creators"; query: string; results: ExaResult[] } | null;
 
 const JOURNALIST_COLS = [
   { key: "name", label: "Name" },
