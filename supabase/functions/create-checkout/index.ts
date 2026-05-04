@@ -1,4 +1,4 @@
-console.log("CHECKOUT_V6_RUNNING");
+console.log("CHECKOUT_V6_RUNNING - redeploy", new Date().toISOString());
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
