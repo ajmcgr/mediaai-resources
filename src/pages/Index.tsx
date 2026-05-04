@@ -471,6 +471,7 @@ const Index = () => {
               </thead>
               <tbody className="[&>tr]:border-t [&>tr]:border-border">
                 {[
+                  { label: "AI chat", row: [true, false, false, false] },
                   { label: "Journalist database", row: [true, true, true, true] },
                   { label: "Creator database", row: [true, false, false, false] },
                   { label: "Export to CSV", row: [true, true, true, true] },
