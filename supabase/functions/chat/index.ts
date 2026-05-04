@@ -599,11 +599,35 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (out.includes(t)) s += 2;
       if (hay.includes(t)) s += 1;
     }
+    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
+    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 5;
+    if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
+    if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
     if (r.email) s += intent.emailRequired ? 12 : 4;
     if (r.source === "database") s += 20; // prioritize owned database rows over generic web hits
+    if (!r.name && r.source === "exa") s -= 8;
+    if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
+}
+
+function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
+  const rankedAll = rankRows(rows, intent);
+  const dbRanked = rankedAll.filter((r) => r.source === "database");
+  const exaRanked = rankedAll.filter((r) => r.source === "exa");
+  const minDb = Math.min(dbRanked.length, Math.min(25, Math.max(10, Math.floor(target * 0.25))));
+  const minExa = Math.min(exaRanked.length, Math.min(50, Math.max(20, Math.floor(target * 0.4))));
+  const picked: Row[] = [...dbRanked.slice(0, minDb), ...exaRanked.slice(0, minExa)];
+  const keys = new Set(picked.map((r) => `${r.source}:${r.source_id ?? r.source_url ?? r.name}`));
+  for (const r of rankedAll) {
+    if (picked.length >= target) break;
+    const key = `${r.source}:${r.source_id ?? r.source_url ?? r.name}`;
+    if (keys.has(key)) continue;
+    keys.add(key);
+    picked.push(r);
+  }
+  return rankRows(picked, intent).slice(0, target);
 }
 
 // ---------- Hybrid orchestrator ----------
@@ -647,7 +671,7 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   combined = dedupe(combined);
   debug.deduped_count = combined.length;
 
-  const ranked = rankRows(combined, intent).slice(0, target);
+  const ranked = blendedResults(combined, intent, target);
   debug.final_count = ranked.length;
   console.log("[chat.hybrid]", JSON.stringify(debug));
   return { rows: ranked, debug, intent, cap };
