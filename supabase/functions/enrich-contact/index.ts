@@ -1,6 +1,7 @@
-// Enrich a journalist or creator's missing email by searching the public web with Exa.
-// POST { kind: "journalist" | "creator", id: number }
-// Returns { ok, email?, source_url?, message? }
+// Enrich missing fields on a journalist or creator row using Exa + Lovable AI Gateway.
+// POST { kind: "journalist" | "creator", id: number, fields?: string[] }
+// If `fields` is omitted, enriches all empty/null fields the row supports.
+// Returns { ok, updated: Record<string, unknown>, source_urls: string[], message? }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
@@ -10,19 +11,30 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
+const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type"] as const;
 
-async function exaContents(query: string): Promise<Array<{ url: string; text: string }>> {
+const FIELD_DESCRIPTIONS: Record<string, string> = {
+  email: "Direct professional email address (avoid generic info@/press@).",
+  category: "Primary beat or topic category (e.g. Technology, Finance, Health).",
+  titles: "Current job title(s) at their outlet (e.g. Senior Reporter).",
+  xhandle: "X/Twitter handle starting with @.",
+  outlet: "Name of the publication or outlet they write for.",
+  country: "Country they are based in.",
+  bio: "Short professional bio (1-2 sentences).",
+  ig_handle: "Instagram handle starting with @.",
+  youtube_url: "Full YouTube channel URL.",
+  type: "Creator type (e.g. Influencer, Educator, Vlogger).",
+};
+
+async function exaSearch(query: string, numResults = 5): Promise<Array<{ url: string; text: string }>> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key },
     body: JSON.stringify({
-      query,
-      numResults: 6,
-      useAutoprompt: true,
-      type: "neural",
+      query, numResults, useAutoprompt: true, type: "neural",
       contents: { text: { maxCharacters: 4000 } },
     }),
   });
@@ -31,20 +43,54 @@ async function exaContents(query: string): Promise<Array<{ url: string; text: st
   return (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" }));
 }
 
-function pickEmail(text: string, name?: string): string | null {
-  const matches = text.match(new RegExp(EMAIL_RE.source, "gi")) ?? [];
-  if (!matches.length) return null;
-  // Prefer emails matching the name's first/last token
-  if (name) {
-    const tokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
-    for (const m of matches) {
-      const lc = m.toLowerCase();
-      if (tokens.some((t) => lc.includes(t))) return m;
+async function extractFields(
+  name: string,
+  context: string,
+  snippets: Array<{ url: string; text: string }>,
+  fields: string[],
+): Promise<Record<string, string>> {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key || !snippets.length) return {};
+  const fieldList = fields.map((f) => `- ${f}: ${FIELD_DESCRIPTIONS[f] ?? f}`).join("\n");
+  const corpus = snippets
+    .slice(0, 6)
+    .map((s, i) => `[Source ${i + 1}] ${s.url}\n${s.text.slice(0, 1500)}`)
+    .join("\n\n");
+  const prompt = `You are extracting verified contact details for "${name}"${context ? ` (${context})` : ""}.
+Only return values explicitly supported by the sources. If unsure, omit the field.
+Return JSON with these fields (omit any you cannot verify):
+${fieldList}
+
+Sources:
+${corpus}`;
+
+  try {
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "Return only a single JSON object. No markdown." },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!r.ok) return {};
+    const j = await r.json();
+    const txt = j.choices?.[0]?.message?.content ?? "";
+    const m = txt.match(/\{[\s\S]*\}/);
+    if (!m) return {};
+    const parsed = JSON.parse(m[0]);
+    const out: Record<string, string> = {};
+    for (const f of fields) {
+      const v = parsed[f];
+      if (typeof v === "string" && v.trim()) out[f] = v.trim();
     }
+    return out;
+  } catch {
+    return {};
   }
-  // Else avoid generic addresses
-  const filtered = matches.filter((m) => !/^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr)@/i.test(m));
-  return filtered[0] ?? matches[0];
 }
 
 Deno.serve(async (req) => {
@@ -60,7 +106,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { kind, id } = await req.json();
+    const { kind, id, fields: requestedFields } = await req.json();
     if (!["journalist", "creator"].includes(kind) || !Number.isFinite(Number(id))) {
       return new Response(JSON.stringify({ error: "invalid_input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -69,51 +115,61 @@ Deno.serve(async (req) => {
     const table = kind === "journalist" ? "journalist" : "creators";
     const { data: row, error: rowErr } = await admin.from(table).select("*").eq("id", id).maybeSingle();
     if (rowErr || !row) return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (row.email) {
-      return new Response(JSON.stringify({ ok: true, email: row.email, message: "already had email" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const allFields = (kind === "journalist" ? JOURNALIST_FIELDS : CREATOR_FIELDS) as readonly string[];
+    const targetFields = (Array.isArray(requestedFields) && requestedFields.length
+      ? requestedFields.filter((f: string) => allFields.includes(f))
+      : allFields.filter((f) => row[f] === null || row[f] === undefined || row[f] === ""));
+
+    if (!targetFields.length) {
+      return new Response(JSON.stringify({ ok: true, updated: {}, source_urls: [], message: "Nothing to enrich." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const name = String(row.name ?? "").trim();
-    const outlet = String(row.outlet ?? "").trim();
     if (!name) return new Response(JSON.stringify({ error: "no_name" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const outlet = String(row.outlet ?? "").trim();
+    const context = [outlet, row.category, row.country].filter(Boolean).join(" · ");
 
     const queries = [
-      kind === "journalist" && outlet ? `"${name}" ${outlet} email contact` : null,
-      `"${name}" email contact press`,
-      `"${name}" ${outlet || ""} author profile`,
+      kind === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
+      kind === "creator" ? `"${name}" creator instagram youtube profile` : null,
+      `"${name}" ${outlet || ""} email contact`,
+      `"${name}" author profile bio`,
     ].filter(Boolean) as string[];
 
-    let foundEmail: string | null = null;
-    let sourceUrl: string | null = null;
+    const allSnippets: Array<{ url: string; text: string }> = [];
     for (const q of queries) {
-      const items = await exaContents(q);
-      for (const it of items) {
-        const e = pickEmail(it.text, name);
-        if (e) { foundEmail = e; sourceUrl = it.url; break; }
-      }
-      if (foundEmail) break;
+      const items = await exaSearch(q, 4);
+      allSnippets.push(...items);
+      if (allSnippets.length >= 8) break;
     }
 
-    if (!foundEmail || !sourceUrl) {
-      return new Response(JSON.stringify({ ok: false, message: "No public email found." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!allSnippets.length) {
+      return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Try to persist; gracefully handle missing columns
-    const update: Record<string, unknown> = {
-      email: foundEmail,
-      enrichment_source_url: sourceUrl,
-      enriched_at: new Date().toISOString(),
-    };
+    const extracted = await extractFields(name, context, allSnippets, targetFields);
+    if (!Object.keys(extracted).length) {
+      return new Response(JSON.stringify({ ok: false, message: "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const update: Record<string, unknown> = { ...extracted };
+    update.enrichment_source_url = allSnippets[0]?.url ?? null;
+    update.enriched_at = new Date().toISOString();
+
     let { error: upErr } = await admin.from(table).update(update).eq("id", id);
-    if (upErr && (upErr.message?.includes("enrichment_source_url") || upErr.message?.includes("enriched_at"))) {
-      const r = await admin.from(table).update({ email: foundEmail }).eq("id", id);
+    if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
+      const r = await admin.from(table).update(extracted).eq("id", id);
       upErr = r.error;
     }
     if (upErr) {
-      return new Response(JSON.stringify({ ok: false, message: `Found email but failed to save: ${upErr.message}`, email: foundEmail, source_url: sourceUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, message: `Found data but failed to save: ${upErr.message}`, updated: extracted }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ ok: true, email: foundEmail, source_url: sourceUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ ok: true, updated: extracted, source_urls: allSnippets.slice(0, 3).map((s) => s.url) }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
