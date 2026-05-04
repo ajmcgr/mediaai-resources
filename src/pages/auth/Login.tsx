@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,12 @@ const Login = () => {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
   const { user } = useAuth();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app";
+  const from =
+    params.get("next") ||
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/app";
 
   useEffect(() => {
     if (user) navigate(from, { replace: true });
