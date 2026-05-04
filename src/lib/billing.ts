@@ -25,10 +25,15 @@ export async function startCheckout(
   planIdentifier: "journalist" | "creator" | "both",
   interval: "monthly" | "yearly" = "monthly",
 ) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id || !user?.email) throw new Error("Please sign in first.");
+
   const { url } = await authedPost("create-checkout", {
-    plan_identifier: planIdentifier,
-    interval,
+    user_id: user.id,
+    user_email: user.email,
   });
+  if (!url) throw new Error("Checkout URL missing from response.");
+
   window.location.href = url;
 }
 
