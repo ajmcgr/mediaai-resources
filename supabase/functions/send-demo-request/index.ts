@@ -1,3 +1,5 @@
+import { renderBrandedEmail } from "../_shared/email-template.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -67,8 +69,7 @@ Deno.serve(async (req) => {
     }
     const { name, email, company, role, teamSize, message } = parsed.data;
 
-    const html = `
-      <h2>New demo request</h2>
+    const body = `
       <p><strong>Name:</strong> ${escapeHtml(name)}</p>
       <p><strong>Email:</strong> ${escapeHtml(email)}</p>
       <p><strong>Company:</strong> ${escapeHtml(company)}</p>
@@ -77,6 +78,11 @@ Deno.serve(async (req) => {
       <p><strong>Message:</strong></p>
       <p style="white-space:pre-wrap">${escapeHtml(message || "—")}</p>
     `;
+    const html = renderBrandedEmail({
+      preheader: `Demo request from ${company}`,
+      heading: "New demo request",
+      body,
+    });
 
     const response = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
