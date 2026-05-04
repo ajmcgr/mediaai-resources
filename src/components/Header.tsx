@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
@@ -29,9 +28,10 @@ const Header = () => {
         <div className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
           <a
             href="https://trymedia.ai/"
-            className="flex w-[104px] shrink-0 items-center sm:w-[120px]"
+            className="flex w-[104px] shrink-0 items-center text-primary sm:w-[120px]"
+            aria-label="Media AI home"
           >
-            <img src={logoMedia} alt="Media AI" className="block h-5 w-auto max-w-[96px] object-contain sm:max-w-[110px]" />
+            <span className="text-base font-bold leading-none tracking-normal sm:text-lg">★ media</span>
           </a>
 
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
