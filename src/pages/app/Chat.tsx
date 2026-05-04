@@ -24,6 +24,7 @@ import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
 
@@ -193,9 +194,12 @@ const Chat = () => {
           const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, email: found } : r);
           return { ...prev, rows };
         });
+        toast.success("Email found");
+      } else {
+        toast.message(data?.message ?? "No verifiable email found");
       }
-    } catch (_) {
-      /* ignore */
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Email lookup failed");
     } finally {
       setEnrichingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
     }
@@ -234,6 +238,7 @@ const Chat = () => {
         return { ...prev, rows };
       });
     } catch (_) {
+      toast.error("Could not save this web result");
       setSavingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
     }
   };
