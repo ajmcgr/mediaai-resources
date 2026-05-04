@@ -74,6 +74,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
+  const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const savedSearches = useSavedSearches(!!user);
@@ -143,7 +144,62 @@ const Chat = () => {
   const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setInput(""); };
+  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
+
+  const enrichEmail = async (idx: number) => {
+    if (!results) return;
+    let row = results.rows[idx];
+    if (!row) return;
+    setEnrichingIdx((s) => ({ ...s, [idx]: true }));
+    try {
+      // Need a database row to enrich. Save Exa row first if necessary.
+      let dbId = typeof row.source_id === "number" ? row.source_id : null;
+      let table: "journalist" | "creators" =
+        row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
+      if (row.source === "exa" || dbId === null) {
+        setSavingIdx((s) => ({ ...s, [idx]: "saving" }));
+        const { data: saveData, error: saveErr } = await supabase.functions.invoke("save-contact", {
+          body: {
+            kind: results.kind,
+            row: {
+              name: row.name, outlet: row.outlet, title: row.title,
+              category: row.category, country: row.country, email: row.email,
+              ig_handle: row.ig_handle, youtube_url: row.youtube_url,
+              source_url: row.source_url,
+            },
+          },
+        });
+        if (saveErr || !saveData?.ok) throw saveErr || new Error(saveData?.error || "Save failed");
+        dbId = saveData.id;
+        table = results.kind === "journalists" ? "journalist" : "creators";
+        setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows: Row[] = prev.rows.map((r, i) => i === idx
+            ? { ...r, source: "database", source_id: dbId!, source_table: table }
+            : r);
+          return { ...prev, rows };
+        });
+      }
+      const kindArg = table === "journalist" ? "journalist" : "creator";
+      const { data, error } = await supabase.functions.invoke("enrich-contact", {
+        body: { kind: kindArg, id: dbId, fields: ["email"] },
+      });
+      if (error) throw error;
+      const found = data?.updated?.email;
+      if (found) {
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, email: found } : r);
+          return { ...prev, rows };
+        });
+      }
+    } catch (_) {
+      /* ignore */
+    } finally {
+      setEnrichingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
+    }
+  };
 
   const saveExaRow = async (idx: number) => {
     if (!results) return;
@@ -395,11 +451,14 @@ const Chat = () => {
                     {cols.map((c) => (
                       <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
                     ))}
+                    <th className="w-24" />
                   </tr>
                 </thead>
                 <tbody>
                   {results.rows.map((r, i) => {
                     const dbId = r.source === "database" && typeof r.source_id === "number" ? r.source_id : null;
+                    const enriching = !!enrichingIdx[i];
+                    const saving = savingIdx[i] === "saving";
                     return (
                       <tr key={i} className="group border-b border-border hover:bg-secondary/30 align-top">
                         <td className="px-2 py-2.5">
@@ -417,8 +476,19 @@ const Chat = () => {
                               {c.key === "email" ? (
                                 v ? (
                                   <span className="break-all">{String(v)}</span>
+                                ) : enriching ? (
+                                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Loader2 className="h-3 w-3 animate-spin" />Finding…
+                                  </span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">Email not found</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => enrichEmail(i)}
+                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                    title="Use Exa + AI to find this email"
+                                  >
+                                    <Sparkles className="h-3 w-3" />Find email
+                                  </button>
                                 )
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
@@ -430,11 +500,29 @@ const Chat = () => {
                             </td>
                           );
                         })}
-                        {r.source === "exa" && r.source_url && (
-                          <td className="px-2 py-2.5">
-                            <a href={r.source_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">source</a>
-                          </td>
-                        )}
+                        <td className="px-3 py-2.5 text-right">
+                          {r.source === "exa" ? (
+                            saving ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />Saving
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => saveExaRow(i)}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                                title="Save this web result to your database"
+                              >
+                                Save
+                              </button>
+                            )
+                          ) : savingIdx[i] === "saved" ? (
+                            <span className="text-[10px] text-emerald-700">Saved</span>
+                          ) : null}
+                          {r.source === "exa" && r.source_url && (
+                            <a href={r.source_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] text-muted-foreground hover:underline">source</a>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
