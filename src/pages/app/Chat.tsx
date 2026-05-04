@@ -171,8 +171,9 @@ const Chat = () => {
       setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
       setResults((prev) => {
         if (!prev) return prev;
-        const rows = prev.rows.map((r, i) => i === idx
-          ? { ...r, source: "database" as const, source_id: data.id, source_table: results.kind === "journalists" ? "journalist" : "creators" }
+        const newSourceTable: "journalist" | "creators" = prev.kind === "journalists" ? "journalist" : "creators";
+        const rows: Row[] = prev.rows.map((r, i) => i === idx
+          ? { ...r, source: "database", source_id: data.id, source_table: newSourceTable }
           : r);
         return { ...prev, rows };
       });
