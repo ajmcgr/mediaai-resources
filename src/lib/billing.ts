@@ -67,6 +67,25 @@ export async function confirmCheckout(sessionId: string) {
   return res.json() as Promise<{ ok: boolean }>;
 }
 
+export async function syncSubscription() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("NOT_AUTHENTICATED");
+  const res = await fetch(`${FUNCTIONS_BASE}/sync-subscription`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("[billing] sync-subscription error", res.status, text);
+    throw new Error(text || `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<{ ok: boolean; active: boolean }>;
+}
+
 export async function startTopup(pack: TopupPack) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
