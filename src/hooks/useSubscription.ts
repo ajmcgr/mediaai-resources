@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { syncSubscription } from "@/lib/billing";
+import { isGrowthPlanIdentifier } from "@/lib/plans";
 
 export interface SubscriptionState {
   loading: boolean;
@@ -36,7 +37,8 @@ export const useSubscription = (): SubscriptionState => {
       .eq("id", user.id)
       .maybeSingle();
     let isActive = Boolean(data?.sub_active);
-    if (!isActive) {
+    let currentPlan = data?.plan_identifier ?? null;
+    if (!isActive || !isGrowthPlanIdentifier(currentPlan)) {
       try {
         const synced = await syncSubscription();
         if (synced.active) {
@@ -46,7 +48,8 @@ export const useSubscription = (): SubscriptionState => {
             .eq("id", user.id)
             .maybeSingle();
           isActive = Boolean(refreshed?.sub_active);
-          setPlanIdentifier(refreshed?.plan_identifier ?? null);
+          currentPlan = refreshed?.plan_identifier ?? null;
+          setPlanIdentifier(currentPlan);
           setPeriodEnd(refreshed?.sub_period_end ?? null);
           setStripeCustomerId(refreshed?.stripe_customer_id ?? null);
           setActive(isActive);
@@ -58,7 +61,7 @@ export const useSubscription = (): SubscriptionState => {
       }
     }
     setActive(isActive);
-    setPlanIdentifier(data?.plan_identifier ?? null);
+    setPlanIdentifier(currentPlan);
     setPeriodEnd(data?.sub_period_end ?? null);
     setStripeCustomerId(data?.stripe_customer_id ?? null);
     setLoading(false);
