@@ -29,21 +29,22 @@ import avatar4 from "@/assets/home/avatar-4-v2.png";
 import jacksonAvatar from "@/assets/home/testimonial-jackson-v2.jpg";
 
 type Interval = "monthly" | "yearly";
-type PlanId = "journalist" | "creator" | "both";
+type PlanId = "starter" | "growth" | "enterprise";
 
-const TIERS: { id: PlanId; name: string; monthly: number; yearly: number }[] = [
-  { id: "journalist", name: "Journalist Database", monthly: 99, yearly: 999 },
-  { id: "creator", name: "Creators Database", monthly: 99, yearly: 999 },
-  { id: "both", name: "Full Database", monthly: 149, yearly: 1499 },
+const TIERS: { id: PlanId; name: string; tagline: string; monthly: number | null; yearly: number | null; cta: string }[] = [
+  { id: "starter",    name: "Starter",    tagline: "AI chat. No database access.",                 monthly: 29,  yearly: 290,  cta: "Start Free Trial" },
+  { id: "growth",     name: "Growth",     tagline: "AI chat + full journalist & creator database.", monthly: 99,  yearly: 990,  cta: "Start Free Trial" },
+  { id: "enterprise", name: "Enterprise", tagline: "Custom API, volume tokens, dedicated support.",  monthly: null, yearly: null, cta: "Contact us" },
 ];
 
 const PLAN_FEATURES = [
-  { title: "100% database access:", body: "Get full access to the data — no limits." },
-  { title: "Sort, group, filter, share/sync:", body: "Manipulate data with ease using our various filtering and sorting options" },
-  { title: "Share:", body: "Quickly share media contacts with your colleagues via link, embed or email." },
-  { title: "No contracts:", body: "We never tie you down with contracts. Each subscription is a one-time purchase. Cancel any-time." },
+  { title: "AI chat assistant:", body: "Natural-language search across the database with monthly token allowance." },
+  { title: "Database access (Growth):", body: "100% access to journalists and creators — no row limits." },
+  { title: "Top-up tokens any time:", body: "Out of monthly tokens? Buy 100k / 500k / 2M packs that never expire." },
+  { title: "No contracts:", body: "Cancel any time. Each subscription is month-to-month or yearly." },
   { title: "Delivery:", body: "Immediate access upon payment." },
 ];
+
 
 const FAQS = [
   { q: "What is Media AI?", a: "Media AI is a database of journalists and creators powered by AI. We help PR and social media professionals find the right contacts to pitch their stories and campaigns." },
@@ -138,13 +139,17 @@ const Index = () => {
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
 
   const goCheckout = async (plan: PlanId) => {
+    if (plan === "enterprise") {
+      navigate("/request-demo");
+      return;
+    }
     if (!user) {
       navigate(`/signup?next=${encodeURIComponent(`/pricing?plan=${plan}`)}`);
       return;
     }
     try {
       setPendingPlan(plan);
-      await startCheckout(plan);
+      await startCheckout(plan, interval);
     } catch (e) {
       toast.error((e as Error).message ?? "Could not start checkout");
       setPendingPlan(null);
