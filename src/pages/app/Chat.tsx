@@ -114,7 +114,10 @@ const Chat = () => {
       if (data?.results) {
         setResults(data.results);
         upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
+      } else {
+        setResults(null);
       }
+      setExa(data?.exa ?? null);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -128,7 +131,26 @@ const Chat = () => {
   const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setInput(""); };
+  const newChat = () => { setMessages([]); setResults(null); setExa(null); setInput(""); };
+
+  const enrichRow = async (id: number) => {
+    if (!results) return;
+    setEnriching((s) => ({ ...s, [id]: true }));
+    try {
+      const kind = results.kind === "journalists" ? "journalist" : "creator";
+      const { data, error } = await supabase.functions.invoke("enrich-contact", { body: { kind, id } });
+      if (error) throw error;
+      if (data?.ok && data.email) {
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows = prev.rows.map((r) => Number(r.id) === id ? { ...r, email: data.email, enrichment_source_url: data.source_url } : r);
+          return { ...prev, rows } as Results;
+        });
+      }
+    } catch (_) { /* ignore */ } finally {
+      setEnriching((s) => { const c = { ...s }; delete c[id]; return c; });
+    }
+  };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
 
