@@ -492,10 +492,10 @@ const Index = () => {
               return (
                 <div
                   key={tier.id}
-                  className={`relative rounded-2xl p-8 flex flex-col ${
+                  className={`relative rounded-2xl p-8 flex flex-col bg-white ${
                     tier.highlight
-                      ? "bg-foreground text-background border border-foreground"
-                      : "bg-white border border-border"
+                      ? "border-2 border-primary shadow-lg"
+                      : "border border-border"
                   }`}
                 >
                   {tier.badge && (
@@ -506,14 +506,14 @@ const Index = () => {
                     </div>
                   )}
                   <h3 className="text-xl font-medium mb-1">{tier.name}</h3>
-                  <p className={`text-sm mb-6 ${tier.highlight ? "text-background/70" : "text-muted-foreground"}`}>
+                  <p className="text-sm mb-6 text-muted-foreground">
                     {tier.tagline}
                   </p>
                   <div className="mb-6">
                     {price !== null ? (
                       <>
                         <span className="text-4xl font-medium">${price}</span>
-                        <span className={`text-sm ml-1 ${tier.highlight ? "text-background/70" : "text-muted-foreground"}`}>
+                        <span className="text-sm ml-1 text-muted-foreground">
                           {period}
                         </span>
                       </>
@@ -524,7 +524,7 @@ const Index = () => {
                   <Button
                     onClick={() => goCheckout(tier.id)}
                     disabled={pendingPlan !== null}
-                    className={`w-full mb-6 ${tier.highlight ? "bg-white text-foreground hover:bg-white/90" : ""}`}
+                    className="w-full mb-6"
                     variant={tier.highlight ? "default" : "outline"}
                   >
                     {pendingPlan === tier.id ? "Redirecting…" : tier.cta}
@@ -532,7 +532,7 @@ const Index = () => {
                   <ul className="space-y-3 text-sm">
                     {tier.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
-                        <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${tier.highlight ? "text-background/80" : "text-primary"}`} />
+                        <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                         <span>{f}</span>
                       </li>
                     ))}
