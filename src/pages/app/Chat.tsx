@@ -28,27 +28,40 @@ import { Link } from "react-router-dom";
 const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
 
 type Msg = { role: "user" | "assistant"; content: string };
-type Results =
-  | { kind: "journalists"; rows: Array<Record<string, unknown>> }
-  | { kind: "creators"; rows: Array<Record<string, unknown>> }
-  | null;
-type ExaResult = { name?: string; outlet?: string; title?: string; url: string; reason: string };
-type ExaPayload = { kind: "journalists" | "creators"; query: string; results: ExaResult[] } | null;
 
-const JOURNALIST_COLS = [
+type Row = {
+  source: "database" | "exa";
+  source_id?: number | string;
+  source_url?: string;
+  source_table?: "journalist" | "creators";
+  name: string | null;
+  outlet: string | null;
+  title: string | null;
+  category: string | null;
+  country: string | null;
+  email: string | null;
+  ig_handle?: string | null;
+  ig_followers?: number | null;
+  youtube_url?: string | null;
+  reason?: string;
+};
+type Results =
+  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null }
+  | null;
+
+const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "outlet", label: "Outlet" },
-  { key: "category", label: "Category" },
-  { key: "topics", label: "Topics" },
-  { key: "email", label: "Email" },
+  { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
+  { key: "email", label: "Email" },
 ];
-const CREATOR_COLS = [
+const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
-  { key: "ig_handle", label: "IG Handle" },
+  { key: "ig_handle", label: "Handle" },
   { key: "ig_followers", label: "Followers" },
-  { key: "category", label: "Category" },
-  { key: "type", label: "Type" },
+  { key: "category", label: "Topic" },
+  { key: "email", label: "Email" },
 ];
 
 const Chat = () => {
