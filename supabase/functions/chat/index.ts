@@ -39,9 +39,9 @@ const tools: Tool[] = [
 // ---------- Intent parsing ----------
 
 const TOPIC_SYNONYMS: Record<string, string[]> = {
-  tech: ["tech", "technology", "ai", "software", "saas", "startup", "startups"],
-  technology: ["technology", "tech", "ai", "software", "saas"],
-  ai: ["ai", "artificial intelligence", "ml", "machine learning"],
+  tech: ["tech", "technology", "artificial intelligence", "ai", "software", "saas", "startup", "startups", "innovation"],
+  technology: ["technology", "tech", "artificial intelligence", "ai", "software", "saas", "innovation"],
+  ai: ["ai", "artificial intelligence", "ml", "machine learning", "technology", "tech"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
   crypto: ["crypto", "cryptocurrency", "blockchain", "web3", "bitcoin"],
   finance: ["finance", "financial", "fintech", "banking", "investing"],
@@ -64,8 +64,8 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
 };
 
 const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }> = {
-  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "british", "england", "scotland", "wales"] },
-  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "england"] },
+  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "british", "england", "scotland", "wales", "london"] },
+  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "england", "london"] },
   us: { canonical: "United States", variants: ["united states", "usa", "u.s.", "america", "american"] },
   usa: { canonical: "United States", variants: ["united states", "usa", "america"] },
   "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
@@ -118,7 +118,7 @@ function parseIntent(q: string): Intent {
   let working = lower;
 
   // Quantity: "50 tech journalists", "100 ai creators", "find 25"
-  let count = 25;
+  let count = 50;
   const qMatch = lower.match(/\b(\d{1,4})\b/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
