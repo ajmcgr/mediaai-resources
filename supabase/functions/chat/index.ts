@@ -199,9 +199,9 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 250;
-  if (["starter"].includes(p)) return 50;
-  return 10;
+  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 500;
+  if (["starter"].includes(p)) return 100;
+  return 50;
 }
 
 // ---------- Unified row ----------
@@ -232,6 +232,47 @@ function safeIlike(v: string): string {
   return v.replace(/[(),]/g, " ").trim();
 }
 
+async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise<Row[]> {
+  const { data, error } = await admin.from("journalist")
+    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+    .order("id", { ascending: true })
+    .limit(limit);
+  if (error) { console.log("[db.journalist.fallback.error]", error.message); return []; }
+  return (data ?? []).map((r) => ({
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "journalist" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.outlet as string) ?? null,
+    title: (r.titles as string) ?? null,
+    category: (r.category as string) ?? null,
+    country: (r.country as string) ?? null,
+    email: (r.email as string) ?? null,
+  }));
+}
+
+async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Row[]> {
+  const { data, error } = await admin.from("creators")
+    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+    .order("id", { ascending: true })
+    .limit(limit);
+  if (error) { console.log("[db.creators.fallback.error]", error.message); return []; }
+  return (data ?? []).map((r) => ({
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "creators" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.type as string) ?? null,
+    title: null,
+    category: (r.category as string) ?? null,
+    country: null,
+    email: (r.email as string) ?? null,
+    ig_handle: (r.ig_handle as string) ?? null,
+    ig_followers: (r.ig_followers as number) ?? null,
+    youtube_url: (r.youtube_url as string) ?? null,
+  }));
+}
+
 async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const orParts: string[] = [];
   const add = (terms: string[], fields: string[]) => {
@@ -245,17 +286,30 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
   add(intent.outlets, ["outlet", "titles"]);
   add(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
 
+  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
   let q = admin.from("journalist")
     .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-    .limit(400);
+    .limit(limit);
   if (orParts.length) q = q.or(orParts.join(","));
   let { data, error } = await q;
-  if (error) { console.log("[db.journalist.error]", error.message); return []; }
-  if ((data?.length ?? 0) < Math.min(intent.count, 5) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
-    const fallback = await admin.from("journalist")
-      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-      .limit(400);
-    if (!fallback.error && (fallback.data?.length ?? 0) > (data?.length ?? 0)) data = fallback.data;
+  if (error) {
+    console.log("[db.journalist.error]", error.message);
+    return fetchBroadJournalists(admin, limit);
+  }
+  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
+    const fallbackRows = await fetchBroadJournalists(admin, limit);
+    const currentRows = (data ?? []).map((r) => ({
+      source: "database" as const,
+      source_id: r.id as number,
+      source_table: "journalist" as const,
+      name: (r.name as string) ?? null,
+      outlet: (r.outlet as string) ?? null,
+      title: (r.titles as string) ?? null,
+      category: (r.category as string) ?? null,
+      country: (r.country as string) ?? null,
+      email: (r.email as string) ?? null,
+    }));
+    return dedupe([...currentRows, ...fallbackRows]);
   }
   return (data ?? []).map((r) => ({
     source: "database" as const,
@@ -281,17 +335,33 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
   add(intent.topics, ["category", "bio", "name"]);
   add(intent.freeTerms, ["name", "category", "bio", "ig_handle", "youtube_url"]);
 
+  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
   let q = admin.from("creators")
     .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
-    .limit(400);
+    .limit(limit);
   if (orParts.length) q = q.or(orParts.join(","));
   let { data, error } = await q;
-  if (error) { console.log("[db.creators.error]", error.message); return []; }
-  if ((data?.length ?? 0) < Math.min(intent.count, 5) && (intent.topics.length || intent.freeTerms.length)) {
-    const fallback = await admin.from("creators")
-      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
-      .limit(400);
-    if (!fallback.error && (fallback.data?.length ?? 0) > (data?.length ?? 0)) data = fallback.data;
+  if (error) {
+    console.log("[db.creators.error]", error.message);
+    return fetchBroadCreators(admin, limit);
+  }
+  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.freeTerms.length)) {
+    const fallbackRows = await fetchBroadCreators(admin, limit);
+    const currentRows = (data ?? []).map((r) => ({
+      source: "database" as const,
+      source_id: r.id as number,
+      source_table: "creators" as const,
+      name: (r.name as string) ?? null,
+      outlet: (r.type as string) ?? null,
+      title: null,
+      category: (r.category as string) ?? null,
+      country: null,
+      email: (r.email as string) ?? null,
+      ig_handle: (r.ig_handle as string) ?? null,
+      ig_followers: (r.ig_followers as number) ?? null,
+      youtube_url: (r.youtube_url as string) ?? null,
+    }));
+    return dedupe([...currentRows, ...fallbackRows]);
   }
   return (data ?? []).map((r) => ({
     source: "database" as const,
@@ -454,26 +524,31 @@ function dedupe(rows: Row[]): Row[] {
 function rankRows(rows: Row[], intent: Intent): Row[] {
   const score = (r: Row): number => {
     let s = 0;
+    const name = (r.name ?? "").toLowerCase();
     const cat = (r.category ?? "").toLowerCase();
     const out = (r.outlet ?? "").toLowerCase();
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
+    const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
     for (const t of intent.topics) {
       if (cat.includes(t)) s += 10;
       if (ttl.includes(t)) s += 4;
       if (out.includes(t)) s += 3;
+      if (hay.includes(t)) s += 2;
     }
     for (const c of intent.countries) {
       if (cnt.includes(c)) s += 8;
       if (out.includes(c)) s += 2;
+      if (hay.includes(c)) s += 1;
     }
     for (const t of intent.freeTerms) {
-      if ((r.name ?? "").toLowerCase().includes(t)) s += 3;
+      if (name.includes(t)) s += 3;
       if (cat.includes(t)) s += 3;
       if (out.includes(t)) s += 2;
+      if (hay.includes(t)) s += 1;
     }
     if (r.email) s += intent.emailRequired ? 12 : 4;
-    if (r.source === "database") s += 3; // slight preference: verified
+    if (r.source === "database") s += 20; // prioritize owned database rows over generic web hits
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
@@ -503,13 +578,13 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   let dbStrict = dbRows;
   if (intent.topics.length || intent.countries.length) {
     dbStrict = dbRows.filter((r) => {
-      const hay = [r.category, r.title, r.outlet, r.country].map((x) => (x ?? "").toLowerCase()).join(" | ");
+      const hay = [r.name, r.category, r.title, r.outlet, r.country, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
       const topicHit = intent.topics.length === 0 || intent.topics.some((t) => hay.includes(t));
       const countryHit = intent.countries.length === 0 || intent.countries.some((c) => hay.includes(c));
       return topicHit && countryHit;
     });
   }
-  if (dbStrict.length < Math.min(target, 5)) dbStrict = dbRows; // broaden
+  if (dbStrict.length < Math.min(target, 25)) dbStrict = dbRows; // broaden rather than showing a tiny/empty DB sample
   debug.db_strict_count = dbStrict.length;
 
   let combined = [...dbStrict, ...exaRows];

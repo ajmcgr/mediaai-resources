@@ -14,6 +14,9 @@ const corsHeaders = {
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
 const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type"] as const;
 
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal)@/i;
+
 const FIELD_DESCRIPTIONS: Record<string, string> = {
   email: "Direct professional email address (avoid generic info@/press@).",
   category: "Primary beat or topic category (e.g. Technology, Finance, Health).",
@@ -41,6 +44,15 @@ async function exaSearch(query: string, numResults = 5): Promise<Array<{ url: st
   if (!r.ok) return [];
   const data = await r.json();
   return (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" }));
+}
+
+function pickEmail(snippets: Array<{ url: string; text: string }>, name: string): string | null {
+  const nameParts = name.toLowerCase().split(/\s+/).filter((p) => p.length > 2);
+  const matches = snippets.flatMap((s) => `${s.url}\n${s.text}`.match(EMAIL_RE) ?? [])
+    .map((e) => e.trim().replace(/[),.;]+$/, ""))
+    .filter((e) => !BAD_EMAIL_RE.test(e));
+  if (!matches.length) return null;
+  return matches.find((e) => nameParts.some((p) => e.toLowerCase().includes(p))) ?? matches[0];
 }
 
 async function extractFields(
@@ -139,9 +151,9 @@ Deno.serve(async (req) => {
 
     const allSnippets: Array<{ url: string; text: string }> = [];
     for (const q of queries) {
-      const items = await exaSearch(q, 4);
+      const items = await exaSearch(q, 8);
       allSnippets.push(...items);
-      if (allSnippets.length >= 8) break;
+      if (allSnippets.length >= 16) break;
     }
 
     if (!allSnippets.length) {
@@ -149,6 +161,10 @@ Deno.serve(async (req) => {
     }
 
     const extracted = await extractFields(name, context, allSnippets, targetFields);
+    if (targetFields.includes("email") && !extracted.email) {
+      const directEmail = pickEmail(allSnippets, name);
+      if (directEmail) extracted.email = directEmail;
+    }
     if (!Object.keys(extracted).length) {
       return new Response(JSON.stringify({ ok: false, message: "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
