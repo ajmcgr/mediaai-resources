@@ -22,7 +22,10 @@ import {
 import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useChatUsage } from "@/hooks/useChatUsage";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
+
+const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Results =
@@ -63,6 +66,8 @@ const Chat = () => {
   const deleteSearch = useDeleteSavedSearch();
 
   const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
+  const { planIdentifier } = useSubscription();
+  const hasDatabase = !!planIdentifier && GROWTH_PLANS.includes(planIdentifier);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
