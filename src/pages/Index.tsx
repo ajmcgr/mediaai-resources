@@ -77,7 +77,7 @@ const VALUE_PROPS = [
 
 const FEATURE_BLOCKS = [
   {
-    eyebrow: "Media AI Chat",
+    eyebrow: "AI Chat",
     body: "Ask in plain English and get curated journalist and creator contacts in seconds. Our AI assistant turns natural-language questions into precise media lists — no filters, no spreadsheets, no guesswork.",
     image: featureAiChat,
     bullets: ["Conversational search across the full database", "Refine results with follow-up questions", "Export the contacts you need with one click"],
