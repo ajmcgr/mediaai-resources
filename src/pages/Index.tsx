@@ -460,68 +460,91 @@ const Index = () => {
             <h2 className="text-3xl md:text-5xl font-medium tracking-tight mb-4" style={{ fontFamily: "var(--font-heading)" }}>
               Flexible pricing plans to suit your needs
             </h2>
-            <p className="text-muted-foreground text-lg">Choose between monthly and yearly subscriptions.</p>
+            <p className="text-muted-foreground text-lg">
+              Choose between monthly and yearly subscriptions. Cancel any time.
+            </p>
+
             <div className="inline-flex items-center mt-8 p-1 rounded-full border border-border bg-secondary">
               {(["monthly", "yearly"] as Interval[]).map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   onClick={() => setIntervalVal(opt)}
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                    interval === opt ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                    interval === opt
+                      ? "bg-white text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {opt === "monthly" ? "Monthly" : "Yearly"}
+                  {opt === "yearly" && (
+                    <span className="ml-2 text-xs text-primary">Save ~17%</span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl bg-primary text-primary-foreground p-8 md:p-12">
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              {TIERS.map((tier) => {
-                const price = interval === "monthly" ? tier.monthly : tier.yearly;
-                const period = interval === "monthly" ? "/mo" : "/yr";
-                return (
-                  <div key={tier.id} className="flex flex-col">
-                    <h3 className="text-2xl font-medium mb-1" style={{ fontFamily: "var(--font-heading)" }}>{tier.name}</h3>
-                    <p className="text-sm opacity-80 mb-4">{tier.tagline}</p>
-                    <div className="mb-6">
-                      {price !== null ? (
-                        <>
-                          <span className="text-4xl md:text-5xl font-medium" style={{ fontFamily: "var(--font-heading)" }}>${price}</span>
-                          <span className="text-base ml-1 opacity-80">{period}</span>
-                        </>
-                      ) : (
-                        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: "var(--font-heading)" }}>Custom</span>
-                      )}
+          <div className="grid md:grid-cols-3 gap-6">
+            {TIERS.map((tier) => {
+              const price = interval === "monthly" ? tier.monthly : tier.yearly;
+              const period = interval === "monthly" ? "/mo" : "/yr";
+              return (
+                <div
+                  key={tier.id}
+                  className={`relative rounded-2xl p-8 flex flex-col ${
+                    tier.highlight
+                      ? "bg-foreground text-background border border-foreground"
+                      : "bg-white border border-border"
+                  }`}
+                >
+                  {tier.badge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                        {tier.badge}
+                      </span>
                     </div>
-                    <Button
-                      onClick={() => goCheckout(tier.id)}
-                      disabled={pendingPlan !== null}
-                      className="bg-white text-foreground hover:bg-white/90 font-medium rounded-lg h-12"
-                    >
-                      {pendingPlan === tier.id ? "Redirecting…" : tier.cta} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                  )}
+                  <h3 className="text-xl font-medium mb-1">{tier.name}</h3>
+                  <p className={`text-sm mb-6 ${tier.highlight ? "text-background/70" : "text-muted-foreground"}`}>
+                    {tier.tagline}
+                  </p>
+                  <div className="mb-6">
+                    {price !== null ? (
+                      <>
+                        <span className="text-4xl font-medium">${price}</span>
+                        <span className={`text-sm ml-1 ${tier.highlight ? "text-background/70" : "text-muted-foreground"}`}>
+                          {period}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-2xl font-medium">Custom</span>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl bg-white text-foreground p-8 md:p-10">
-              <ul className="space-y-5 text-sm">
-                {PLAN_FEATURES.map((f) => (
-                  <li key={f.title} className="flex items-start gap-3">
-                    <Check className="h-5 w-5 mt-0.5 flex-shrink-0 text-primary" />
-                    <div>
-                      <span className="font-medium">{f.title} </span>
-                      <span className="text-muted-foreground">{f.body}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  <Button
+                    onClick={() => goCheckout(tier.id)}
+                    disabled={pendingPlan !== null}
+                    className={`w-full mb-6 ${tier.highlight ? "bg-white text-foreground hover:bg-white/90" : ""}`}
+                    variant={tier.highlight ? "default" : "outline"}
+                  >
+                    {pendingPlan === tier.id ? "Redirecting…" : tier.cta}
+                  </Button>
+                  <ul className="space-y-3 text-sm">
+                    {tier.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${tier.highlight ? "text-background/80" : "text-primary"}`} />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-10">
+            All prices in USD. Subscriptions renew automatically until canceled.
+          </p>
         </div>
       </section>
 
