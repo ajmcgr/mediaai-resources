@@ -422,6 +422,31 @@ function pickEmailFromText(text: string, name?: string | null): string | null {
   return filtered[0] ?? null;
 }
 
+function cleanTopicForQuery(intent: Intent): string {
+  const raw = intent.topics[0] ?? intent.freeTerms[0] ?? "journalist";
+  if (["tech", "technology", "ai", "artificial intelligence", "software", "saas"].includes(raw)) return "technology";
+  return raw;
+}
+
+function extractNameGuess(title: string, text: string, author?: string): string | null {
+  const a = author?.trim();
+  if (a && a.length < 80 && !/^(staff|editorial|news desk|admin)$/i.test(a)) return a;
+  const by = text.match(/\bby\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/);
+  if (by?.[1]) return by[1];
+  const head = title.split(/[-—|·:]/)[0]?.trim();
+  if (head && head.length < 60 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(head)) return head;
+  return null;
+}
+
+function isJunkWebResult(r: { title?: string; url?: string; text?: string }, intent: Intent): boolean {
+  const blob = `${r.title ?? ""} ${r.url ?? ""} ${r.text ?? ""}`.toLowerCase();
+  if (/neural runner|runner game|github\.com|npmjs\.com|chromewebstore|app store|play\.google\.com/.test(blob)) return true;
+  const hasTopic = !intent.topics.length || intent.topics.some((t) => blob.includes(t));
+  const hasRole = /journalist|reporter|editor|writer|correspondent|columnist|contributor|author|byline/.test(blob);
+  const hasOutletSignal = /bbc|guardian|wired|techcrunch|verge|forbes|bloomberg|reuters|financial times|ft\.com|muckrack|pressgazette|journalism|publication|news/.test(blob);
+  return !hasTopic && !hasRole && !hasOutletSignal;
+}
+
 async function exaSearchOnce(query: string, numResults: number): Promise<Array<{ title?: string; url: string; author?: string; text?: string; highlights?: string[] }>> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];
