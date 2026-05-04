@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
@@ -26,15 +25,16 @@ const Header = () => {
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-transparent">
       <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
           <a
             href="https://trymedia.ai/"
-            className="flex min-w-[88px] shrink-0 items-center"
+            className="flex w-[104px] shrink-0 items-center text-primary sm:w-[120px]"
+            aria-label="Media AI home"
           >
-            <img src={logoMedia} alt="Media AI" className="h-5 w-auto max-w-[88px] object-contain sm:max-w-none" />
+            <span className="text-base font-bold leading-none tracking-normal sm:text-lg">★ media</span>
           </a>
 
-          <div className="flex min-w-0 items-center space-x-1 sm:space-x-2">
+          <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
             {loading ? null : user ? (
               <>
                 <Button
@@ -92,7 +92,7 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+                  className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
                 >
                   <Link to="/request-demo">Request Demo</Link>
                 </Button>
