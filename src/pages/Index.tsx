@@ -13,6 +13,7 @@ import heroProductDiscover from "@/assets/home/hero-product-discover-v2.png";
 import featureAiChat from "@/assets/home/feature-ai-chat.jpg";
 import audiencesImg from "@/assets/home/audiences.png";
 import featureSearch from "@/assets/home/feature-search-new.png";
+import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
 import featureExport from "@/assets/home/feature-export.png";
 import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
 import logoCision from "@/assets/home/logo-cision-new.png";
@@ -149,7 +150,7 @@ const FEATURE_BLOCKS = [
   {
     eyebrow: "Brand Monitor",
     body: "Track your brand and competitors across the web. Media AI checks the URLs you care about every day, detects meaningful changes, and surfaces the PR opportunities — with a suggested pitch angle ready to go.",
-    image: featureSearch,
+    image: featureBrandMonitor,
     bullets: ["Daily monitoring of your brand and competitor URLs", "AI scores each change for PR opportunity", "Instant, daily, or weekly email alerts"],
   },
   {
