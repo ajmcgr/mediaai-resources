@@ -243,41 +243,11 @@ const Pricing = () => {
           })}
         </div>
 
-        {/* Token top-up packs */}
-        <section className="mt-20">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl md:text-3xl font-medium tracking-tight mb-2">
-              Need more tokens?
-            </h2>
-            <p className="text-muted-foreground">
-              One-time top-ups that never expire. Works on any paid plan.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {(Object.keys(TOPUP_PACKS) as TopupPack[]).map((key) => {
-              const p = TOPUP_PACKS[key];
-              return (
-                <div key={key} className="rounded-xl border border-border bg-white p-6 flex flex-col">
-                  <div className="text-sm text-muted-foreground mb-1">{p.label}</div>
-                  <div className="text-3xl font-medium mb-4">${p.priceUsd}</div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTopup(key)}
-                    disabled={pendingPack !== null}
-                    className="w-full"
-                  >
-                    {pendingPack === key ? "Redirecting…" : "Buy tokens"}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         <p className="text-center text-xs text-muted-foreground mt-10">
           All prices in USD. Subscriptions renew automatically until canceled.
         </p>
       </main>
+      <Footer />
     </div>
   );
 };
