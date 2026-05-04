@@ -162,8 +162,26 @@ async function upsertSubscription(
     .upsert(row, { onConflict: "stripe_subscription_id" });
   if (error) throw error;
 
-  // Mirror to profiles so useSubscription (single source of truth) stays in sync
   const isActive = ACTIVE_STATUSES.has(sub.status);
+  if (!isActive) {
+    const replacement = await findActiveSubscriptionForCustomer(sub.customer as string, sub.id);
+    if (replacement) {
+      console.log("inactive subscription event ignored because customer has another active subscription", {
+        inactiveSub: sub.id,
+        activeSub: replacement.id,
+        customer: sub.customer,
+        userId,
+      });
+      await upsertSubscription(replacement, {
+        userId,
+        planIdentifier,
+        customerEmail: fallback.customerEmail,
+      });
+      return;
+    }
+  }
+
+  // Mirror to profiles so useSubscription (single source of truth) stays in sync
   const { error: profErr } = await admin
     .from("profiles")
     .update({
@@ -174,6 +192,18 @@ async function upsertSubscription(
     })
     .eq("id", userId);
   if (profErr) console.error("profile sync error", profErr);
+}
+
+async function findActiveSubscriptionForCustomer(customerId: string, ignoredSubscriptionId: string) {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 10,
+  });
+
+  return subscriptions.data.find((candidate) =>
+    candidate.id !== ignoredSubscriptionId && ACTIVE_STATUSES.has(candidate.status)
+  );
 }
 
 function toIso(unix: number | null | undefined) {
