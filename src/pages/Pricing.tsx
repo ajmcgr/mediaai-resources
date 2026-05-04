@@ -28,13 +28,13 @@ const TIERS: Tier[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "AI chat. No database access.",
+    tagline: "Media AI chat. No database access.",
     monthly: 29,
     yearly: 290,
     cta: "Start Free Trial",
     features: [
       "Verified journalist and creator contact emails",
-      "AI chat assistant",
+      "Media AI chat assistant",
       "200,000 chat tokens / month",
       "Top-up tokens any time",
       "Email support",
@@ -44,7 +44,7 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "AI chat + full journalist & creator database.",
+    tagline: "Media AI chat + full journalist & creator database.",
     monthly: 99,
     yearly: 990,
     highlight: true,
@@ -130,7 +130,7 @@ const Pricing = () => {
         <title>Pricing — Media AI</title>
         <meta
           name="description"
-          content="Simple plans for the Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
+          content="Simple plans for the Media Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
         />
         <link rel="canonical" href="https://resources.trymedia.ai/pricing" />
       </Helmet>
