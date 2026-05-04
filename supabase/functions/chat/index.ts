@@ -472,15 +472,19 @@ async function exaSearchOnce(query: string, numResults: number): Promise<Array<{
 }
 
 function buildExaQueries(intent: Intent): string[] {
-  const topic = intent.topics[0] ?? intent.freeTerms[0] ?? "";
+  const topic = cleanTopicForQuery(intent);
   const loc = intent.countryCanonical ?? "";
   const outlet = intent.outlets[0] ?? "";
   const queries: string[] = [];
 
   if (intent.kind === "journalists") {
-    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
-    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
-    if (topic) queries.push(`${topic} editor ${loc || "byline"}`);
+    if (topic && loc) queries.push(`${topic} journalists ${loc}`);
+    if (topic && loc) queries.push(`${topic === "technology" ? "tech" : topic} reporters ${loc === "United Kingdom" ? "UK" : loc} site:linkedin.com`);
+    if ((topic === "technology" || topic === "ai") && loc) queries.push(`AI journalists ${loc === "United Kingdom" ? "London" : loc}`);
+    if (topic && loc) queries.push(`${topic} writers ${loc === "United Kingdom" ? "UK" : loc} publication`);
+    if (topic && loc) queries.push(`who writes about ${topic === "technology" ? "tech" : topic} in ${loc === "United Kingdom" ? "UK" : loc} news`);
+    if (topic) queries.push(`${topic} journalist bylines`);
+    if (topic) queries.push(`${topic} reporter contact`);
     if (outlet && topic) queries.push(`site:${outlet}.com ${topic} reporter`);
     if (topic && outlet) queries.push(`${topic} writer ${outlet}`);
     if (!topic && loc) queries.push(`${loc} journalist contact`);
@@ -491,13 +495,14 @@ function buildExaQueries(intent: Intent): string[] {
     if (topic) queries.push(`${topic} influencer ${loc || ""}`.trim());
     if (!queries.length) queries.push(`${intent.raw} creator`);
   }
-  return queries.slice(0, 3);
+  return [...new Set(queries)].slice(0, 7);
 }
 
 async function searchExa(intent: Intent, target: number): Promise<Row[]> {
   const queries = buildExaQueries(intent);
   if (!queries.length) return [];
-  const per = Math.max(8, Math.ceil(target / queries.length) + 4);
+  const desired = Math.max(35, Math.min(60, target));
+  const per = Math.max(10, Math.ceil(desired / queries.length) + 4);
   const settled = await Promise.all(queries.map((q) => exaSearchOnce(q, per)));
   const rows: Row[] = [];
   const reasons: string[] = queries;
@@ -506,16 +511,12 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
     for (const it of items) {
       const url = it.url;
       if (!url) continue;
+      if (isJunkWebResult(it, intent)) continue;
       let host = "";
       try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
       const titleStr = it.title ?? "";
-      // Heuristic name extraction: text before " - ", " | " or " — "
-      let nameGuess = it.author ?? null;
-      if (!nameGuess && titleStr) {
-        const head = titleStr.split(/[-—|·]/)[0]?.trim();
-        if (head && head.length < 60 && /^[A-Z]/.test(head)) nameGuess = head;
-      }
       const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
+      const nameGuess = extractNameGuess(titleStr, blob, it.author);
       const email = pickEmailFromText(blob, nameGuess);
       rows.push({
         source: "exa",
