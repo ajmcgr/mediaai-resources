@@ -1,19 +1,8 @@
 import Layout from "@/components/Layout";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import postsData from "@/data/blog-posts.json";
+import { useBlogPost } from "@/hooks/useBlog";
 import NotFound from "./NotFound";
-
-type Post = {
-  slug: string;
-  title: string;
-  description: string;
-  image: string;
-  published: string;
-  content: string;
-};
-
-const POSTS = postsData as Post[];
 
 const formatDate = (iso?: string) => {
   if (!iso) return "";
@@ -30,7 +19,17 @@ const formatDate = (iso?: string) => {
 
 const BlogPost = () => {
   const { slug } = useParams();
-  const post = POSTS.find((p) => p.slug === slug);
+  const { data: post, isLoading } = useBlogPost(slug);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-16 max-w-3xl text-muted-foreground">
+          Loading…
+        </div>
+      </Layout>
+    );
+  }
 
   if (!post) return <NotFound />;
 
