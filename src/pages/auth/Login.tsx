@@ -29,9 +29,18 @@ const Login = () => {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const trimmedEmail = email.trim().toLowerCase();
+    console.log("[login] attempt", { email: trimmedEmail });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      console.error("[login] error", error);
+      return toast.error(error.message || "Login failed");
+    }
+    console.log("[login] success", { userId: data.user?.id });
     toast.success("Signed in");
     navigate(from, { replace: true });
   };
