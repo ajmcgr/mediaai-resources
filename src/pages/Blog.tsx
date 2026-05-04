@@ -1,22 +1,11 @@
 import Layout from "@/components/Layout";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import postsData from "@/data/blog-posts.json";
-
-type Post = {
-  slug: string;
-  title: string;
-  description: string;
-  image: string;
-  published: string;
-  content: string;
-};
-
-const POSTS = (postsData as Post[]).slice().sort((a, b) =>
-  (b.published || "").localeCompare(a.published || "")
-);
+import { useBlogPosts } from "@/hooks/useBlog";
 
 const Blog = () => {
+  const { data: POSTS = [] } = useBlogPosts();
+
   return (
     <Layout>
       <Helmet>
