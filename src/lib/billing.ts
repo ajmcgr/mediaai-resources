@@ -36,12 +36,14 @@ async function authedPost(path: string, body: unknown) {
 export async function startCheckout(plan: PlanId, interval: BillingInterval = "monthly") {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
-  const { url } = await authedPost("create-checkout", {
+  const payload = {
     user_id: session.user.id,
     user_email: session.user.email,
-    plan,
+    plan_identifier: plan.toLowerCase() as PlanId,
     interval,
-  });
+  };
+  console.log("CHECKOUT_PAYLOAD", payload);
+  const { url } = await authedPost("create-checkout", payload);
   if (!url) throw new Error("Checkout URL missing.");
   window.location.href = url;
 }
