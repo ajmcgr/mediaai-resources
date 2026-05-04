@@ -2,7 +2,7 @@
 // POST { kind: "journalist" | "creator", id: number, fields?: string[] }
 // If `fields` is omitted, enriches all empty/null fields the row supports.
 // Returns { ok, updated: Record<string, unknown>, source_urls: string[], message? }
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
