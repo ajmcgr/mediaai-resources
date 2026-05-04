@@ -315,26 +315,40 @@ function ilikeOr(terms: string[], fields: string[]): string {
   return parts.join(",");
 }
 
+function missingColumn(error: unknown, column: string): boolean {
+  const msg = String((error as { message?: string })?.message ?? error ?? "").toLowerCase();
+  return msg.includes(column.toLowerCase()) && (msg.includes("column") || msg.includes("schema cache"));
+}
+
 async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const limit = Math.max(1000, Math.min(5000, intent.count * 30));
   const topicTerms = intent.topics.length ? intent.topics : intent.freeTerms;
   const topicOr = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles", "bio"]);
+  const topicOrNoBio = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles"]);
   const locationOr = ilikeOr(intent.countries, ["country", "outlet", "topics", "titles"]);
   const outletOr = ilikeOr(intent.outlets, ["outlet", "titles"]);
   const freeOr = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "bio", "country", "email", "xhandle"]);
+  const freeOrNoBio = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
 
-  const run = async (withLocation: boolean) => {
+  const run = async (withLocation: boolean, includeBio = true) => {
     let q = admin.from("journalist")
       .select("*")
       .limit(limit);
-    if (topicOr) q = q.or(topicOr);
-    else if (freeOr) q = q.or(freeOr);
+    if (includeBio && topicOr) q = q.or(topicOr);
+    else if (!includeBio && topicOrNoBio) q = q.or(topicOrNoBio);
+    else if (includeBio && freeOr) q = q.or(freeOr);
+    else if (!includeBio && freeOrNoBio) q = q.or(freeOrNoBio);
     if (withLocation && locationOr) q = q.or(locationOr);
     if (outletOr) q = q.or(outletOr);
     return q;
   };
 
   let { data, error } = await run(!!locationOr);
+  if (error && missingColumn(error, "bio")) {
+    const retried = await run(!!locationOr, false);
+    data = retried.data;
+    error = retried.error;
+  }
   if (error) {
     console.log("[db.journalist.error]", error.message);
     return fetchBroadJournalists(admin, limit);
