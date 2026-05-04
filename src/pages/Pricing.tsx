@@ -5,55 +5,73 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { startCheckout } from "@/lib/billing";
+import { startCheckout, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
 import { toast } from "sonner";
 
-type PlanId = "journalist" | "creator" | "both";
+type PlanId = "starter" | "growth" | "enterprise";
 type Interval = "monthly" | "yearly";
 
 interface Tier {
   id: PlanId;
   name: string;
   tagline: string;
-  monthly: number;
-  yearly: number;
+  monthly: number | null;
+  yearly: number | null;
+  features: string[];
   highlight?: boolean;
   badge?: string;
+  cta: string;
 }
 
 const TIERS: Tier[] = [
   {
-    id: "journalist",
-    name: "Journalist Database",
-    tagline: "For PR pros pitching reporters and editors.",
-    monthly: 99,
-    yearly: 999,
+    id: "starter",
+    name: "Starter",
+    tagline: "AI chat. No database access.",
+    monthly: 29,
+    yearly: 290,
+    cta: "Start Free Trial",
+    features: [
+      "AI chat assistant",
+      "200,000 chat tokens / month",
+      "Top-up tokens any time",
+      "Email support",
+      "1-month free trial",
+    ],
   },
   {
-    id: "creator",
-    name: "Creators Database",
-    tagline: "For brand and influencer marketers.",
+    id: "growth",
+    name: "Growth",
+    tagline: "AI chat + full journalist & creator database.",
     monthly: 99,
-    yearly: 999,
-  },
-  {
-    id: "both",
-    name: "Full Database",
-    tagline: "Journalists + creators in one workspace.",
-    monthly: 149,
-    yearly: 1499,
+    yearly: 990,
     highlight: true,
     badge: "Most popular",
+    cta: "Start Free Trial",
+    features: [
+      "Everything in Starter",
+      "1,000,000 chat tokens / month",
+      "100% database access — no row limits",
+      "Sort, filter, save views, export",
+      "Share contacts via link, email, or CSV",
+      "1-month free trial",
+    ],
   },
-];
-
-const FEATURES = [
-  "100% database access — no row limits",
-  "Sort, group, filter, and save views",
-  "Share contacts via link, embed, or email",
-  "Export to CSV, Excel, or PDF",
-  "1-month free trial — cancel any time",
-  "Immediate access on payment",
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    tagline: "Custom API, volume tokens, dedicated support.",
+    monthly: null,
+    yearly: null,
+    cta: "Contact us",
+    features: [
+      "Everything in Growth",
+      "Custom API access",
+      "Volume token pricing",
+      "SSO + dedicated support",
+      "Custom contracts",
+    ],
+  },
 ];
 
 const Pricing = () => {
@@ -61,8 +79,13 @@ const Pricing = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
+  const [pendingPack, setPendingPack] = useState<TopupPack | null>(null);
 
   const handleSubscribe = async (plan: PlanId) => {
+    if (plan === "enterprise") {
+      navigate("/request-demo");
+      return;
+    }
     const next = encodeURIComponent(`/pricing?plan=${plan}`);
     if (!user) {
       navigate(`/login?next=${next}`);
@@ -83,13 +106,27 @@ const Pricing = () => {
     }
   };
 
+  const handleTopup = async (pack: TopupPack) => {
+    if (!user) {
+      navigate("/login?next=" + encodeURIComponent("/pricing"));
+      return;
+    }
+    try {
+      setPendingPack(pack);
+      await startTopup(pack);
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not start checkout");
+      setPendingPack(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>Pricing — Media AI</title>
         <meta
           name="description"
-          content="Flexible pricing plans for the Media AI journalist and creator databases. Monthly or yearly. 1-month free trial."
+          content="Simple plans for the Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
         />
         <link rel="canonical" href="https://resources.trymedia.ai/pricing" />
       </Helmet>
@@ -98,7 +135,7 @@ const Pricing = () => {
 
       <main className="max-w-6xl mx-auto px-6 py-16">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-4 font-[var(--font-heading)]">
+          <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-4">
             Flexible pricing plans to suit your needs
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -155,33 +192,39 @@ const Pricing = () => {
                   {tier.tagline}
                 </p>
                 <div className="mb-6">
-                  <span className="text-4xl font-medium">${price}</span>
-                  <span
-                    className={`text-sm ml-1 ${
-                      tier.highlight ? "text-background/70" : "text-muted-foreground"
-                    }`}
-                  >
-                    {period}
-                  </span>
+                  {price !== null ? (
+                    <>
+                      <span className="text-4xl font-medium">${price}</span>
+                      <span
+                        className={`text-sm ml-1 ${
+                          tier.highlight ? "text-background/70" : "text-muted-foreground"
+                        }`}
+                      >
+                        {period}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-2xl font-medium">Custom</span>
+                  )}
                 </div>
                 <Button
                   onClick={() => handleSubscribe(tier.id)}
                   disabled={authLoading || pendingPlan !== null}
                   className={`w-full mb-6 ${
-                    tier.highlight
-                      ? "bg-white text-foreground hover:bg-white/90"
-                      : ""
+                    tier.highlight ? "bg-white text-foreground hover:bg-white/90" : ""
                   }`}
                   variant={tier.highlight ? "default" : "outline"}
                 >
                   {pendingPlan === tier.id
                     ? "Redirecting…"
-                    : user
-                      ? "Start Free Trial"
-                      : "Sign up to start"}
+                    : tier.id === "enterprise"
+                      ? tier.cta
+                      : user
+                        ? tier.cta
+                        : "Sign up to start"}
                 </Button>
                 <ul className="space-y-3 text-sm">
-                  {FEATURES.map((f) => (
+                  {tier.features.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check
                         className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
@@ -196,6 +239,37 @@ const Pricing = () => {
             );
           })}
         </div>
+
+        {/* Token top-up packs */}
+        <section className="mt-20">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <h2 className="text-2xl md:text-3xl font-medium tracking-tight mb-2">
+              Need more tokens?
+            </h2>
+            <p className="text-muted-foreground">
+              One-time top-ups that never expire. Works on any paid plan.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {(Object.keys(TOPUP_PACKS) as TopupPack[]).map((key) => {
+              const p = TOPUP_PACKS[key];
+              return (
+                <div key={key} className="rounded-xl border border-border bg-white p-6 flex flex-col">
+                  <div className="text-sm text-muted-foreground mb-1">{p.label}</div>
+                  <div className="text-3xl font-medium mb-4">${p.priceUsd}</div>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleTopup(key)}
+                    disabled={pendingPack !== null}
+                    className="w-full"
+                  >
+                    {pendingPack === key ? "Redirecting…" : "Buy tokens"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         <p className="text-center text-xs text-muted-foreground mt-10">
           All prices in USD. Subscriptions renew automatically until canceled.

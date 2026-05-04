@@ -3,14 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 const FUNCTIONS_BASE =
   "https://uavbphkhomblzkjfuaot.functions.supabase.co";
 
-export type PlanId = "journalist" | "creator" | "both";
+export type PlanId = "starter" | "growth";
 export type BillingInterval = "monthly" | "yearly";
+export type TopupPack = "small" | "medium" | "large";
+
+export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; label: string }> = {
+  small:  { tokens:  100_000, priceUsd: 10, label: "100k tokens" },
+  medium: { tokens:  500_000, priceUsd: 40, label: "500k tokens" },
+  large:  { tokens: 2_000_000, priceUsd: 120, label: "2M tokens" },
+};
 
 async function authedPost(path: string, body: unknown) {
   const { data: { session } } = await supabase.auth.getSession();
-  console.log(`[billing] ${path} session exists?`, !!session);
   if (!session) throw new Error("NOT_AUTHENTICATED");
-  console.log(`[billing] ${path} payload`, body);
+  console.log(`[billing] ${path} payload`, JSON.stringify(body));
   const res = await fetch(`${FUNCTIONS_BASE}/${path}`, {
     method: "POST",
     headers: {
@@ -27,28 +33,29 @@ async function authedPost(path: string, body: unknown) {
   return res.json() as Promise<{ url: string }>;
 }
 
-export async function startCheckout(
-  plan: PlanId,
-  interval: BillingInterval = "monthly",
-) {
+export async function startCheckout(plan: PlanId, interval: BillingInterval = "monthly") {
   const { data: { session } } = await supabase.auth.getSession();
-  console.log("[billing] startCheckout session?", !!session);
-  if (!session?.user?.id || !session.user.email) {
-    throw new Error("NOT_AUTHENTICATED");
-  }
-
-  const payload = {
+  if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
+  const { url } = await authedPost("create-checkout", {
     user_id: session.user.id,
     user_email: session.user.email,
     plan,
     plan_identifier: plan,
     interval,
-  };
-  console.log("[billing] create-checkout payload", JSON.stringify(payload));
+  });
+  if (!url) throw new Error("Checkout URL missing.");
+  window.location.href = url;
+}
 
-  const { url } = await authedPost("create-checkout", payload);
-  if (!url) throw new Error("Checkout URL missing from response.");
-
+export async function startTopup(pack: TopupPack) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
+  const { url } = await authedPost("create-topup", {
+    user_id: session.user.id,
+    user_email: session.user.email,
+    pack,
+  });
+  if (!url) throw new Error("Checkout URL missing.");
   window.location.href = url;
 }
 

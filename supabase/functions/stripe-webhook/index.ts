@@ -37,6 +37,16 @@ Deno.serve(async (req) => {
         if (session.mode === "subscription" && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           await upsertSubscription(sub);
+        } else if (session.mode === "payment" && session.metadata?.kind === "topup") {
+          const userId = session.metadata.supabase_user_id;
+          const tokens = Number(session.metadata.tokens || 0);
+          if (userId && tokens > 0) {
+            const { error } = await admin.rpc("chat_credit_grant", {
+              _user: userId, _tokens: tokens,
+            });
+            if (error) console.error("chat_credit_grant error", error);
+            else console.log("granted topup credits", { userId, tokens });
+          }
         }
         break;
       }
