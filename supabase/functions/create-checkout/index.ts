@@ -1,5 +1,5 @@
 // Stripe Checkout session creator (BYOK).
-// Body: { user_id: string, user_email: string }
+// Body: { user_id: string, user_email: string, plan_identifier: "journalist"|"creator"|"both", interval?: "monthly"|"yearly" }
 
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 
@@ -10,9 +10,22 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type CheckoutRequestBody = {
-  user_id?: unknown;
-  user_email?: unknown;
+type PlanIdentifier = "journalist" | "creator" | "both";
+type BillingInterval = "monthly" | "yearly";
+
+const PRICE_IDS: Record<PlanIdentifier, Record<BillingInterval, string>> = {
+  journalist: {
+    monthly: "price_1QodmaPui4jUsxXGqb12D7d6",
+    yearly: "price_1QodmaPui4jUsxXGyRpOLqpb",
+  },
+  creator: {
+    monthly: "price_1QodnmPui4jUsxXGiMlK5EGW",
+    yearly: "price_1QodnmPui4jUsxXG2pycLHdT",
+  },
+  both: {
+    monthly: "price_1QodoVPui4jUsxXGmQmhv1jI",
+    yearly: "price_1QodoVPui4jUsxXGl30lFTtf",
+  },
 };
 
 Deno.serve(async (req) => {
@@ -20,19 +33,14 @@ Deno.serve(async (req) => {
 
   try {
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-    const STRIPE_PRICE_ID = Deno.env.get("STRIPE_PRICE_ID");
-    const SITE_URL = Deno.env.get("SITE_URL");
+    const SITE_URL = Deno.env.get("SITE_URL") ?? "https://trymedia.ai";
 
-    if (!STRIPE_SECRET_KEY || !STRIPE_PRICE_ID || !SITE_URL) {
-      console.error("create-checkout missing env variables", {
-        hasStripeSecretKey: Boolean(STRIPE_SECRET_KEY),
-        hasStripePriceId: Boolean(STRIPE_PRICE_ID),
-        hasSiteUrl: Boolean(SITE_URL),
-      });
-      return json({ error: "Server configuration error: missing Stripe checkout settings." }, 500);
+    if (!STRIPE_SECRET_KEY) {
+      console.error("create-checkout missing STRIPE_SECRET_KEY");
+      return json({ error: "Server configuration error: missing Stripe credentials." }, 500);
     }
 
-    let body: CheckoutRequestBody;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch (error) {
@@ -42,27 +50,33 @@ Deno.serve(async (req) => {
 
     console.log("create-checkout request body", body);
 
-    const user = {
-      id: typeof body.user_id === "string" ? body.user_id.trim() : "",
-      email: typeof body.user_email === "string" ? body.user_email.trim() : "",
-    };
+    const user_id = typeof body.user_id === "string" ? body.user_id.trim() : "";
+    const user_email = typeof body.user_email === "string" ? body.user_email.trim() : "";
+    const plan_identifier = body.plan_identifier as PlanIdentifier;
+    const interval: BillingInterval = body.interval === "yearly" ? "yearly" : "monthly";
 
-    if (!user.id || !user.email) {
-      console.error("create-checkout missing required request fields", body);
+    if (!user_id || !user_email) {
+      console.error("create-checkout missing user fields", body);
       return json({ error: "Bad request: user_id and user_email are required." }, 400);
     }
+    if (!PRICE_IDS[plan_identifier]) {
+      console.error("create-checkout invalid plan_identifier", plan_identifier);
+      return json({ error: "Bad request: valid plan_identifier required." }, 400);
+    }
 
+    const priceId = PRICE_IDS[plan_identifier][interval];
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer_email: user.email,
-      line_items: [
-        {
-          price: STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
+      customer_email: user_email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
+      subscription_data: {
+        trial_period_days: 30,
+        metadata: { supabase_user_id: user_id, plan_identifier, billing_interval: interval },
+      },
+      metadata: { supabase_user_id: user_id, plan_identifier, billing_interval: interval },
       success_url: `${SITE_URL}/success`,
       cancel_url: `${SITE_URL}/pricing`,
     });
@@ -70,7 +84,7 @@ Deno.serve(async (req) => {
     return json({ url: session.url }, 200);
   } catch (error) {
     console.error("create-checkout Stripe error", error);
-    return json({ error: "Failed to create checkout session." }, 500);
+    return json({ error: (error as Error).message ?? "Failed to create checkout session." }, 500);
   }
 });
 
