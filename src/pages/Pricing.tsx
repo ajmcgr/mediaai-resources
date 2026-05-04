@@ -32,6 +32,7 @@ const TIERS: Tier[] = [
     yearly: 290,
     cta: "Start Free Trial",
     features: [
+      "Verified journalist and creator contact emails",
       "AI chat assistant",
       "200,000 chat tokens / month",
       "Top-up tokens any time",
@@ -49,6 +50,7 @@ const TIERS: Tier[] = [
     badge: "Most popular",
     cta: "Start Free Trial",
     features: [
+      "Verified journalist and creator contact emails",
       "Everything in Starter",
       "1,000,000 chat tokens / month",
       "100% database access — no row limits",
@@ -65,6 +67,7 @@ const TIERS: Tier[] = [
     yearly: null,
     cta: "Contact us",
     features: [
+      "Verified journalist and creator contact emails",
       "Everything in Growth",
       "Custom API access",
       "Volume token pricing",
