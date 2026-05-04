@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { EnrichCell } from "@/components/dashboard/EnrichCell";
 import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
@@ -287,9 +288,12 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
                       </div>
-                      <Cell>{r.email}</Cell><Cell>{r.category}</Cell>
-                      <Cell>{r.titles}</Cell><Cell>{r.xhandle}</Cell>
-                      <Cell>{r.outlet}</Cell><Cell>{r.country}</Cell>
+                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" />
+                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" />
+                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" />
+                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" />
+                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" />
+                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
@@ -319,11 +323,11 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
                       </div>
-                      <Cell>{r.ig_handle}</Cell>
+                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" />
                       <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                       <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
-                      <Cell>{r.category}</Cell>
-                      <Cell>{r.type}</Cell>
+                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" />
+                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" />
                       <Cell>
                         {r.youtube_url ? (
                           <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
