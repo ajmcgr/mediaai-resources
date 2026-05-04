@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.enrich-contact]
 verify_jwt = false
+
+[functions.save-contact]
+verify_jwt = false
