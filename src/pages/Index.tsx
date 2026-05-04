@@ -425,17 +425,24 @@ const Index = () => {
                 const period = interval === "monthly" ? "/mo" : "/yr";
                 return (
                   <div key={tier.id} className="flex flex-col">
-                    <h3 className="text-2xl font-medium mb-3" style={{ fontFamily: "var(--font-heading)" }}>{tier.name}</h3>
+                    <h3 className="text-2xl font-medium mb-1" style={{ fontFamily: "var(--font-heading)" }}>{tier.name}</h3>
+                    <p className="text-sm opacity-80 mb-4">{tier.tagline}</p>
                     <div className="mb-6">
-                      <span className="text-4xl md:text-5xl font-medium" style={{ fontFamily: "var(--font-heading)" }}>${price}</span>
-                      <span className="text-base ml-1 opacity-80">{period}</span>
+                      {price !== null ? (
+                        <>
+                          <span className="text-4xl md:text-5xl font-medium" style={{ fontFamily: "var(--font-heading)" }}>${price}</span>
+                          <span className="text-base ml-1 opacity-80">{period}</span>
+                        </>
+                      ) : (
+                        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: "var(--font-heading)" }}>Custom</span>
+                      )}
                     </div>
                     <Button
                       onClick={() => goCheckout(tier.id)}
                       disabled={pendingPlan !== null}
                       className="bg-white text-foreground hover:bg-white/90 font-medium rounded-lg h-12"
                     >
-                      {pendingPlan === tier.id ? "Redirecting…" : "Start Free Trial"} <ArrowRight className="ml-2 h-4 w-4" />
+                      {pendingPlan === tier.id ? "Redirecting…" : tier.cta} <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 );
