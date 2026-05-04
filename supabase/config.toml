@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.hubspot-upsert-contact]
 verify_jwt = false
+
+[functions.enrich-contact]
+verify_jwt = false
