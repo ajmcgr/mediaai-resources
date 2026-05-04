@@ -28,6 +28,8 @@ import {
   useUpdateMonitor, useRunMonitorCheck, type AlertFrequency, type BrandMonitor,
 } from "@/hooks/useMonitor";
 import { toast } from "sonner";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
 
 const Monitor = () => {
   const { user, signOut } = useAuth();
@@ -104,6 +106,8 @@ const Monitor = () => {
           <Button variant="default" size="sm" className="gap-1.5">
             <Bell className="h-3.5 w-3.5" />Monitor
           </Button>
+          <InboxSheet />
+          <ListsSheet />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
