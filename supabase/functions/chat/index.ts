@@ -131,6 +131,29 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    // Service-role client for usage metering (bypasses RLS).
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Pre-flight token allowance check
+    const { data: usageRow } = await admin.rpc("chat_usage_summary");
+    const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
+    const allowance = Number(summary?.allowance ?? 0);
+    const usedSoFar = Number(summary?.used ?? 0);
+    const remaining = Math.max(allowance - usedSoFar, 0);
+    if (remaining <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exhausted",
+          message: "You've used all of your chat tokens for this month.",
+          allowance, used: usedSoFar, remaining: 0,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { messages, model } = await req.json();
     if (!Array.isArray(messages))
       return new Response(JSON.stringify({ error: "messages required" }), {
