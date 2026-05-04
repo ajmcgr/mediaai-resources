@@ -25,8 +25,7 @@ import { useChatUsage } from "@/hooks/useChatUsage";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-
-const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
+import { isGrowthPlanIdentifier } from "@/lib/plans";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -85,7 +84,7 @@ const Chat = () => {
 
   const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
   const { planIdentifier } = useSubscription();
-  const hasDatabase = !!planIdentifier && GROWTH_PLANS.includes(planIdentifier);
+  const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -275,14 +274,16 @@ const Chat = () => {
           <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
-          {hasDatabase && (
+          {hasGrowth && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/dashboard")}>
               <Database className="h-3.5 w-3.5" />Database
             </Button>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
-            <Bell className="h-3.5 w-3.5" />Monitor
-          </Button>
+          {hasGrowth && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+              <Bell className="h-3.5 w-3.5" />Monitor
+            </Button>
+          )}
           <InboxSheet />
           <ListsSheet />
           <Button
