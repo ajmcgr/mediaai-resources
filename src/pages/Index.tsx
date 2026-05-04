@@ -135,7 +135,7 @@ const FEATURE_BLOCKS = [
     bullets: ["Conversational search across the full database", "Refine results with follow-up questions", "Export the contacts you need with one click"],
   },
   {
-    eyebrow: "Discover",
+    eyebrow: "Full Database",
     body: "Effortlessly explore a rich database of creators and journalists, handpicked for their expertise and credibility. Whether you're seeking creative talent for a campaign or a journalist to amplify your story.",
     image: heroProductDiscover,
     bullets: ["Access to a growing network of professionals", "Streamlined interface for intuitive browsing", "Discover fresh talent for topics or industries"],
