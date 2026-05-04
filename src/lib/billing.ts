@@ -31,6 +31,8 @@ export async function startCheckout(
   const { url } = await authedPost("create-checkout", {
     user_id: user.id,
     user_email: user.email,
+    plan_identifier: planIdentifier,
+    interval,
   });
   if (!url) throw new Error("Checkout URL missing from response.");
 
