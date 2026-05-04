@@ -21,7 +21,7 @@ All colors MUST be HSL.
   src: url('/fonts/Reckless-SemiBold.otf') format('opentype');
   font-weight: 600 700;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 
