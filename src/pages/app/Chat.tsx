@@ -74,6 +74,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
+  const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const savedSearches = useSavedSearches(!!user);
@@ -143,7 +144,62 @@ const Chat = () => {
   const send = () => sendText(input.trim());
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setInput(""); };
+  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
+
+  const enrichEmail = async (idx: number) => {
+    if (!results) return;
+    let row = results.rows[idx];
+    if (!row) return;
+    setEnrichingIdx((s) => ({ ...s, [idx]: true }));
+    try {
+      // Need a database row to enrich. Save Exa row first if necessary.
+      let dbId = typeof row.source_id === "number" ? row.source_id : null;
+      let table: "journalist" | "creators" =
+        row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
+      if (row.source === "exa" || dbId === null) {
+        setSavingIdx((s) => ({ ...s, [idx]: "saving" }));
+        const { data: saveData, error: saveErr } = await supabase.functions.invoke("save-contact", {
+          body: {
+            kind: results.kind,
+            row: {
+              name: row.name, outlet: row.outlet, title: row.title,
+              category: row.category, country: row.country, email: row.email,
+              ig_handle: row.ig_handle, youtube_url: row.youtube_url,
+              source_url: row.source_url,
+            },
+          },
+        });
+        if (saveErr || !saveData?.ok) throw saveErr || new Error(saveData?.error || "Save failed");
+        dbId = saveData.id;
+        table = results.kind === "journalists" ? "journalist" : "creators";
+        setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows: Row[] = prev.rows.map((r, i) => i === idx
+            ? { ...r, source: "database", source_id: dbId!, source_table: table }
+            : r);
+          return { ...prev, rows };
+        });
+      }
+      const kindArg = table === "journalist" ? "journalist" : "creator";
+      const { data, error } = await supabase.functions.invoke("enrich-contact", {
+        body: { kind: kindArg, id: dbId, fields: ["email"] },
+      });
+      if (error) throw error;
+      const found = data?.updated?.email;
+      if (found) {
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, email: found } : r);
+          return { ...prev, rows };
+        });
+      }
+    } catch (_) {
+      /* ignore */
+    } finally {
+      setEnrichingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
+    }
+  };
 
   const saveExaRow = async (idx: number) => {
     if (!results) return;
