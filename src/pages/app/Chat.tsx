@@ -339,7 +339,7 @@ const Chat = () => {
             )}
           </div>
 
-          <div className={`w-full ${(results || exa) ? "" : "max-w-2xl"} px-4 pb-6`}>
+          <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
             <div className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60">
               <Textarea
                 value={input}
