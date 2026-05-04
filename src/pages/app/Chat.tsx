@@ -370,113 +370,97 @@ const Chat = () => {
         </section>
 
         {/* Right: results */}
-        {(results || exa) && (
+        {results && (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
-            {results && (
-              <>
-                <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
-                  <div>
-                    <div className="text-sm font-medium capitalize">{results.kind}</div>
-                    <div className="text-xs text-muted-foreground">{results.rows.length} results</div>
-                  </div>
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <div className="text-sm font-medium capitalize">{results.kind}</div>
+                <div className="text-xs text-muted-foreground">
+                  {results.rows.length} results
+                  {(() => {
+                    const dbN = results.rows.filter((r) => r.source === "database").length;
+                    const exaN = results.rows.length - dbN;
+                    return ` · ${dbN} from database · ${exaN} from web`;
+                  })()}
                 </div>
-                {results.rows.length === 0 ? (
-                  <div className="p-12 text-center text-sm text-muted-foreground">No matches in your database.</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary/40 text-xs text-muted-foreground">
-                      <tr>
-                        <th className="w-8" />
-                        {cols.map((c) => (
-                          <th key={c.key} className="text-left font-medium px-4 py-2.5">{c.label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.rows.map((r, i) => {
-                        const id = Number(r.id);
-                        return (
-                          <tr key={(r.id as string) ?? i} className="group border-b border-border hover:bg-secondary/30">
-                            <td className="px-2 py-2.5 align-top">
-                              {Number.isFinite(id) && (
-                                <AddToListMenu
-                                  journalistId={results.kind === "journalists" ? id : undefined}
-                                  creatorId={results.kind === "creators" ? id : undefined}
-                                />
+              </div>
+            </div>
+            {results.rows.length === 0 ? (
+              <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/40 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="w-8" />
+                    <th className="text-left font-medium px-3 py-2.5">Source</th>
+                    {cols.map((c) => (
+                      <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.rows.map((r, i) => {
+                    const dbId = r.source === "database" && typeof r.source_id === "number" ? r.source_id : null;
+                    return (
+                      <tr key={i} className="group border-b border-border hover:bg-secondary/30 align-top">
+                        <td className="px-2 py-2.5">
+                          {dbId !== null && (
+                            <AddToListMenu
+                              journalistId={results.kind === "journalists" ? dbId : undefined}
+                              creatorId={results.kind === "creators" ? dbId : undefined}
+                            />
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {r.source === "database" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Database
+                            </span>
+                          ) : savingIdx[i] === "saving" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />Saving
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => saveExaRow(i)}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                              title="Save this web result to your database"
+                            >
+                              Exa web · Save
+                            </button>
+                          )}
+                        </td>
+                        {cols.map((c) => {
+                          const v = r[c.key];
+                          return (
+                            <td key={String(c.key)} className="px-4 py-2.5">
+                              {c.key === "email" ? (
+                                v ? (
+                                  <span className="break-all">{String(v)}</span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Email not found</span>
+                                )
+                              ) : v == null || v === "" ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : typeof v === "number" ? (
+                                v.toLocaleString()
+                              ) : (
+                                String(v)
                               )}
                             </td>
-                            {cols.map((c) => {
-                              const v = r[c.key];
-                              const isEmail = c.key === "email";
-                              return (
-                                <td key={c.key} className="px-4 py-2.5 align-top">
-                                  {v == null || v === "" ? (
-                                    isEmail && Number.isFinite(id) ? (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-xs"
-                                        disabled={!!enriching[id]}
-                                        onClick={() => enrichRow(id)}
-                                      >
-                                        {enriching[id] ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                                        Find email
-                                      </Button>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )
-                                  ) : typeof v === "number" ? (
-                                    v.toLocaleString()
-                                  ) : (
-                                    String(v)
-                                  )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </>
-            )}
-
-            {exa && exa.results.length > 0 && (
-              <div className="border-t border-border">
-                <div className="px-5 py-3 bg-amber-50/50 border-b border-amber-100">
-                  <div className="text-sm font-medium">Suggested from web</div>
-                  <div className="text-xs text-muted-foreground">
-                    {results && results.rows.length < 5 ? "Expanding search with web sources… " : ""}
-                    External results — review before saving.
-                  </div>
-                </div>
-                <ul className="divide-y divide-border">
-                  {exa.results.map((r, i) => (
-                    <li key={i} className="px-5 py-3 hover:bg-secondary/30">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {r.name || r.title || r.url}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {[r.outlet, r.title].filter(Boolean).join(" · ")}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.reason}</p>
-                          <a
-                            href={r.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-primary hover:underline break-all"
-                          >
-                            {r.url}
-                          </a>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                          );
+                        })}
+                        {r.source === "exa" && r.source_url && (
+                          <td className="px-2 py-2.5">
+                            <a href={r.source_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">source</a>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </section>
         )}
