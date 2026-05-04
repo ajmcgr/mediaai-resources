@@ -217,7 +217,7 @@ const Pricing = () => {
                       ? tier.cta
                       : user
                         ? tier.cta
-                        : "Sign up to start"}
+                        : "Start Free Trial"}
                 </Button>
                 <ul className="space-y-3 text-sm">
                   {tier.features.map((f) => (
