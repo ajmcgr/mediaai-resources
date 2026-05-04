@@ -3,6 +3,9 @@ project_id = "uavbphkhomblzkjfuaot"
 [functions.create-checkout]
 verify_jwt = false
 
+[functions.create-topup]
+verify_jwt = false
+
 [functions.customer-portal]
 verify_jwt = false
 
