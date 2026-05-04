@@ -60,6 +60,8 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
+  const [exa, setExa] = useState<ExaPayload>(null);
+  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const savedSearches = useSavedSearches(!!user);
