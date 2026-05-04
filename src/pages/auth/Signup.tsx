@@ -19,7 +19,7 @@ const Signup = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/app", { replace: true });
+    if (user) navigate("/chat", { replace: true });
   }, [user, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
