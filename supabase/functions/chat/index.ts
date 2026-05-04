@@ -534,6 +534,16 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
   return rows;
 }
 
+async function searchExaBroadened(intent: Intent, target: number): Promise<Row[]> {
+  const broad: Intent = {
+    ...intent,
+    countries: [],
+    countryCanonical: null,
+    topics: intent.topics.length ? intent.topics : [...new Set([...intent.freeTerms, "technology", "tech", "ai"])],
+  };
+  return searchExa(broad, Math.max(target, 50));
+}
+
 // ---------- Dedupe & rank ----------
 
 function dedupe(rows: Row[]): Row[] {
@@ -646,7 +656,10 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
   const exaPromise = searchExa(intent, target);
 
-  const [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  let [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
+    exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+  }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
 
