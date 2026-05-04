@@ -1,6 +1,6 @@
 // Stripe Checkout — Starter & Growth subscriptions only.
 // Body: { user_id, user_email, plan: "starter"|"growth", interval: "monthly"|"yearly" }
-// v4 — Starter & Growth only, no plan_identifier required
+// v5 — debug logging
 
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 
@@ -10,6 +10,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const DEBUG_VERSION = "CHECKOUT_V2_STARTER_GROWTH";
 
 const PRICE_MAP: Record<string, Record<string, string>> = {
   starter: {
@@ -27,30 +29,58 @@ const SITE_URL = "https://trymedia.ai";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  console.log("CHECKOUT_V2_STARTER_GROWTH_FUNCTION_HIT");
+
+  let body: Record<string, unknown> = {};
+  let plan = "";
+  let interval = "";
+  let priceId = "";
+
   try {
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!STRIPE_SECRET_KEY) return json({ error: "missing_stripe_key" }, 500);
+    if (!STRIPE_SECRET_KEY) {
+      console.error("CHECKOUT_ERROR", "missing_stripe_key");
+      return json(
+        { error: "missing_stripe_key", debugVersion: DEBUG_VERSION, receivedBody: body, receivedPlan: plan, receivedInterval: interval },
+        500,
+      );
+    }
 
-    const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const plan = String(body.plan || "").toLowerCase().trim();
-    const interval = String(body.interval || "monthly").toLowerCase().trim();
+    body = await req.json().catch(() => ({} as Record<string, unknown>));
+    console.log("CHECKOUT_BODY", JSON.stringify(body));
 
-    console.log("plan:", plan);
-    console.log("interval:", interval);
+    plan = String(body.plan || "").toLowerCase().trim();
+    interval = String(body.interval || "monthly").toLowerCase().trim();
+    console.log("CHECKOUT_PLAN", plan);
+    console.log("CHECKOUT_INTERVAL", interval);
 
     if (!["starter", "growth"].includes(plan)) {
-      return json({ error: "invalid_plan", receivedPlan: plan }, 400);
+      console.error("CHECKOUT_ERROR", "invalid_plan", plan);
+      return json(
+        { error: "invalid_plan", debugVersion: DEBUG_VERSION, receivedBody: body, receivedPlan: plan, receivedInterval: interval },
+        400,
+      );
     }
     if (!["monthly", "yearly"].includes(interval)) {
-      return json({ error: "invalid_interval", receivedInterval: interval }, 400);
+      console.error("CHECKOUT_ERROR", "invalid_interval", interval);
+      return json(
+        { error: "invalid_interval", debugVersion: DEBUG_VERSION, receivedBody: body, receivedPlan: plan, receivedInterval: interval },
+        400,
+      );
     }
 
     const user_id = String(body.user_id ?? "").trim();
     const user_email = String(body.user_email ?? "").trim();
-    if (!user_id || !user_email) return json({ error: "missing_user" }, 400);
+    if (!user_id || !user_email) {
+      console.error("CHECKOUT_ERROR", "missing_user");
+      return json(
+        { error: "missing_user", debugVersion: DEBUG_VERSION, receivedBody: body, receivedPlan: plan, receivedInterval: interval },
+        400,
+      );
+    }
 
-    const priceId = PRICE_MAP[plan][interval];
-    console.log("priceId:", priceId);
+    priceId = PRICE_MAP[plan][interval];
+    console.log("CHECKOUT_PRICE_ID", priceId);
 
     const stripe = new Stripe(STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.create({
@@ -68,8 +98,17 @@ Deno.serve(async (req) => {
 
     return json({ url: session.url });
   } catch (e) {
-    console.error("create-checkout error", e);
-    return json({ error: (e as Error).message }, 500);
+    console.error("CHECKOUT_ERROR", e);
+    return json(
+      {
+        error: (e as Error).message,
+        debugVersion: DEBUG_VERSION,
+        receivedBody: body,
+        receivedPlan: plan,
+        receivedInterval: interval,
+      },
+      500,
+    );
   }
 });
 
