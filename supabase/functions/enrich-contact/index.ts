@@ -166,6 +166,11 @@ Deno.serve(async (req) => {
     }
 
     const extracted = await extractFields(name, context, allSnippets, targetFields);
+    if (extracted.email) {
+      const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
+      if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
+      else extracted.email = cleaned;
+    }
     let emailSourceUrl = allSnippets[0]?.url ?? null;
     if (targetFields.includes("email") && !extracted.email) {
       const directEmail = pickEmail(allSnippets, name);
