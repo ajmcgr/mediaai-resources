@@ -11,7 +11,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-11-20.acacia",
 });
-const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -20,6 +19,12 @@ const admin = createClient(
 const ACTIVE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 Deno.serve(async (req) => {
+  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")?.trim();
+  if (!webhookSecret) {
+    console.error("stripe webhook misconfigured: STRIPE_WEBHOOK_SECRET is missing or empty");
+    return new Response("missing webhook secret", { status: 500 });
+  }
+
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("missing signature", { status: 400 });
 
@@ -28,7 +33,12 @@ Deno.serve(async (req) => {
   try {
     event = await stripe.webhooks.constructEventAsync(raw, sig, webhookSecret);
   } catch (e) {
-    console.error("signature verification failed", e);
+    console.error("signature verification failed", {
+      name: (e as Error).name,
+      message: (e as Error).message,
+      hasWebhookSecret: true,
+      rawBodyLength: raw.length,
+    });
     return new Response("invalid signature", { status: 400 });
   }
 
