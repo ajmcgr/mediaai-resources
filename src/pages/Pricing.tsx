@@ -130,7 +130,7 @@ const Pricing = () => {
         <title>Pricing — Media AI</title>
         <meta
           name="description"
-          content="Simple plans for the Media Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
+          content="Simple plans for the Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
         />
         <link rel="canonical" href="https://resources.trymedia.ai/pricing" />
       </Helmet>
