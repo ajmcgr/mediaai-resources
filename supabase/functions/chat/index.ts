@@ -7,55 +7,39 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT = `You are Media AI's assistant for PR and influencer outreach.
-When the user asks to find or filter people, USE the search_journalists or search_creators
-tool with the user's natural-language query (just pass the raw query string in "q" — the
-backend handles synonym expansion, country normalization, and result broadening). Never
-invent contacts. After tool results return, briefly summarize what was found in 1-2
-sentences. Be concise.`;
+const SYSTEM_PROMPT = `You are Media AI's hybrid search assistant for PR & influencer outreach.
+When the user asks to find people, ALWAYS call hybrid_search with their raw natural-language
+query. The backend parses intent (topic, location, count, outlet, "with email"), runs Supabase
++ Exa in parallel, dedupes, ranks, and returns a unified result set.
 
-type Tool = {
-  type: "function";
-  function: { name: string; description: string; parameters: unknown };
-};
+After tool returns, write ONE short sentence:
+- "Found N relevant results from your database and web sources." (when N >= asked-for)
+- "Found N strong matches. I avoided weak/unverified results." (when N < asked-for but > 0)
+- Only say no results if BOTH sources returned nothing.
+
+Never invent contacts. Be concise.`;
+
+type Tool = { type: "function"; function: { name: string; description: string; parameters: unknown } };
 
 const tools: Tool[] = [
   {
     type: "function",
     function: {
-      name: "search_journalists",
-      description:
-        "Search journalists. Pass the user's full natural-language query in `q` — synonyms, countries, and broadening are handled server-side. Returns up to 25 ranked rows.",
+      name: "hybrid_search",
+      description: "Search journalists/creators across the internal database AND the public web (Exa) in parallel. Pass the user's raw natural-language query.",
       parameters: {
         type: "object",
-        properties: {
-          q: { type: "string", description: "Natural language query, e.g. 'tech journalist in the united kingdom'" },
-        },
-        required: ["q"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "search_creators",
-      description: "Search creators/influencers. Pass natural-language query in `q`. Returns up to 25 ranked rows.",
-      parameters: {
-        type: "object",
-        properties: {
-          q: { type: "string" },
-          min_followers: { type: "number" },
-        },
+        properties: { q: { type: "string", description: "Raw user query, verbatim" } },
         required: ["q"],
       },
     },
   },
 ];
 
-// ---------- Query normalization ----------
+// ---------- Intent parsing ----------
 
 const TOPIC_SYNONYMS: Record<string, string[]> = {
-  tech: ["tech", "technology", "tech.", "ai", "software", "saas", "startup", "startups"],
+  tech: ["tech", "technology", "ai", "software", "saas", "startup", "startups"],
   technology: ["technology", "tech", "ai", "software", "saas"],
   ai: ["ai", "artificial intelligence", "ml", "machine learning"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
@@ -66,38 +50,41 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   fashion: ["fashion", "style", "apparel"],
   food: ["food", "cooking", "culinary", "restaurant"],
   travel: ["travel", "tourism", "destination"],
-  gaming: ["gaming", "games", "esports", "video games"],
+  gaming: ["gaming", "games", "esports"],
   sports: ["sports", "athletics"],
-  music: ["music", "musician", "audio"],
+  music: ["music", "musician"],
   film: ["film", "movie", "cinema", "entertainment"],
-  business: ["business", "enterprise", "b2b", "corporate"],
+  business: ["business", "enterprise", "b2b"],
   marketing: ["marketing", "advertising", "adtech", "branding"],
   realestate: ["real estate", "property", "housing", "realty"],
-  cars: ["cars", "automotive", "auto", "vehicle"],
+  cars: ["cars", "automotive", "auto"],
   pets: ["pets", "animals", "dogs", "cats"],
   parenting: ["parenting", "kids", "family"],
+  startup: ["startup", "startups", "venture", "vc"],
 };
 
-const COUNTRY_SYNONYMS: Record<string, string[]> = {
-  uk: ["united kingdom", "uk", "u.k.", "britain", "british", "england", "scotland", "wales"],
-  "united kingdom": ["united kingdom", "uk", "britain", "england"],
-  us: ["united states", "usa", "u.s.", "u.s.a.", "america", "american"],
-  usa: ["united states", "usa", "america"],
-  "united states": ["united states", "usa", "america"],
-  canada: ["canada", "canadian"],
-  australia: ["australia", "australian", "aus"],
-  germany: ["germany", "german", "deutschland"],
-  france: ["france", "french"],
-  india: ["india", "indian"],
-  singapore: ["singapore", "sg"],
-  japan: ["japan", "japanese"],
-  china: ["china", "chinese"],
-  spain: ["spain", "spanish"],
-  italy: ["italy", "italian"],
-  brazil: ["brazil", "brazilian"],
-  mexico: ["mexico", "mexican"],
-  netherlands: ["netherlands", "dutch", "holland"],
-  ireland: ["ireland", "irish"],
+const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }> = {
+  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "british", "england", "scotland", "wales"] },
+  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "england"] },
+  us: { canonical: "United States", variants: ["united states", "usa", "u.s.", "america", "american"] },
+  usa: { canonical: "United States", variants: ["united states", "usa", "america"] },
+  "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
+  canada: { canonical: "Canada", variants: ["canada", "canadian"] },
+  australia: { canonical: "Australia", variants: ["australia", "australian"] },
+  germany: { canonical: "Germany", variants: ["germany", "german", "deutschland"] },
+  france: { canonical: "France", variants: ["france", "french"] },
+  india: { canonical: "India", variants: ["india", "indian"] },
+  singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
+  japan: { canonical: "Japan", variants: ["japan", "japanese"] },
+  china: { canonical: "China", variants: ["china", "chinese"] },
+  spain: { canonical: "Spain", variants: ["spain", "spanish"] },
+  italy: { canonical: "Italy", variants: ["italy", "italian"] },
+  brazil: { canonical: "Brazil", variants: ["brazil", "brazilian"] },
+  mexico: { canonical: "Mexico", variants: ["mexico", "mexican"] },
+  netherlands: { canonical: "Netherlands", variants: ["netherlands", "dutch", "holland"] },
+  ireland: { canonical: "Ireland", variants: ["ireland", "irish"] },
+  uae: { canonical: "United Arab Emirates", variants: ["uae", "united arab emirates", "dubai", "abu dhabi"] },
+  dubai: { canonical: "United Arab Emirates", variants: ["dubai", "uae", "united arab emirates"] },
 };
 
 const ROLE_WORDS = new Set([
@@ -111,35 +98,52 @@ const STOPWORDS = new Set([
   "a", "an", "the", "in", "at", "on", "of", "for", "to", "with", "from", "by",
   "and", "or", "is", "are", "be", "who", "that", "find", "me", "show", "list",
   "any", "all", "some", "please", "best", "top", "based", "located", "near",
+  "get", "give", "need", "want", "looking", "search",
 ]);
 
-type Normalized = {
+type Intent = {
   raw: string;
-  topics: string[];   // expanded topic terms
-  countries: string[]; // expanded country phrases
-  freeTerms: string[]; // remaining tokens
-  roleHint: "journalist" | "creator" | null;
-  minFollowers: number | null;
+  kind: "journalists" | "creators";
+  topics: string[];
+  countries: string[];        // expanded variants
+  countryCanonical: string | null;
+  outlets: string[];
+  freeTerms: string[];
+  count: number;              // requested count
+  emailRequired: boolean;
 };
 
-function normalizeQuery(q: string): Normalized {
-  const lower = q.toLowerCase().trim();
-  const topics = new Set<string>();
-  const countries = new Set<string>();
-  let roleHint: "journalist" | "creator" | null = null;
-  let working = ` ${lower} `;
+function parseIntent(q: string): Intent {
+  const lower = ` ${q.toLowerCase()} `;
+  let working = lower;
 
-  // Multi-word country phrases first (longest match)
+  // Quantity: "50 tech journalists", "100 ai creators", "find 25"
+  let count = 25;
+  const qMatch = lower.match(/\b(\d{1,4})\b/);
+  if (qMatch) {
+    const n = parseInt(qMatch[1], 10);
+    if (n >= 5 && n <= 1000) count = n;
+  }
+
+  // Email requirement
+  const emailRequired = /\bwith (an? )?email|verified email|emails?\b/i.test(lower) || /\bcontactable\b/i.test(lower);
+
+  // Country detection
+  const countries = new Set<string>();
+  let countryCanonical: string | null = null;
   const countryKeys = Object.keys(COUNTRY_SYNONYMS).sort((a, b) => b.length - a.length);
   for (const key of countryKeys) {
     const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
     if (re.test(working)) {
-      for (const v of COUNTRY_SYNONYMS[key]) countries.add(v);
+      const entry = COUNTRY_SYNONYMS[key];
+      for (const v of entry.variants) countries.add(v);
+      if (!countryCanonical) countryCanonical = entry.canonical;
       working = working.replace(re, " ");
     }
   }
 
-  // Topic synonyms
+  // Topic detection
+  const topics = new Set<string>();
   for (const [key, vals] of Object.entries(TOPIC_SYNONYMS)) {
     const re = new RegExp(`\\b${key}\\b`, "gi");
     if (re.test(working)) {
@@ -148,346 +152,366 @@ function normalizeQuery(q: string): Normalized {
     }
   }
 
+  // Outlet detection - look for capitalized words in original (e.g., Forbes, TechCrunch, Wired)
+  const outlets: string[] = [];
+  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc"];
+  for (const o of knownOutlets) {
+    if (new RegExp(`\\b${o}\\b`, "i").test(lower)) outlets.push(o);
+  }
+
   // Tokenize remainder
-  const tokens = working
-    .split(/[^a-z0-9]+/i)
-    .map((t) => t.trim())
-    .filter(Boolean);
-
+  const tokens = working.split(/[^a-z0-9]+/i).map((t) => t.trim()).filter(Boolean);
   const freeTerms: string[] = [];
-  let minFollowers: number | null = null;
+  let kind: "journalists" | "creators" = "journalists";
+  let creatorVotes = 0;
+  let journalistVotes = 0;
 
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
+  for (const t of tokens) {
     if (ROLE_WORDS.has(t)) {
-      if (["creator", "creators", "influencer", "influencers", "youtuber", "youtubers", "tiktoker", "instagrammer", "blogger"].includes(t)) {
-        roleHint = "creator";
-      } else {
-        roleHint = "journalist";
-      }
+      if (["creator", "creators", "influencer", "influencers", "youtuber", "youtubers", "tiktoker", "instagrammer", "blogger"].includes(t)) creatorVotes++;
+      else journalistVotes++;
       continue;
     }
-    // Followers like "100k+", "500000"
-    const fm = t.match(/^(\d+)(k|m)?\+?$/i);
-    if (fm) {
-      const n = parseInt(fm[1], 10) * (fm[2]?.toLowerCase() === "m" ? 1_000_000 : fm[2]?.toLowerCase() === "k" ? 1_000 : 1);
-      if (n >= 1000) { minFollowers = Math.max(minFollowers ?? 0, n); continue; }
-    }
+    if (/^\d+$/.test(t)) continue;
     if (STOPWORDS.has(t)) continue;
     if (t.length < 2) continue;
+    if (t === "email" || t === "emails") continue;
     freeTerms.push(t);
   }
+  if (creatorVotes > journalistVotes) kind = "creators";
+  // YouTube/Instagram hint
+  if (/\b(youtube|instagram|tiktok)\b/i.test(lower)) kind = "creators";
 
   return {
     raw: q,
+    kind,
     topics: [...topics],
     countries: [...countries],
+    countryCanonical,
+    outlets,
     freeTerms,
-    roleHint,
-    minFollowers,
+    count,
+    emailRequired,
   };
 }
+
+// ---------- Plan caps ----------
+
+function capForPlan(plan: string | null | undefined): number {
+  const p = (plan ?? "").toLowerCase();
+  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 250;
+  if (["starter"].includes(p)) return 50;
+  return 10;
+}
+
+// ---------- Unified row ----------
+
+type Row = {
+  source: "database" | "exa";
+  source_id?: string | number;        // db id
+  source_url?: string;                // exa url
+  source_table?: "journalist" | "creators";
+  name: string | null;
+  outlet: string | null;
+  title: string | null;
+  category: string | null;
+  country: string | null;
+  email: string | null;
+  ig_handle?: string | null;
+  ig_followers?: number | null;
+  youtube_url?: string | null;
+  reason?: string;
+  score?: number;
+};
 
 // ---------- Supabase search ----------
 
 type AdminClient = ReturnType<typeof createClient>;
 
-function escapeIlike(v: string): string {
-  // PostgREST or-filter values: commas/parens are delimiters. Replace problematic chars.
+function safeIlike(v: string): string {
   return v.replace(/[(),]/g, " ").trim();
 }
 
-async function fetchJournalists(admin: AdminClient, n: Normalized, debug: Record<string, unknown>) {
-  const cols = ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"];
+async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const orParts: string[] = [];
-
-  const addAcross = (terms: string[], fields: string[]) => {
-    for (const term of terms) {
-      const safe = escapeIlike(term);
-      if (!safe) continue;
-      for (const f of fields) orParts.push(`${f}.ilike.%${safe}%`);
+  const add = (terms: string[], fields: string[]) => {
+    for (const t of terms) {
+      const s = safeIlike(t); if (!s) continue;
+      for (const f of fields) orParts.push(`${f}.ilike.%${s}%`);
     }
   };
+  add(intent.topics, ["category", "topics", "titles", "outlet"]);
+  add(intent.countries, ["country", "topics", "outlet", "titles"]);
+  add(intent.outlets, ["outlet", "titles"]);
+  add(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
 
-  // Topic terms hit category/topics/titles/outlet
-  addAcross(n.topics, ["category", "topics", "titles", "outlet"]);
-  // Country terms hit country/topics/outlet/titles
-  addAcross(n.countries, ["country", "topics", "outlet", "titles"]);
-  // Free terms hit broad fields
-  addAcross(n.freeTerms, cols);
-
-  let query = admin
-    .from("journalist")
-    .select("id,name,email,category,titles,topics,xhandle,outlet,country,enrichment_source_url,enriched_at")
-    .limit(200);
-
-  if (orParts.length) query = query.or(orParts.join(","));
-  const { data, error } = await query;
-  if (error) {
-    debug.journalist_error = error.message;
-    // Retry without enrichment columns if they don't exist
-    if (error.message?.includes("enrichment_source_url") || error.message?.includes("enriched_at")) {
-      let retry = admin
-        .from("journalist")
-        .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-        .limit(200);
-      if (orParts.length) retry = retry.or(orParts.join(","));
-      const r = await retry;
-      if (r.error) return [];
-      return r.data ?? [];
-    }
-    return [];
-  }
-  return data ?? [];
-}
-
-async function fetchCreators(admin: AdminClient, n: Normalized, debug: Record<string, unknown>) {
-  const orParts: string[] = [];
-  const addAcross = (terms: string[], fields: string[]) => {
-    for (const term of terms) {
-      const safe = escapeIlike(term);
-      if (!safe) continue;
-      for (const f of fields) orParts.push(`${f}.ilike.%${safe}%`);
-    }
-  };
-  addAcross(n.topics, ["category", "bio", "name"]);
-  addAcross(n.freeTerms, ["name", "category", "bio", "ig_handle", "youtube_url", "email"]);
-
-  let q = admin
-    .from("creators")
-    .select("id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,youtube_url,youtube_subscribers,type,enrichment_source_url,enriched_at")
-    .limit(200);
+  let q = admin.from("journalist")
+    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+    .limit(400);
   if (orParts.length) q = q.or(orParts.join(","));
-  if (n.minFollowers) q = q.gte("ig_followers", n.minFollowers);
-
   const { data, error } = await q;
-  if (error) {
-    debug.creators_error = error.message;
-    if (error.message?.includes("enrichment") || error.message?.includes("email")) {
-      let retry = admin
-        .from("creators")
-        .select("id,name,category,bio,ig_handle,ig_followers,ig_engagement_rate,youtube_url,youtube_subscribers,type")
-        .limit(200);
-      if (orParts.length) retry = retry.or(orParts.join(","));
-      if (n.minFollowers) retry = retry.gte("ig_followers", n.minFollowers);
-      const r = await retry;
-      if (r.error) return [];
-      return r.data ?? [];
-    }
-    return [];
-  }
-  return data ?? [];
+  if (error) { console.log("[db.journalist.error]", error.message); return []; }
+  return (data ?? []).map((r) => ({
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "journalist" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.outlet as string) ?? null,
+    title: (r.titles as string) ?? null,
+    category: (r.category as string) ?? null,
+    country: (r.country as string) ?? null,
+    email: (r.email as string) ?? null,
+  }));
 }
 
-// ---------- Ranking ----------
-
-function rankJournalists(rows: Array<Record<string, unknown>>, n: Normalized) {
-  const score = (r: Record<string, unknown>) => {
-    let s = 0;
-    const cat = String(r.category ?? "").toLowerCase();
-    const topics = String(r.topics ?? "").toLowerCase();
-    const country = String(r.country ?? "").toLowerCase();
-    const outlet = String(r.outlet ?? "").toLowerCase();
-    const titles = String(r.titles ?? "").toLowerCase();
-
-    for (const t of n.topics) {
-      if (cat.includes(t)) s += 10;
-      if (topics.includes(t)) s += 6;
-      if (titles.includes(t)) s += 3;
-      if (outlet.includes(t)) s += 2;
+async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
+  const orParts: string[] = [];
+  const add = (terms: string[], fields: string[]) => {
+    for (const t of terms) {
+      const s = safeIlike(t); if (!s) continue;
+      for (const f of fields) orParts.push(`${f}.ilike.%${s}%`);
     }
-    for (const c of n.countries) {
-      if (country.includes(c)) s += 8;
-      if (topics.includes(c)) s += 2;
-      if (outlet.includes(c)) s += 2;
-    }
-    for (const t of n.freeTerms) {
-      if (cat.includes(t)) s += 4;
-      if (topics.includes(t)) s += 3;
-      if (outlet.includes(t)) s += 3;
-      if (titles.includes(t)) s += 2;
-      if (String(r.name ?? "").toLowerCase().includes(t)) s += 2;
-    }
-    if (r.email) s += 2;
-    return s;
   };
-  return [...rows].sort((a, b) => score(b) - score(a));
+  add(intent.topics, ["category", "bio", "name"]);
+  add(intent.freeTerms, ["name", "category", "bio", "ig_handle", "youtube_url"]);
+
+  let q = admin.from("creators")
+    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+    .limit(400);
+  if (orParts.length) q = q.or(orParts.join(","));
+  const { data, error } = await q;
+  if (error) { console.log("[db.creators.error]", error.message); return []; }
+  return (data ?? []).map((r) => ({
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "creators" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.type as string) ?? null,
+    title: null,
+    category: (r.category as string) ?? null,
+    country: null,
+    email: (r.email as string) ?? null,
+    ig_handle: (r.ig_handle as string) ?? null,
+    ig_followers: (r.ig_followers as number) ?? null,
+    youtube_url: (r.youtube_url as string) ?? null,
+  }));
 }
 
-function rankCreators(rows: Array<Record<string, unknown>>, n: Normalized) {
-  const score = (r: Record<string, unknown>) => {
-    let s = 0;
-    const cat = String(r.category ?? "").toLowerCase();
-    const bio = String(r.bio ?? "").toLowerCase();
-    for (const t of n.topics) {
-      if (cat.includes(t)) s += 10;
-      if (bio.includes(t)) s += 4;
+// ---------- Exa search ----------
+
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+
+function pickEmailFromText(text: string, name?: string | null): string | null {
+  const matches = text?.match(new RegExp(EMAIL_RE.source, "gi")) ?? [];
+  if (!matches.length) return null;
+  if (name) {
+    const tokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    for (const m of matches) {
+      if (tokens.some((t) => m.toLowerCase().includes(t))) return m;
     }
-    for (const t of n.freeTerms) {
-      if (cat.includes(t)) s += 4;
-      if (bio.includes(t)) s += 3;
-      if (String(r.name ?? "").toLowerCase().includes(t)) s += 2;
-    }
-    const f = Number(r.ig_followers ?? 0);
-    s += Math.min(Math.log10(Math.max(f, 1)), 6);
-    if (r.email) s += 2;
-    return s;
-  };
-  return [...rows].sort((a, b) => score(b) - score(a));
+  }
+  const filtered = matches.filter((m) => !/^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster)@/i.test(m));
+  return filtered[0] ?? null;
 }
 
-// ---------- Search orchestration with broadening ----------
-
-async function searchJournalistsBroadened(admin: AdminClient, q: string) {
-  const debug: Record<string, unknown> = { original: q };
-  const n = normalizeQuery(q);
-  debug.normalized = { topics: n.topics, countries: n.countries, freeTerms: n.freeTerms, roleHint: n.roleHint };
-
-  let rows = await fetchJournalists(admin, n, debug);
-  let ranked = rankJournalists(rows, n);
-  debug.initial_count = ranked.length;
-
-  // Filter to rows touching at least one signal when we have many tokens
-  if (n.topics.length || n.countries.length) {
-    const strict = ranked.filter((r) => {
-      const hay = [r.category, r.topics, r.country, r.outlet, r.titles].map((x) => String(x ?? "").toLowerCase()).join(" | ");
-      const topicHit = n.topics.length === 0 || n.topics.some((t) => hay.includes(t));
-      const countryHit = n.countries.length === 0 || n.countries.some((c) => hay.includes(c));
-      return topicHit && countryHit;
-    });
-    debug.strict_count = strict.length;
-    if (strict.length >= 5) ranked = strict;
-  }
-
-  // Broaden if too few: drop country
-  if (ranked.length < 5 && n.countries.length) {
-    const n2 = { ...n, countries: [] };
-    const broaderRows = await fetchJournalists(admin, n2, debug);
-    const broaderRanked = rankJournalists(broaderRows, n);
-    debug.broadened_no_country = broaderRanked.length;
-    // Merge unique by id, preserving best order
-    const seen = new Set(ranked.map((r) => r.id));
-    for (const r of broaderRanked) {
-      if (!seen.has(r.id)) { ranked.push(r); seen.add(r.id); }
-      if (ranked.length >= 25) break;
-    }
-  }
-
-  // Broaden further: free terms only
-  if (ranked.length < 5 && n.freeTerms.length) {
-    const n3 = { raw: q, topics: [], countries: [], freeTerms: n.freeTerms, roleHint: n.roleHint, minFollowers: null };
-    const r3 = await fetchJournalists(admin, n3, debug);
-    debug.broadened_free_only = r3.length;
-    const seen = new Set(ranked.map((r) => r.id));
-    for (const r of rankJournalists(r3, n)) {
-      if (!seen.has(r.id)) { ranked.push(r); seen.add(r.id); }
-      if (ranked.length >= 25) break;
-    }
-  }
-
-  const top = ranked.slice(0, 25);
-  debug.final_count = top.length;
-  console.log("[chat.search.journalists]", JSON.stringify(debug));
-  return { rows: top, debug, normalized: n };
-}
-
-async function searchCreatorsBroadened(admin: AdminClient, q: string, minFollowers?: number) {
-  const debug: Record<string, unknown> = { original: q };
-  const n = normalizeQuery(q);
-  if (minFollowers && (!n.minFollowers || minFollowers > n.minFollowers)) n.minFollowers = minFollowers;
-  debug.normalized = { topics: n.topics, freeTerms: n.freeTerms, minFollowers: n.minFollowers };
-
-  let rows = await fetchCreators(admin, n, debug);
-  let ranked = rankCreators(rows, n);
-  debug.initial_count = ranked.length;
-
-  if (ranked.length < 5 && (n.topics.length || n.freeTerms.length)) {
-    const n2 = { ...n, freeTerms: [] };
-    const r2 = await fetchCreators(admin, n2, debug);
-    debug.broadened_topic_only = r2.length;
-    const seen = new Set(ranked.map((r) => r.id));
-    for (const r of rankCreators(r2, n)) {
-      if (!seen.has(r.id)) { ranked.push(r); seen.add(r.id); }
-      if (ranked.length >= 25) break;
-    }
-  }
-
-  const top = ranked.slice(0, 25);
-  debug.final_count = top.length;
-  console.log("[chat.search.creators]", JSON.stringify(debug));
-  return { rows: top, debug, normalized: n };
-}
-
-// ---------- Exa fallback ----------
-
-type ExaResult = {
-  name?: string;
-  outlet?: string;
-  title?: string;
-  url: string;
-  reason: string;
-};
-
-async function exaSearch(query: string, kind: "journalists" | "creators"): Promise<ExaResult[]> {
+async function exaSearchOnce(query: string, numResults: number): Promise<Array<{ title?: string; url: string; author?: string; text?: string; highlights?: string[] }>> {
   const key = Deno.env.get("EXA_API_KEY");
-  if (!key) {
-    console.log("[chat.exa] no EXA_API_KEY configured");
-    return [];
-  }
-  const exaQuery = kind === "journalists"
-    ? `${query} — journalist or reporter contact page`
-    : `${query} — creator or influencer profile`;
+  if (!key) return [];
   try {
     const r = await fetch("https://api.exa.ai/search", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": key },
       body: JSON.stringify({
-        query: exaQuery,
-        numResults: 8,
+        query,
+        numResults,
         useAutoprompt: true,
         type: "neural",
-        contents: { text: { maxCharacters: 600 }, highlights: { numSentences: 2, highlightsPerUrl: 1 } },
+        contents: { text: { maxCharacters: 1500 }, highlights: { numSentences: 2, highlightsPerUrl: 1 } },
       }),
     });
-    if (!r.ok) {
-      console.log("[chat.exa] error", r.status, await r.text());
-      return [];
-    }
+    if (!r.ok) { console.log("[exa.error]", r.status, (await r.text()).slice(0, 200)); return []; }
     const data = await r.json();
-    const results: ExaResult[] = [];
-    for (const item of data.results ?? []) {
-      results.push({
-        name: item.author || item.title?.split(/[-—|·]/)[0]?.trim() || undefined,
-        outlet: (() => { try { return new URL(item.url).hostname.replace(/^www\./, ""); } catch { return undefined; } })(),
-        title: item.title,
-        url: item.url,
-        reason: (item.highlights?.[0] || item.text?.slice(0, 200) || "Matched on the open web").trim(),
-      });
-    }
-    console.log("[chat.exa] returned", results.length, "results");
-    return results;
+    return data.results ?? [];
   } catch (e) {
-    console.log("[chat.exa] exception", (e as Error).message);
+    console.log("[exa.exception]", (e as Error).message);
     return [];
   }
 }
 
-// ---------- Tool runner ----------
+function buildExaQueries(intent: Intent): string[] {
+  const topic = intent.topics[0] ?? intent.freeTerms[0] ?? "";
+  const loc = intent.countryCanonical ?? "";
+  const outlet = intent.outlets[0] ?? "";
+  const queries: string[] = [];
 
-async function runTool(
-  name: string,
-  args: Record<string, unknown>,
-  admin: AdminClient,
-): Promise<{ kind: "journalists" | "creators"; rows: unknown[]; debug: Record<string, unknown>; query: string }> {
-  const q = String(args.q ?? "");
-  if (name === "search_journalists") {
-    const res = await searchJournalistsBroadened(admin, q);
-    return { kind: "journalists", rows: res.rows, debug: res.debug, query: q };
+  if (intent.kind === "journalists") {
+    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
+    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
+    if (topic) queries.push(`${topic} editor ${loc || "byline"}`);
+    if (outlet && topic) queries.push(`site:${outlet}.com ${topic} reporter`);
+    if (topic && outlet) queries.push(`${topic} writer ${outlet}`);
+    if (!topic && loc) queries.push(`${loc} journalist contact`);
+    if (!queries.length) queries.push(`${intent.raw} journalist`);
+  } else {
+    if (topic && loc) queries.push(`${topic} creator ${loc}`);
+    if (topic && loc) queries.push(`${topic} youtuber ${loc}`);
+    if (topic) queries.push(`${topic} influencer ${loc || ""}`.trim());
+    if (!queries.length) queries.push(`${intent.raw} creator`);
   }
-  // creators
-  const minF = typeof args.min_followers === "number" ? args.min_followers : undefined;
-  const res = await searchCreatorsBroadened(admin, q, minF);
-  return { kind: "creators", rows: res.rows, debug: res.debug, query: q };
+  return queries.slice(0, 3);
+}
+
+async function searchExa(intent: Intent, target: number): Promise<Row[]> {
+  const queries = buildExaQueries(intent);
+  if (!queries.length) return [];
+  const per = Math.max(8, Math.ceil(target / queries.length) + 4);
+  const settled = await Promise.all(queries.map((q) => exaSearchOnce(q, per)));
+  const rows: Row[] = [];
+  const reasons: string[] = queries;
+
+  settled.forEach((items, qi) => {
+    for (const it of items) {
+      const url = it.url;
+      if (!url) continue;
+      let host = "";
+      try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+      const titleStr = it.title ?? "";
+      // Heuristic name extraction: text before " - ", " | " or " — "
+      let nameGuess = it.author ?? null;
+      if (!nameGuess && titleStr) {
+        const head = titleStr.split(/[-—|·]/)[0]?.trim();
+        if (head && head.length < 60 && /^[A-Z]/.test(head)) nameGuess = head;
+      }
+      const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
+      const email = pickEmailFromText(blob, nameGuess);
+      rows.push({
+        source: "exa",
+        source_url: url,
+        name: nameGuess,
+        outlet: host || null,
+        title: titleStr || null,
+        category: intent.topics[0] ?? null,
+        country: intent.countryCanonical,
+        email,
+        reason: (it.highlights?.[0] || it.text?.slice(0, 180) || `Matched on the open web — query: "${reasons[qi]}"`).trim(),
+      });
+    }
+  });
+  return rows;
+}
+
+// ---------- Dedupe & rank ----------
+
+function dedupe(rows: Row[]): Row[] {
+  const seen = new Map<string, Row>();
+  for (const r of rows) {
+    const keys: string[] = [];
+    if (r.email) keys.push(`email:${r.email.toLowerCase()}`);
+    if (r.name && r.outlet) keys.push(`no:${r.name.toLowerCase()}|${r.outlet.toLowerCase()}`);
+    if (r.source_url) keys.push(`url:${r.source_url}`);
+    if (r.ig_handle) keys.push(`ig:${r.ig_handle.toLowerCase()}`);
+    if (r.youtube_url) keys.push(`yt:${r.youtube_url}`);
+    if (!keys.length && r.name) keys.push(`n:${r.name.toLowerCase()}`);
+    if (!keys.length) { seen.set(`raw:${seen.size}`, r); continue; }
+
+    // If any key already seen, merge (prefer database, prefer email present)
+    const existing = keys.map((k) => seen.get(k)).find(Boolean) as Row | undefined;
+    if (existing) {
+      // merge - prefer DB, fill missing fields from this
+      const winner = existing.source === "database" ? existing : (r.source === "database" ? r : existing);
+      const loser = winner === existing ? r : existing;
+      const merged: Row = {
+        ...winner,
+        email: winner.email ?? loser.email,
+        outlet: winner.outlet ?? loser.outlet,
+        title: winner.title ?? loser.title,
+        category: winner.category ?? loser.category,
+        country: winner.country ?? loser.country,
+        source_url: winner.source_url ?? loser.source_url,
+        reason: winner.reason ?? loser.reason,
+      };
+      for (const k of keys) seen.set(k, merged);
+    } else {
+      for (const k of keys) seen.set(k, r);
+    }
+  }
+  // Unique by identity
+  return [...new Set(seen.values())];
+}
+
+function rankRows(rows: Row[], intent: Intent): Row[] {
+  const score = (r: Row): number => {
+    let s = 0;
+    const cat = (r.category ?? "").toLowerCase();
+    const out = (r.outlet ?? "").toLowerCase();
+    const ttl = (r.title ?? "").toLowerCase();
+    const cnt = (r.country ?? "").toLowerCase();
+    for (const t of intent.topics) {
+      if (cat.includes(t)) s += 10;
+      if (ttl.includes(t)) s += 4;
+      if (out.includes(t)) s += 3;
+    }
+    for (const c of intent.countries) {
+      if (cnt.includes(c)) s += 8;
+      if (out.includes(c)) s += 2;
+    }
+    for (const t of intent.freeTerms) {
+      if ((r.name ?? "").toLowerCase().includes(t)) s += 3;
+      if (cat.includes(t)) s += 3;
+      if (out.includes(t)) s += 2;
+    }
+    if (r.email) s += intent.emailRequired ? 12 : 4;
+    if (r.source === "database") s += 3; // slight preference: verified
+    return s;
+  };
+  return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
+}
+
+// ---------- Hybrid orchestrator ----------
+
+async function hybridSearch(admin: AdminClient, q: string, plan: string | null): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number }> {
+  const intent = parseIntent(q);
+  const cap = capForPlan(plan);
+  const target = Math.min(intent.count, cap);
+
+  const debug: Record<string, unknown> = {
+    original: q,
+    intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
+    plan, cap, target,
+  };
+
+  const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
+  const exaPromise = searchExa(intent, target);
+
+  const [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  debug.db_count = dbRows.length;
+  debug.exa_count = exaRows.length;
+
+  // Strict filter pass on DB if we have signals
+  let dbStrict = dbRows;
+  if (intent.topics.length || intent.countries.length) {
+    dbStrict = dbRows.filter((r) => {
+      const hay = [r.category, r.title, r.outlet, r.country].map((x) => (x ?? "").toLowerCase()).join(" | ");
+      const topicHit = intent.topics.length === 0 || intent.topics.some((t) => hay.includes(t));
+      const countryHit = intent.countries.length === 0 || intent.countries.some((c) => hay.includes(c));
+      return topicHit && countryHit;
+    });
+  }
+  if (dbStrict.length < Math.min(target, 5)) dbStrict = dbRows; // broaden
+  debug.db_strict_count = dbStrict.length;
+
+  let combined = [...dbStrict, ...exaRows];
+  if (intent.emailRequired) {
+    const withEmail = combined.filter((r) => !!r.email);
+    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
+  }
+  combined = dedupe(combined);
+  debug.deduped_count = combined.length;
+
+  const ranked = rankRows(combined, intent).slice(0, target);
+  debug.final_count = ranked.length;
+  console.log("[chat.hybrid]", JSON.stringify(debug));
+  return { rows: ranked, debug, intent, cap };
 }
 
 // ---------- Handler ----------
@@ -498,29 +522,23 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader)
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-
     const { data: { user } } = await userClient.auth.getUser();
     if (!user)
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Plan
+    const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
+    const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
+
+    // Usage gate
     const { data: usageRow } = await admin.rpc("chat_usage_summary");
     const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
     const allowance = Number(summary?.allowance ?? 0);
@@ -528,58 +546,39 @@ Deno.serve(async (req) => {
     const remaining = Math.max(allowance - usedSoFar, 0);
     if (remaining <= 0) {
       return new Response(
-        JSON.stringify({
-          error: "quota_exhausted",
-          message: "You've used all of your chat tokens for this month.",
-          allowance, used: usedSoFar, remaining: 0,
-        }),
+        JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", allowance, used: usedSoFar, remaining: 0 }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const { messages, model } = await req.json();
     if (!Array.isArray(messages))
-      return new Response(JSON.stringify({ error: "messages required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey)
-      return new Response(
-        JSON.stringify({ error: "missing_key", message: "Chat is not configured. Contact support." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "missing_key", message: "Chat is not configured. Contact support." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const convo = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...messages,
-    ];
+    const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    let lastToolKind: "journalists" | "creators" | null = null;
-    let lastToolRows: unknown[] = [];
+    let lastKind: "journalists" | "creators" | null = null;
+    let lastRows: Row[] = [];
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
+    let lastIntent: Intent | null = null;
     let totalTokens = 0;
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: model || "gpt-4o-mini",
-          messages: convo,
-          tools,
-          tool_choice: "auto",
-        }),
+        body: JSON.stringify({ model: model || "gpt-4o-mini", messages: convo, tools, tool_choice: "auto" }),
       });
-
       if (!r.ok) {
         const text = await r.text();
-        return new Response(
-          JSON.stringify({ error: "openai_error", status: r.status, message: text }),
-          { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "openai_error", status: r.status, message: text }),
+          { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const data = await r.json();
       totalTokens += Number(data?.usage?.total_tokens ?? 0);
@@ -591,82 +590,59 @@ Deno.serve(async (req) => {
         for (const tc of msg.tool_calls) {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
-          const result = await runTool(tc.function.name, parsed, admin);
-          lastToolKind = result.kind;
-          lastToolRows = result.rows;
-          lastQuery = result.query;
+          const q = String(parsed.q ?? "");
+          const result = await hybridSearch(admin, q, plan);
+          lastKind = result.intent.kind;
+          lastRows = result.rows;
+          lastQuery = q;
           lastDebug = result.debug;
-          // Send a compact summary back to the model — never the full rows (token cost).
-          const compact = result.rows.slice(0, 10).map((r) => {
-            const o = r as Record<string, unknown>;
-            return result.kind === "journalists"
-              ? { name: o.name, outlet: o.outlet, category: o.category, country: o.country, has_email: !!o.email }
-              : { name: o.name, category: o.category, ig_followers: o.ig_followers, type: o.type };
-          });
+          lastIntent = result.intent;
+          // Compact summary back to model
+          const dbN = result.rows.filter((r) => r.source === "database").length;
+          const exaN = result.rows.filter((r) => r.source === "exa").length;
           convo.push({
             role: "tool",
             tool_call_id: tc.id,
             content: JSON.stringify({
               count: result.rows.length,
-              sample: compact,
+              requested: result.intent.count,
+              from_database: dbN,
+              from_web: exaN,
+              kind: result.intent.kind,
             }),
           });
         }
         continue;
       }
 
-      // Exa fallback if internal results are weak
-      let exaResults: ExaResult[] = [];
-      if (lastToolKind && lastToolRows.length < 5 && lastQuery) {
-        exaResults = await exaSearch(lastQuery, lastToolKind);
-      }
-
       let newUsed = usedSoFar + totalTokens;
       try {
-        const { data: rec } = await admin.rpc("chat_usage_record", {
-          _user: user.id, _tokens: totalTokens,
-        });
+        const { data: rec } = await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens });
         if (typeof rec === "number") newUsed = rec;
       } catch (e) { console.error("chat_usage_record failed", e); }
 
       return new Response(
         JSON.stringify({
           content: msg.content ?? "",
-          results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows, query: lastQuery, debug: lastDebug } : null,
-          exa: exaResults.length ? { kind: lastToolKind, query: lastQuery, results: exaResults } : null,
-          usage: {
-            allowance,
-            used: newUsed,
-            remaining: Math.max(allowance - newUsed, 0),
-            tokens_this_request: totalTokens,
-          },
+          results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+          usage: { allowance, used: newUsed, remaining: Math.max(allowance - newUsed, 0), tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    try {
-      await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens });
-    } catch (e) { console.error("chat_usage_record failed", e); }
-
+    try { await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens }); } catch (_) { /* noop */ }
     return new Response(
       JSON.stringify({
         content: "(no response)",
-        results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows, query: lastQuery, debug: lastDebug } : null,
-        usage: {
-          allowance,
-          used: usedSoFar + totalTokens,
-          remaining: Math.max(allowance - (usedSoFar + totalTokens), 0),
-          tokens_this_request: totalTokens,
-        },
+        results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+        usage: { allowance, used: usedSoFar + totalTokens, remaining: Math.max(allowance - (usedSoFar + totalTokens), 0), tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("chat error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
