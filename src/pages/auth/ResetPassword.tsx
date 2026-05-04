@@ -33,7 +33,7 @@ const ResetPassword = () => {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Password updated");
-    navigate("/app", { replace: true });
+    navigate("/chat", { replace: true });
   };
 
   return (

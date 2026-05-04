@@ -131,6 +131,29 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    // Service-role client for usage metering (bypasses RLS).
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Pre-flight token allowance check
+    const { data: usageRow } = await admin.rpc("chat_usage_summary");
+    const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
+    const allowance = Number(summary?.allowance ?? 0);
+    const usedSoFar = Number(summary?.used ?? 0);
+    const remaining = Math.max(allowance - usedSoFar, 0);
+    if (remaining <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exhausted",
+          message: "You've used all of your chat tokens for this month.",
+          allowance, used: usedSoFar, remaining: 0,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { messages, model } = await req.json();
     if (!Array.isArray(messages))
       return new Response(JSON.stringify({ error: "messages required" }), {
@@ -152,6 +175,7 @@ Deno.serve(async (req) => {
 
     let lastToolKind: "journalists" | "creators" | null = null;
     let lastToolRows: unknown[] = [];
+    let totalTokens = 0;
 
     // Tool-calling loop (max 4 iterations)
     for (let i = 0; i < 4; i++) {
@@ -177,6 +201,7 @@ Deno.serve(async (req) => {
         );
       }
       const data = await r.json();
+      totalTokens += Number(data?.usage?.total_tokens ?? 0);
       const msg = data.choices?.[0]?.message;
       if (!msg) break;
 
@@ -199,19 +224,45 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Record usage (best-effort)
+      let newUsed = usedSoFar + totalTokens;
+      try {
+        const { data: rec } = await admin.rpc("chat_usage_record", {
+          _user: user.id, _tokens: totalTokens,
+        });
+        if (typeof rec === "number") newUsed = rec;
+      } catch (e) { console.error("chat_usage_record failed", e); }
+
       return new Response(
         JSON.stringify({
           content: msg.content ?? "",
           results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows } : null,
+          usage: {
+            allowance,
+            used: newUsed,
+            remaining: Math.max(allowance - newUsed, 0),
+            tokens_this_request: totalTokens,
+          },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
+    // Loop exhausted — still record what we used
+    try {
+      await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens });
+    } catch (e) { console.error("chat_usage_record failed", e); }
+
     return new Response(
       JSON.stringify({
         content: "(no response)",
         results: lastToolKind ? { kind: lastToolKind, rows: lastToolRows } : null,
+        usage: {
+          allowance,
+          used: usedSoFar + totalTokens,
+          remaining: Math.max(allowance - (usedSoFar + totalTokens), 0),
+          tokens_this_request: totalTokens,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

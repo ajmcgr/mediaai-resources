@@ -20,7 +20,7 @@ const Login = () => {
   const from =
     params.get("next") ||
     (location.state as { from?: { pathname: string } })?.from?.pathname ||
-    "/app";
+    "/chat";
 
   useEffect(() => {
     if (user) navigate(from, { replace: true });

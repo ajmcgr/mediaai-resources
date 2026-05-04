@@ -21,6 +21,8 @@ import {
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
+import { useChatUsage } from "@/hooks/useChatUsage";
+import { Link } from "react-router-dom";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Results =
@@ -60,12 +62,21 @@ const Chat = () => {
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
 
+  const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
 
   const sendText = async (text: string, reset = false) => {
     if (!text.trim() || loading) return;
+    if (usage && usage.remaining <= 0) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." },
+      ]);
+      return;
+    }
     const base = reset ? [] : messages;
     const next: Msg[] = [...base, { role: "user", content: text }];
     setMessages(next);
@@ -75,11 +86,22 @@ const Chat = () => {
       const { data, error } = await supabase.functions.invoke("chat", {
         body: { messages: next },
       });
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        let detail = "";
+        try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
+        if (detail.includes("quota_exhausted")) {
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." }]);
+          await refreshUsage();
+          return;
+        }
+        throw error;
+      }
       setMessages((m) => [
         ...m,
         { role: "assistant", content: data?.content || "(no response)" },
       ]);
+      if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         setResults(data.results);
         upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
@@ -113,6 +135,16 @@ const Chat = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {usage && (
+            <Link
+              to="/pricing"
+              title={`${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} tokens used this month`}
+              className={`hidden md:inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs ${usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : "text-muted-foreground"}`}
+            >
+              <Sparkles className="h-3 w-3" />
+              {usage.remaining.toLocaleString()} tokens left
+            </Link>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
