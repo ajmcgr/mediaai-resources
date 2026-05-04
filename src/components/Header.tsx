@@ -25,16 +25,16 @@ const Header = () => {
 
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-transparent">
-      <div className="max-w-4xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
           <a
             href="https://trymedia.ai/"
-            className="flex items-center"
+            className="flex min-w-[88px] shrink-0 items-center"
           >
-            <img src={logoMedia} alt="Media AI" className="h-5" />
+            <img src={logoMedia} alt="Media AI" className="h-5 w-auto max-w-[88px] object-contain sm:max-w-none" />
           </a>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex min-w-0 items-center space-x-1 sm:space-x-2">
             {loading ? null : user ? (
               <>
                 <Button
@@ -85,7 +85,7 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
                 >
                   <Link to="/pricing">Pricing</Link>
                 </Button>
@@ -99,13 +99,13 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
                 >
                   <Link to="/login">Login</Link>
                 </Button>
                 <Button
                   asChild
-                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg px-6 h-12 text-sm"
+                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg px-4 h-12 text-sm sm:px-6"
                 >
                   <Link to="/signup">Sign Up</Link>
                 </Button>
