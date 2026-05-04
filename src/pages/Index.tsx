@@ -243,7 +243,7 @@ const Index = () => {
       <section className="px-6 pt-16 pb-10 md:pt-24">
         <div className="max-w-5xl mx-auto text-center">
           <h1
-            className="text-[40px] md:text-[68px] lg:text-[80px] font-medium tracking-tight leading-[1.02] mb-8"
+            className="text-[34px] md:text-[56px] lg:text-[68px] font-medium tracking-tight leading-[1.04] mb-8"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             Find Any <span className="text-primary">Journalist or Creator Email.</span> Instantly.

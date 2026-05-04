@@ -13,7 +13,7 @@ All colors MUST be HSL.
        url('/fonts/Reckless-Medium.ttf') format('truetype');
   font-weight: 400 500;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
@@ -21,7 +21,7 @@ All colors MUST be HSL.
   src: url('/fonts/Reckless-SemiBold.otf') format('opentype');
   font-weight: 600 700;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 
@@ -69,7 +69,7 @@ All colors MUST be HSL.
     --shadow-hover: 0 10px 15px -3px hsl(217 91% 60% / 0.1), 0 4px 6px -2px hsl(217 91% 60% / 0.05);
     
     /* Typography — Reckless display + Inter body */
-    --font-heading: 'Reckless', 'Inter', system-ui, sans-serif;
+    --font-heading: 'Reckless', Georgia, 'Times New Roman', serif;
     --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
     --sidebar-background: 0 0% 98%;
