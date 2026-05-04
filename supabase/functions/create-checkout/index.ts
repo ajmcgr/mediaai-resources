@@ -1,4 +1,5 @@
-console.log("CHECKOUT_V6_RUNNING - redeploy", new Date().toISOString());
+// CHECKOUT_V6 redeploy marker: 2026-05-04T-supabase-uavbphkhomblzkjfuaot
+console.log("CHECKOUT_V6_RUNNING - redeploy 2026-05-04");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
