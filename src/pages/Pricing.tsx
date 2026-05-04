@@ -50,6 +50,7 @@ const TIERS: Tier[] = [
     badge: "Most popular",
     cta: "Start Free Trial",
     features: [
+      "Verified journalist and creator contact emails",
       "Everything in Starter",
       "1,000,000 chat tokens / month",
       "100% database access — no row limits",
