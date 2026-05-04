@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
