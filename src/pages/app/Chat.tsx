@@ -340,58 +340,113 @@ const Chat = () => {
         </section>
 
         {/* Right: results */}
-        {results && (
+        {(results || exa) && (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
-            <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
-              <div>
-                <div className="text-sm font-medium capitalize">{results.kind}</div>
-                <div className="text-xs text-muted-foreground">{results.rows.length} results</div>
-              </div>
-            </div>
-            {results.rows.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">No matches.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-secondary/40 text-xs text-muted-foreground">
-                  <tr>
-                    <th className="w-8" />
-                    {cols.map((c) => (
-                      <th key={c.key} className="text-left font-medium px-4 py-2.5">{c.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.rows.map((r, i) => {
-                    const id = Number(r.id);
-                    return (
-                      <tr key={(r.id as string) ?? i} className="group border-b border-border hover:bg-secondary/30">
-                        <td className="px-2 py-2.5 align-top">
-                          {Number.isFinite(id) && (
-                            <AddToListMenu
-                              journalistId={results.kind === "journalists" ? id : undefined}
-                              creatorId={results.kind === "creators" ? id : undefined}
-                            />
-                          )}
-                        </td>
-                        {cols.map((c) => {
-                          const v = r[c.key];
-                          return (
-                            <td key={c.key} className="px-4 py-2.5 align-top">
-                              {v == null || v === "" ? (
-                                <span className="text-muted-foreground">—</span>
-                              ) : typeof v === "number" ? (
-                                v.toLocaleString()
-                              ) : (
-                                String(v)
+            {results && (
+              <>
+                <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
+                  <div>
+                    <div className="text-sm font-medium capitalize">{results.kind}</div>
+                    <div className="text-xs text-muted-foreground">{results.rows.length} results</div>
+                  </div>
+                </div>
+                {results.rows.length === 0 ? (
+                  <div className="p-12 text-center text-sm text-muted-foreground">No matches in your database.</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/40 text-xs text-muted-foreground">
+                      <tr>
+                        <th className="w-8" />
+                        {cols.map((c) => (
+                          <th key={c.key} className="text-left font-medium px-4 py-2.5">{c.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.rows.map((r, i) => {
+                        const id = Number(r.id);
+                        return (
+                          <tr key={(r.id as string) ?? i} className="group border-b border-border hover:bg-secondary/30">
+                            <td className="px-2 py-2.5 align-top">
+                              {Number.isFinite(id) && (
+                                <AddToListMenu
+                                  journalistId={results.kind === "journalists" ? id : undefined}
+                                  creatorId={results.kind === "creators" ? id : undefined}
+                                />
                               )}
                             </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            {cols.map((c) => {
+                              const v = r[c.key];
+                              const isEmail = c.key === "email";
+                              return (
+                                <td key={c.key} className="px-4 py-2.5 align-top">
+                                  {v == null || v === "" ? (
+                                    isEmail && Number.isFinite(id) ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        disabled={!!enriching[id]}
+                                        onClick={() => enrichRow(id)}
+                                      >
+                                        {enriching[id] ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                        Find email
+                                      </Button>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )
+                                  ) : typeof v === "number" ? (
+                                    v.toLocaleString()
+                                  ) : (
+                                    String(v)
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+
+            {exa && exa.results.length > 0 && (
+              <div className="border-t border-border">
+                <div className="px-5 py-3 bg-amber-50/50 border-b border-amber-100">
+                  <div className="text-sm font-medium">Suggested from web</div>
+                  <div className="text-xs text-muted-foreground">
+                    {results && results.rows.length < 5 ? "Expanding search with web sources… " : ""}
+                    External results — review before saving.
+                  </div>
+                </div>
+                <ul className="divide-y divide-border">
+                  {exa.results.map((r, i) => (
+                    <li key={i} className="px-5 py-3 hover:bg-secondary/30">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {r.name || r.title || r.url}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {[r.outlet, r.title].filter(Boolean).join(" · ")}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.reason}</p>
+                          <a
+                            href={r.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-primary hover:underline break-all"
+                          >
+                            {r.url}
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
         )}
