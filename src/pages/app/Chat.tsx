@@ -277,7 +277,7 @@ const Chat = () => {
 
         {/* Center: chat */}
         <section className={`flex flex-col ${(results || exa) ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
-          <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
+          <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${(results || exa) ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
             {messages.length === 0 ? (
               <div className="text-center mt-24">
                 <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-primary/10 text-primary mb-4">
