@@ -32,7 +32,7 @@ const Header = () => {
             className="flex shrink-0 items-center"
             aria-label="Media AI home"
           >
-            <img src={logoMedia} alt="Media AI" className="h-[17px] w-[81px] sm:h-5 sm:w-auto" />
+            <img src={logoMedia} alt="Media AI" width={81} height={17} className="h-[17px] w-auto sm:h-5" />
           </a>
 
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
