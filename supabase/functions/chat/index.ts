@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -249,8 +249,14 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     .select("id,name,email,category,titles,topics,xhandle,outlet,country")
     .limit(400);
   if (orParts.length) q = q.or(orParts.join(","));
-  const { data, error } = await q;
+  let { data, error } = await q;
   if (error) { console.log("[db.journalist.error]", error.message); return []; }
+  if ((data?.length ?? 0) < Math.min(intent.count, 5) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
+    const fallback = await admin.from("journalist")
+      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+      .limit(400);
+    if (!fallback.error && (fallback.data?.length ?? 0) > (data?.length ?? 0)) data = fallback.data;
+  }
   return (data ?? []).map((r) => ({
     source: "database" as const,
     source_id: r.id as number,
@@ -279,8 +285,14 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
     .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
     .limit(400);
   if (orParts.length) q = q.or(orParts.join(","));
-  const { data, error } = await q;
+  let { data, error } = await q;
   if (error) { console.log("[db.creators.error]", error.message); return []; }
+  if ((data?.length ?? 0) < Math.min(intent.count, 5) && (intent.topics.length || intent.freeTerms.length)) {
+    const fallback = await admin.from("creators")
+      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+      .limit(400);
+    if (!fallback.error && (fallback.data?.length ?? 0) > (data?.length ?? 0)) data = fallback.data;
+  }
   return (data ?? []).map((r) => ({
     source: "database" as const,
     source_id: r.id as number,
