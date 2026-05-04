@@ -492,10 +492,10 @@ const Index = () => {
               return (
                 <div
                   key={tier.id}
-                  className={`relative rounded-2xl p-8 flex flex-col ${
+                  className={`relative rounded-2xl p-8 flex flex-col bg-white ${
                     tier.highlight
-                      ? "bg-foreground text-background border border-foreground"
-                      : "bg-white border border-border"
+                      ? "border-2 border-primary shadow-lg"
+                      : "border border-border"
                   }`}
                 >
                   {tier.badge && (
