@@ -19,9 +19,12 @@ const admin = createClient(
 const ACTIVE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 Deno.serve(async (req) => {
-  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")?.trim();
-  if (!webhookSecret) {
-    console.error("stripe webhook misconfigured: STRIPE_WEBHOOK_SECRET is missing or empty");
+  const webhookSecrets = [
+    Deno.env.get("STRIPE_WEBHOOK_SECRET"),
+    Deno.env.get("STRIPE_WEBHOOK_SECRET_SECONDARY"),
+  ].map((secret) => secret?.trim()).filter(Boolean) as string[];
+  if (webhookSecrets.length === 0) {
+    console.error("stripe webhook misconfigured: no webhook secret is configured");
     return new Response("missing webhook secret", { status: 500 });
   }
 
@@ -30,13 +33,23 @@ Deno.serve(async (req) => {
 
   const raw = await req.text();
   let event: Stripe.Event;
-  try {
-    event = await stripe.webhooks.constructEventAsync(raw, sig, webhookSecret);
-  } catch (e) {
+  let verificationError: unknown;
+  for (const webhookSecret of webhookSecrets) {
+    try {
+      event = await stripe.webhooks.constructEventAsync(raw, sig, webhookSecret);
+      break;
+    } catch (e) {
+      verificationError = e;
+    }
+  }
+
+  if (!event!) {
+    const e = verificationError as Error;
     console.error("signature verification failed", {
-      name: (e as Error).name,
-      message: (e as Error).message,
+      name: e?.name,
+      message: e?.message,
       hasWebhookSecret: true,
+      configuredSecretCount: webhookSecrets.length,
       rawBodyLength: raw.length,
     });
     return new Response("invalid signature", { status: 400 });
