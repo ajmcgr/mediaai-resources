@@ -1,5 +1,5 @@
 // Stripe Checkout session creator (BYOK).
-// Body: { user_id: string, user_email: string, plan_identifier: "journalist"|"creator"|"both", interval?: "monthly"|"yearly" }
+// Body: { user_id: string, user_email: string, plan_identifier?: string, plan?: string, interval?: "monthly"|"yearly" }
 
 import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
 
@@ -10,10 +10,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type PlanIdentifier = "journalist" | "creator" | "both";
 type BillingInterval = "monthly" | "yearly";
 
-const PRICE_IDS: Record<PlanIdentifier, Record<BillingInterval, string>> = {
+const MEDIA_PRO_PRICES: Record<BillingInterval, string> = {
+  monthly: "price_1QodoVPui4jUsxXGmQmhv1jI",
+  yearly: "price_1QodoVPui4jUsxXGl30lFTtf",
+};
+
+const PRICE_IDS: Record<string, Record<BillingInterval, string>> = {
   journalist: {
     monthly: "price_1QodmaPui4jUsxXGqb12D7d6",
     yearly: "price_1QodmaPui4jUsxXGyRpOLqpb",
@@ -22,10 +26,16 @@ const PRICE_IDS: Record<PlanIdentifier, Record<BillingInterval, string>> = {
     monthly: "price_1QodnmPui4jUsxXGiMlK5EGW",
     yearly: "price_1QodnmPui4jUsxXG2pycLHdT",
   },
-  both: {
-    monthly: "price_1QodoVPui4jUsxXGmQmhv1jI",
-    yearly: "price_1QodoVPui4jUsxXGl30lFTtf",
-  },
+  both: MEDIA_PRO_PRICES,
+  "media-pro": MEDIA_PRO_PRICES,
+  media_pro: MEDIA_PRO_PRICES,
+  pro: MEDIA_PRO_PRICES,
+  starter: MEDIA_PRO_PRICES,
+  growth: MEDIA_PRO_PRICES,
+  monthly: MEDIA_PRO_PRICES,
+  yearly: MEDIA_PRO_PRICES,
+  basic: MEDIA_PRO_PRICES,
+  premium: MEDIA_PRO_PRICES,
 };
 
 Deno.serve(async (req) => {
