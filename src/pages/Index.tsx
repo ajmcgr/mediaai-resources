@@ -244,9 +244,9 @@ const Index = () => {
         <div className="max-w-5xl mx-auto text-center">
           <h1
             className="text-[34px] md:text-[56px] lg:text-[68px] font-medium tracking-tight leading-[1.04] mb-8"
-            style={{ fontFamily: "var(--font-heading)", color: "#333333" }}
+            style={{ fontFamily: "var(--font-heading)", color: "#282c34" }}
           >
-            Find Any <span style={{ color: "#333333" }}>Journalist or Creator Email.</span> Instantly.
+            Find Any <span style={{ color: "#282c34" }}>Journalist or Creator Email.</span> Instantly.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
             Find the right voices for your stories, campaigns, and projects in just a few clicks from our database of top journalists and creators — powered by AI.
