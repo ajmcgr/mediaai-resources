@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   Search, Users, Database, Download, Pin, PinOff, Trash2,
   User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  ChevronDown, ChevronRight, X,
+  ChevronDown, ChevronRight, X, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,6 +159,9 @@ const Dashboard = () => {
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5"><Database className="h-3.5 w-3.5" />Database</Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+            <Bell className="h-3.5 w-3.5" />Monitor
+          </Button>
           <InboxSheet />
           <ListsSheet />
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportView} disabled={!allRows.length}>
