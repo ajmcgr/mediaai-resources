@@ -52,16 +52,16 @@ Deno.serve(async (req) => {
 
     const user_id = typeof body.user_id === "string" ? body.user_id.trim() : "";
     const user_email = typeof body.user_email === "string" ? body.user_email.trim() : "";
-    const plan_identifier = body.plan_identifier as PlanIdentifier;
+    const plan_identifier = (body.plan_identifier ?? body.plan) as PlanIdentifier;
     const interval: BillingInterval = body.interval === "yearly" ? "yearly" : "monthly";
 
     if (!user_id || !user_email) {
-      console.error("create-checkout missing user fields", body);
-      return json({ error: "Bad request: user_id and user_email are required." }, 400);
+      console.error("create-checkout missing authenticated user", body);
+      return json({ error: "Missing authenticated user" }, 400);
     }
     if (!PRICE_IDS[plan_identifier]) {
-      console.error("create-checkout invalid plan_identifier", plan_identifier);
-      return json({ error: "Bad request: valid plan_identifier required." }, 400);
+      console.error("create-checkout invalid plan", plan_identifier);
+      return json({ error: "Bad request: valid plan required." }, 400);
     }
 
     const priceId = PRICE_IDS[plan_identifier][interval];

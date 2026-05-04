@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,12 @@ const Login = () => {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
   const { user } = useAuth();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app";
+  const from =
+    params.get("next") ||
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/app";
 
   useEffect(() => {
     if (user) navigate(from, { replace: true });
@@ -25,9 +29,18 @@ const Login = () => {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const trimmedEmail = email.trim().toLowerCase();
+    console.log("[login] attempt", { email: trimmedEmail });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      console.error("[login] error", error);
+      return toast.error(error.message || "Login failed");
+    }
+    console.log("[login] success", { userId: data.user?.id });
     toast.success("Signed in");
     navigate(from, { replace: true });
   };
