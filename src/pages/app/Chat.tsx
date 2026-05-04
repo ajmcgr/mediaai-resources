@@ -184,7 +184,12 @@ const Chat = () => {
       }
       const kindArg = table === "journalist" ? "journalist" : "creator";
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
-        body: { kind: kindArg, id: dbId, fields: ["email"] },
+        body: {
+          kind: kindArg,
+          id: dbId,
+          fields: ["email"],
+          contact: { name: row.name, outlet: row.outlet, source_url: row.source_url },
+        },
       });
       if (error) throw error;
       const found = data?.updated?.email;
@@ -196,7 +201,7 @@ const Chat = () => {
         });
         toast.success("Email found");
       } else {
-        toast.message(data?.message ?? "No verifiable email found");
+        toast.message(data?.message ?? "Email not publicly found");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Email lookup failed");
@@ -441,6 +446,7 @@ const Chat = () => {
                   {(() => {
                     const dbN = results.rows.filter((r) => r.source === "database").length;
                     const exaN = results.rows.length - dbN;
+                    if (dbN === 0) return ` · Expanded search to find more relevant contacts · ${exaN} from web`;
                     return ` · ${dbN} from database · ${exaN} from web`;
                   })()}
                 </div>

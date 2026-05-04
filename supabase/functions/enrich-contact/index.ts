@@ -15,7 +15,7 @@ const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "
 const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type"] as const;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal)@/i;
+const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal|advertising|subscribe|newsletter|tips)@/i;
 
 const FIELD_DESCRIPTIONS: Record<string, string> = {
   email: "Direct professional email address (avoid generic info@/press@).",
@@ -46,13 +46,18 @@ async function exaSearch(query: string, numResults = 5): Promise<Array<{ url: st
   return (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" }));
 }
 
-function pickEmail(snippets: Array<{ url: string; text: string }>, name: string): string | null {
+function hostFrom(value: string): string | null {
+  try { return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.replace(/^www\./, ""); } catch { return null; }
+}
+
+function pickEmail(snippets: Array<{ url: string; text: string }>, name: string): { email: string; source_url: string } | null {
   const nameParts = name.toLowerCase().split(/\s+/).filter((p) => p.length > 2);
-  const matches = snippets.flatMap((s) => `${s.url}\n${s.text}`.match(EMAIL_RE) ?? [])
-    .map((e) => e.trim().replace(/[),.;]+$/, ""))
-    .filter((e) => !BAD_EMAIL_RE.test(e));
+  const matches = snippets.flatMap((s) => (`${s.url}\n${s.text}`.match(EMAIL_RE) ?? []).map((raw) => ({
+    email: raw.trim().replace(/[),.;:]+$/, ""),
+    source_url: s.url,
+  }))).filter((m) => !BAD_EMAIL_RE.test(m.email) && !/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(m.email));
   if (!matches.length) return null;
-  return matches.find((e) => nameParts.some((p) => e.toLowerCase().includes(p))) ?? matches[0];
+  return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
 }
 
 async function extractFields(
@@ -118,7 +123,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { kind, id, fields: requestedFields } = await req.json();
+    const { kind, id, fields: requestedFields, contact } = await req.json();
     if (!["journalist", "creator"].includes(kind) || !Number.isFinite(Number(id))) {
       return new Response(JSON.stringify({ error: "invalid_input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -139,38 +144,47 @@ Deno.serve(async (req) => {
 
     const name = String(row.name ?? "").trim();
     if (!name) return new Response(JSON.stringify({ error: "no_name" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const outlet = String(row.outlet ?? "").trim();
+    const outlet = String(row.outlet ?? contact?.outlet ?? "").trim();
+    const sourceUrl = String(contact?.source_url ?? row.enrichment_source_url ?? "").trim();
+    const outletDomain = hostFrom(sourceUrl) ?? hostFrom(outlet) ?? "";
     const context = [outlet, row.category, row.country].filter(Boolean).join(" · ");
 
     const queries = [
+      `"${name}" ${outlet} email contact`,
+      kind === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
       kind === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
       kind === "creator" ? `"${name}" creator instagram youtube profile` : null,
-      `"${name}" ${outlet || ""} email contact`,
+      `"${name}" email address journalist`,
       `"${name}" author profile bio`,
     ].filter(Boolean) as string[];
 
-    const allSnippets: Array<{ url: string; text: string }> = [];
-    for (const q of queries) {
-      const items = await exaSearch(q, 8);
-      allSnippets.push(...items);
-      if (allSnippets.length >= 16) break;
-    }
+    const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
+    const allSnippets = settled.flat().filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i).slice(0, 30);
 
     if (!allSnippets.length) {
       return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const extracted = await extractFields(name, context, allSnippets, targetFields);
+    if (extracted.email) {
+      const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
+      if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
+      else extracted.email = cleaned;
+    }
+    let emailSourceUrl = allSnippets[0]?.url ?? null;
     if (targetFields.includes("email") && !extracted.email) {
       const directEmail = pickEmail(allSnippets, name);
-      if (directEmail) extracted.email = directEmail;
+      if (directEmail) {
+        extracted.email = directEmail.email;
+        emailSourceUrl = directEmail.source_url;
+      }
     }
     if (!Object.keys(extracted).length) {
-      return new Response(JSON.stringify({ ok: false, message: "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, message: targetFields.includes("email") ? "Email not publicly found" : "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const update: Record<string, unknown> = { ...extracted };
-    update.enrichment_source_url = allSnippets[0]?.url ?? null;
+    update.enrichment_source_url = emailSourceUrl;
     update.enriched_at = new Date().toISOString();
 
     let { error: upErr } = await admin.from(table).update(update).eq("id", id);

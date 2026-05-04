@@ -39,9 +39,9 @@ const tools: Tool[] = [
 // ---------- Intent parsing ----------
 
 const TOPIC_SYNONYMS: Record<string, string[]> = {
-  tech: ["tech", "technology", "ai", "software", "saas", "startup", "startups"],
-  technology: ["technology", "tech", "ai", "software", "saas"],
-  ai: ["ai", "artificial intelligence", "ml", "machine learning"],
+  tech: ["tech", "technology", "artificial intelligence", "ai", "software", "saas", "startup", "startups", "innovation"],
+  technology: ["technology", "tech", "artificial intelligence", "ai", "software", "saas", "innovation"],
+  ai: ["ai", "artificial intelligence", "ml", "machine learning", "technology", "tech"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
   crypto: ["crypto", "cryptocurrency", "blockchain", "web3", "bitcoin"],
   finance: ["finance", "financial", "fintech", "banking", "investing"],
@@ -64,8 +64,8 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
 };
 
 const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }> = {
-  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "british", "england", "scotland", "wales"] },
-  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "britain", "england"] },
+  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "british", "england", "scotland", "wales", "london"] },
+  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "england", "london"] },
   us: { canonical: "United States", variants: ["united states", "usa", "u.s.", "america", "american"] },
   usa: { canonical: "United States", variants: ["united states", "usa", "america"] },
   "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
@@ -118,7 +118,7 @@ function parseIntent(q: string): Intent {
   let working = lower;
 
   // Quantity: "50 tech journalists", "100 ai creators", "find 25"
-  let count = 25;
+  let count = 50;
   const qMatch = lower.match(/\b(\d{1,4})\b/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
@@ -273,45 +273,8 @@ async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Ro
   }));
 }
 
-async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
-  const orParts: string[] = [];
-  const add = (terms: string[], fields: string[]) => {
-    for (const t of terms) {
-      const s = safeIlike(t); if (!s) continue;
-      for (const f of fields) orParts.push(`${f}.ilike.%${s}%`);
-    }
-  };
-  add(intent.topics, ["category", "topics", "titles", "outlet"]);
-  add(intent.countries, ["country", "topics", "outlet", "titles"]);
-  add(intent.outlets, ["outlet", "titles"]);
-  add(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
-
-  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
-  let q = admin.from("journalist")
-    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-    .limit(limit);
-  if (orParts.length) q = q.or(orParts.join(","));
-  let { data, error } = await q;
-  if (error) {
-    console.log("[db.journalist.error]", error.message);
-    return fetchBroadJournalists(admin, limit);
-  }
-  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
-    const fallbackRows = await fetchBroadJournalists(admin, limit);
-    const currentRows = (data ?? []).map((r) => ({
-      source: "database" as const,
-      source_id: r.id as number,
-      source_table: "journalist" as const,
-      name: (r.name as string) ?? null,
-      outlet: (r.outlet as string) ?? null,
-      title: (r.titles as string) ?? null,
-      category: (r.category as string) ?? null,
-      country: (r.country as string) ?? null,
-      email: (r.email as string) ?? null,
-    }));
-    return dedupe([...currentRows, ...fallbackRows]);
-  }
-  return (data ?? []).map((r) => ({
+function journalistRow(r: Record<string, unknown>): Row {
+  return {
     source: "database" as const,
     source_id: r.id as number,
     source_table: "journalist" as const,
@@ -321,7 +284,85 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     category: (r.category as string) ?? null,
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
-  }));
+    reason: (r.bio as string) ?? undefined,
+  };
+}
+
+function creatorRow(r: Record<string, unknown>): Row {
+  return {
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "creators" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.type as string) ?? null,
+    title: null,
+    category: (r.category as string) ?? null,
+    country: null,
+    email: (r.email as string) ?? null,
+    ig_handle: (r.ig_handle as string) ?? null,
+    ig_followers: (r.ig_followers as number) ?? null,
+    youtube_url: (r.youtube_url as string) ?? null,
+  };
+}
+
+function ilikeOr(terms: string[], fields: string[]): string {
+  const parts: string[] = [];
+  for (const t of terms) {
+    const s = safeIlike(t);
+    if (!s) continue;
+    for (const f of fields) parts.push(`${f}.ilike.%${s}%`);
+  }
+  return parts.join(",");
+}
+
+function missingColumn(error: unknown, column: string): boolean {
+  const msg = String((error as { message?: string })?.message ?? error ?? "").toLowerCase();
+  return msg.includes(column.toLowerCase()) && (msg.includes("column") || msg.includes("schema cache"));
+}
+
+async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
+  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
+  const topicTerms = intent.topics.length ? intent.topics : intent.freeTerms;
+  const topicOr = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles", "bio"]);
+  const topicOrNoBio = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles"]);
+  const locationOr = ilikeOr(intent.countries, ["country", "outlet", "topics", "titles"]);
+  const outletOr = ilikeOr(intent.outlets, ["outlet", "titles"]);
+  const freeOr = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "bio", "country", "email", "xhandle"]);
+  const freeOrNoBio = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
+
+  const run = async (withLocation: boolean, includeBio = true) => {
+    let q = admin.from("journalist")
+      .select("*")
+      .limit(limit);
+    if (includeBio && topicOr) q = q.or(topicOr);
+    else if (!includeBio && topicOrNoBio) q = q.or(topicOrNoBio);
+    else if (includeBio && freeOr) q = q.or(freeOr);
+    else if (!includeBio && freeOrNoBio) q = q.or(freeOrNoBio);
+    if (withLocation && locationOr) q = q.or(locationOr);
+    if (outletOr) q = q.or(outletOr);
+    return q;
+  };
+
+  let { data, error } = await run(!!locationOr);
+  if (error && missingColumn(error, "bio")) {
+    const retried = await run(!!locationOr, false);
+    data = retried.data;
+    error = retried.error;
+  }
+  if (error) {
+    console.log("[db.journalist.error]", error.message);
+    return fetchBroadJournalists(admin, limit);
+  }
+  if ((data?.length ?? 0) < 10 && locationOr) {
+    const broadened = await run(false);
+    if (!broadened.error && (broadened.data?.length ?? 0) > (data?.length ?? 0)) data = broadened.data;
+  }
+  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
+    const fallbackRows = await fetchBroadJournalists(admin, limit);
+    const currentRows = (data ?? []).map(journalistRow);
+    return dedupe([...currentRows, ...fallbackRows]);
+  }
+  return (data ?? []).map(journalistRow);
 }
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
@@ -396,6 +437,31 @@ function pickEmailFromText(text: string, name?: string | null): string | null {
   return filtered[0] ?? null;
 }
 
+function cleanTopicForQuery(intent: Intent): string {
+  const raw = intent.topics[0] ?? intent.freeTerms[0] ?? "journalist";
+  if (["tech", "technology", "ai", "artificial intelligence", "software", "saas"].includes(raw)) return "technology";
+  return raw;
+}
+
+function extractNameGuess(title: string, text: string, author?: string): string | null {
+  const a = author?.trim();
+  if (a && a.length < 80 && !/^(staff|editorial|news desk|admin)$/i.test(a)) return a;
+  const by = text.match(/\bby\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/);
+  if (by?.[1]) return by[1];
+  const head = title.split(/[-—|·:]/)[0]?.trim();
+  if (head && head.length < 60 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(head)) return head;
+  return null;
+}
+
+function isJunkWebResult(r: { title?: string; url?: string; text?: string }, intent: Intent): boolean {
+  const blob = `${r.title ?? ""} ${r.url ?? ""} ${r.text ?? ""}`.toLowerCase();
+  if (/neural runner|runner game|github\.com|npmjs\.com|chromewebstore|app store|play\.google\.com/.test(blob)) return true;
+  const hasTopic = !intent.topics.length || intent.topics.some((t) => blob.includes(t));
+  const hasRole = /journalist|reporter|editor|writer|correspondent|columnist|contributor|author|byline/.test(blob);
+  const hasOutletSignal = /bbc|guardian|wired|techcrunch|verge|forbes|bloomberg|reuters|financial times|ft\.com|muckrack|pressgazette|journalism|publication|news/.test(blob);
+  return !hasTopic && !hasRole && !hasOutletSignal;
+}
+
 async function exaSearchOnce(query: string, numResults: number): Promise<Array<{ title?: string; url: string; author?: string; text?: string; highlights?: string[] }>> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];
@@ -421,15 +487,19 @@ async function exaSearchOnce(query: string, numResults: number): Promise<Array<{
 }
 
 function buildExaQueries(intent: Intent): string[] {
-  const topic = intent.topics[0] ?? intent.freeTerms[0] ?? "";
+  const topic = cleanTopicForQuery(intent);
   const loc = intent.countryCanonical ?? "";
   const outlet = intent.outlets[0] ?? "";
   const queries: string[] = [];
 
   if (intent.kind === "journalists") {
-    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
-    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
-    if (topic) queries.push(`${topic} editor ${loc || "byline"}`);
+    if (topic && loc) queries.push(`${topic} journalists ${loc}`);
+    if (topic && loc) queries.push(`${topic === "technology" ? "tech" : topic} reporters ${loc === "United Kingdom" ? "UK" : loc} site:linkedin.com`);
+    if ((topic === "technology" || topic === "ai") && loc) queries.push(`AI journalists ${loc === "United Kingdom" ? "London" : loc}`);
+    if (topic && loc) queries.push(`${topic} writers ${loc === "United Kingdom" ? "UK" : loc} publication`);
+    if (topic && loc) queries.push(`who writes about ${topic === "technology" ? "tech" : topic} in ${loc === "United Kingdom" ? "UK" : loc} news`);
+    if (topic) queries.push(`${topic} journalist bylines`);
+    if (topic) queries.push(`${topic} reporter contact`);
     if (outlet && topic) queries.push(`site:${outlet}.com ${topic} reporter`);
     if (topic && outlet) queries.push(`${topic} writer ${outlet}`);
     if (!topic && loc) queries.push(`${loc} journalist contact`);
@@ -440,13 +510,14 @@ function buildExaQueries(intent: Intent): string[] {
     if (topic) queries.push(`${topic} influencer ${loc || ""}`.trim());
     if (!queries.length) queries.push(`${intent.raw} creator`);
   }
-  return queries.slice(0, 3);
+  return [...new Set(queries)].slice(0, 7);
 }
 
 async function searchExa(intent: Intent, target: number): Promise<Row[]> {
   const queries = buildExaQueries(intent);
   if (!queries.length) return [];
-  const per = Math.max(8, Math.ceil(target / queries.length) + 4);
+  const desired = Math.max(35, Math.min(60, target));
+  const per = Math.max(10, Math.ceil(desired / queries.length) + 4);
   const settled = await Promise.all(queries.map((q) => exaSearchOnce(q, per)));
   const rows: Row[] = [];
   const reasons: string[] = queries;
@@ -455,16 +526,12 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
     for (const it of items) {
       const url = it.url;
       if (!url) continue;
+      if (isJunkWebResult(it, intent)) continue;
       let host = "";
       try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
       const titleStr = it.title ?? "";
-      // Heuristic name extraction: text before " - ", " | " or " — "
-      let nameGuess = it.author ?? null;
-      if (!nameGuess && titleStr) {
-        const head = titleStr.split(/[-—|·]/)[0]?.trim();
-        if (head && head.length < 60 && /^[A-Z]/.test(head)) nameGuess = head;
-      }
       const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
+      const nameGuess = extractNameGuess(titleStr, blob, it.author);
       const email = pickEmailFromText(blob, nameGuess);
       rows.push({
         source: "exa",
@@ -480,6 +547,16 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
     }
   });
   return rows;
+}
+
+async function searchExaBroadened(intent: Intent, target: number): Promise<Row[]> {
+  const broad: Intent = {
+    ...intent,
+    countries: [],
+    countryCanonical: null,
+    topics: intent.topics.length ? intent.topics : [...new Set([...intent.freeTerms, "technology", "tech", "ai"])],
+  };
+  return searchExa(broad, Math.max(target, 50));
 }
 
 // ---------- Dedupe & rank ----------
@@ -547,11 +624,35 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (out.includes(t)) s += 2;
       if (hay.includes(t)) s += 1;
     }
+    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
+    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 5;
+    if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
+    if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
     if (r.email) s += intent.emailRequired ? 12 : 4;
     if (r.source === "database") s += 20; // prioritize owned database rows over generic web hits
+    if (!r.name && r.source === "exa") s -= 8;
+    if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
+}
+
+function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
+  const rankedAll = rankRows(rows, intent);
+  const dbRanked = rankedAll.filter((r) => r.source === "database");
+  const exaRanked = rankedAll.filter((r) => r.source === "exa");
+  const minDb = Math.min(dbRanked.length, Math.min(25, Math.max(10, Math.floor(target * 0.25))));
+  const minExa = Math.min(exaRanked.length, Math.min(50, Math.max(20, Math.floor(target * 0.4))));
+  const picked: Row[] = [...dbRanked.slice(0, minDb), ...exaRanked.slice(0, minExa)];
+  const keys = new Set(picked.map((r) => `${r.source}:${r.source_id ?? r.source_url ?? r.name}`));
+  for (const r of rankedAll) {
+    if (picked.length >= target) break;
+    const key = `${r.source}:${r.source_id ?? r.source_url ?? r.name}`;
+    if (keys.has(key)) continue;
+    keys.add(key);
+    picked.push(r);
+  }
+  return rankRows(picked, intent).slice(0, target);
 }
 
 // ---------- Hybrid orchestrator ----------
@@ -570,7 +671,10 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
   const exaPromise = searchExa(intent, target);
 
-  const [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  let [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
+    exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+  }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
 
@@ -595,7 +699,7 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   combined = dedupe(combined);
   debug.deduped_count = combined.length;
 
-  const ranked = rankRows(combined, intent).slice(0, target);
+  const ranked = blendedResults(combined, intent, target);
   debug.final_count = ranked.length;
   console.log("[chat.hybrid]", JSON.stringify(debug));
   return { rows: ranked, debug, intent, cap };
