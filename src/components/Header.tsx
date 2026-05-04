@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +13,13 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-color-official.png";
 
+const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
+
 const Header = () => {
   const { user, signOut, loading } = useAuth();
+  const { planIdentifier } = useSubscription();
   const navigate = useNavigate();
+  const hasGrowth = !!planIdentifier && GROWTH_PLANS.includes(planIdentifier);
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,13 +63,15 @@ const Header = () => {
                 >
                   <Link to="/dashboard">Database</Link>
                 </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                >
-                  <Link to="/monitor">Monitor</Link>
-                </Button>
+                {hasGrowth && (
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                  >
+                    <Link to="/monitor">Monitor</Link>
+                  </Button>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
