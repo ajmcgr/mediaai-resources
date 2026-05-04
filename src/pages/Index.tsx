@@ -66,7 +66,7 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "Media AI chat + full journalist & creator database.",
+    tagline: "Media AI chat + full journalist & creator database + brand monitoring.",
     monthly: 99,
     yearly: 990,
     highlight: true,
@@ -584,6 +584,8 @@ const Index = () => {
                   { label: "Journalist database", row: [true, true, true, true] },
                   { label: "Creator database", row: [true, false, false, false] },
                   { label: "Export to CSV", row: [true, true, true, true] },
+                  { label: "Inbox", row: [true, true, true, true] },
+                  { label: "Monitor", row: [true, true, true, true] },
                   { label: "Updated", row: ["AI", "?", "?", "?"] },
                   { label: "Monthly cost***", row: ["$29", "$400+", "$700+", "$1000+"] },
                   { label: "Annual cost****", row: ["$990", "$5,000+", "$8,000+", "$12,000+"] },
