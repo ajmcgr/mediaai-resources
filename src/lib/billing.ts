@@ -37,13 +37,16 @@ export async function startCheckout(
     throw new Error("NOT_AUTHENTICATED");
   }
 
-  const { url } = await authedPost("create-checkout", {
+  const payload = {
     user_id: session.user.id,
     user_email: session.user.email,
     plan,
     plan_identifier: plan,
     interval,
-  });
+  };
+  console.log("[billing] create-checkout payload", JSON.stringify(payload));
+
+  const { url } = await authedPost("create-checkout", payload);
   if (!url) throw new Error("Checkout URL missing from response.");
 
   window.location.href = url;
