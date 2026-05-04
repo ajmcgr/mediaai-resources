@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { syncSubscription } from "@/lib/billing";
 
 export interface SubscriptionState {
   loading: boolean;
@@ -34,7 +35,29 @@ export const useSubscription = (): SubscriptionState => {
       .select("sub_active, plan_identifier, sub_period_end, stripe_customer_id")
       .eq("id", user.id)
       .maybeSingle();
-    setActive(Boolean(data?.sub_active));
+    let isActive = Boolean(data?.sub_active);
+    if (!isActive) {
+      try {
+        const synced = await syncSubscription();
+        if (synced.active) {
+          const { data: refreshed } = await supabase
+            .from("profiles")
+            .select("sub_active, plan_identifier, sub_period_end, stripe_customer_id")
+            .eq("id", user.id)
+            .maybeSingle();
+          isActive = Boolean(refreshed?.sub_active);
+          setPlanIdentifier(refreshed?.plan_identifier ?? null);
+          setPeriodEnd(refreshed?.sub_period_end ?? null);
+          setStripeCustomerId(refreshed?.stripe_customer_id ?? null);
+          setActive(isActive);
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error("sync-subscription failed", error);
+      }
+    }
+    setActive(isActive);
     setPlanIdentifier(data?.plan_identifier ?? null);
     setPeriodEnd(data?.sub_period_end ?? null);
     setStripeCustomerId(data?.stripe_customer_id ?? null);
