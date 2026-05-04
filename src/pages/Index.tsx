@@ -495,8 +495,8 @@ const Index = () => {
                   { label: "Creator database", row: [true, false, false, false] },
                   { label: "Export to CSV", row: [true, true, true, true] },
                   { label: "Updated", row: ["AI", "?", "?", "?"] },
-                  { label: "Monthly cost***", row: ["$99", "$400+", "$700+", "$1000+"] },
-                  { label: "Annual cost****", row: ["$999", "$5,000+", "$8,000+", "$12,000+"] },
+                  { label: "Monthly cost***", row: ["$29", "$400+", "$700+", "$1000+"] },
+                  { label: "Annual cost****", row: ["$990", "$5,000+", "$8,000+", "$12,000+"] },
                   { label: "Payment", row: ["Credit Card", "Contract", "Contract", "Contract"] },
                   { label: "Free Trial?", row: [true, false, false, false] },
                 ].map((r) => (
