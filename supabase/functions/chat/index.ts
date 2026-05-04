@@ -524,26 +524,31 @@ function dedupe(rows: Row[]): Row[] {
 function rankRows(rows: Row[], intent: Intent): Row[] {
   const score = (r: Row): number => {
     let s = 0;
+    const name = (r.name ?? "").toLowerCase();
     const cat = (r.category ?? "").toLowerCase();
     const out = (r.outlet ?? "").toLowerCase();
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
+    const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
     for (const t of intent.topics) {
       if (cat.includes(t)) s += 10;
       if (ttl.includes(t)) s += 4;
       if (out.includes(t)) s += 3;
+      if (hay.includes(t)) s += 2;
     }
     for (const c of intent.countries) {
       if (cnt.includes(c)) s += 8;
       if (out.includes(c)) s += 2;
+      if (hay.includes(c)) s += 1;
     }
     for (const t of intent.freeTerms) {
-      if ((r.name ?? "").toLowerCase().includes(t)) s += 3;
+      if (name.includes(t)) s += 3;
       if (cat.includes(t)) s += 3;
       if (out.includes(t)) s += 2;
+      if (hay.includes(t)) s += 1;
     }
     if (r.email) s += intent.emailRequired ? 12 : 4;
-    if (r.source === "database") s += 3; // slight preference: verified
+    if (r.source === "database") s += 20; // prioritize owned database rows over generic web hits
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
@@ -573,13 +578,13 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   let dbStrict = dbRows;
   if (intent.topics.length || intent.countries.length) {
     dbStrict = dbRows.filter((r) => {
-      const hay = [r.category, r.title, r.outlet, r.country].map((x) => (x ?? "").toLowerCase()).join(" | ");
+      const hay = [r.name, r.category, r.title, r.outlet, r.country, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
       const topicHit = intent.topics.length === 0 || intent.topics.some((t) => hay.includes(t));
       const countryHit = intent.countries.length === 0 || intent.countries.some((c) => hay.includes(c));
       return topicHit && countryHit;
     });
   }
-  if (dbStrict.length < Math.min(target, 5)) dbStrict = dbRows; // broaden
+  if (dbStrict.length < Math.min(target, 25)) dbStrict = dbRows; // broaden rather than showing a tiny/empty DB sample
   debug.db_strict_count = dbStrict.length;
 
   let combined = [...dbStrict, ...exaRows];
