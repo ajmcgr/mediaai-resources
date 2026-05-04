@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import logoMedia from "@/assets/brand/logo-mediaai.svg";
+import logoMedia from "@/assets/brand/logo-media-color-official.png";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
@@ -32,7 +32,13 @@ const Header = () => {
             className="flex shrink-0 items-center"
             aria-label="Media AI home"
           >
-            <img src={logoMedia} alt="Media AI" width={81} height={17} className="h-[17px] w-auto sm:h-5" />
+            <img
+              src={logoMedia}
+              alt="Media AI"
+              width={960}
+              height={222}
+              className="block h-6 w-auto max-w-[104px] object-contain sm:h-7 sm:max-w-[120px]"
+            />
           </a>
 
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
