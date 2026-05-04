@@ -63,15 +63,22 @@ const Pricing = () => {
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
 
   const handleSubscribe = async (plan: PlanId) => {
+    const next = encodeURIComponent(`/pricing?plan=${plan}`);
     if (!user) {
-      navigate(`/signup?next=${encodeURIComponent(`/pricing?plan=${plan}`)}`);
+      navigate(`/login?next=${next}`);
       return;
     }
     try {
       setPendingPlan(plan);
       await startCheckout(plan, interval);
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not start checkout");
+      const msg = (e as Error).message;
+      if (msg === "NOT_AUTHENTICATED") {
+        toast.error("Please sign in to continue");
+        navigate(`/login?next=${next}`);
+      } else {
+        toast.error(msg ?? "Could not start checkout");
+      }
       setPendingPlan(null);
     }
   };
