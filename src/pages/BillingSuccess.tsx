@@ -10,10 +10,10 @@ import { confirmCheckout } from "@/lib/billing";
 const BillingSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session_id");
   const sub = useSubscription();
 
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
     if (sessionId) {
       confirmCheckout(sessionId)
         .then(() => sub.refresh())
@@ -33,7 +33,7 @@ const BillingSuccess = () => {
       window.clearTimeout(fallback);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sub.active, searchParams]);
+  }, [sub.active, sessionId]);
 
   return (
     <div className="min-h-screen bg-background">
