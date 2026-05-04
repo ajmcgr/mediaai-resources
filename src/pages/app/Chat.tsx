@@ -21,6 +21,8 @@ import {
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
+import { useChatUsage } from "@/hooks/useChatUsage";
+import { Link } from "react-router-dom";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Results =
