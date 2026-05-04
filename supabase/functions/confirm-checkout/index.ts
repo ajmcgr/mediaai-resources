@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       ? await stripe.subscriptions.retrieve(session.subscription)
       : session.subscription as Stripe.Subscription;
 
-    await upsertSubscription(admin, sub, authData.user.id, session.metadata?.plan_identifier);
+    await upsertSubscription(admin, stripe, sub, authData.user.id, session.metadata?.plan_identifier);
     return json({ ok: true });
   } catch (e) {
     console.error("confirm-checkout error", e);
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function upsertSubscription(admin: ReturnType<typeof createClient>, sub: Stripe.Subscription, fallbackUserId: string, fallbackPlan?: string) {
+async function upsertSubscription(admin: ReturnType<typeof createClient>, stripe: Stripe, sub: Stripe.Subscription, fallbackUserId: string, fallbackPlan?: string) {
   const priceId = sub.items.data[0]?.price.id;
   const userId = sub.metadata?.supabase_user_id || fallbackUserId;
   let planIdentifier = sub.metadata?.plan_identifier || fallbackPlan;
@@ -94,14 +94,22 @@ async function upsertSubscription(admin: ReturnType<typeof createClient>, sub: S
   const { error } = await admin.from("subscriptions").upsert(row, { onConflict: "stripe_subscription_id" });
   if (error) throw error;
 
-  const isActive = ["active", "trialing", "past_due"].includes(sub.status);
+  let subscriptionForProfile = sub;
+  if (!["active", "trialing", "past_due"].includes(sub.status)) {
+    const subscriptions = await stripe.subscriptions.list({ customer: sub.customer as string, status: "all", limit: 10 });
+    subscriptionForProfile = subscriptions.data.find((candidate) =>
+      candidate.id !== sub.id && ["active", "trialing", "past_due"].includes(candidate.status)
+    ) ?? sub;
+  }
+
+  const isActive = ["active", "trialing", "past_due"].includes(subscriptionForProfile.status);
   const { error: profileError } = await admin
     .from("profiles")
     .update({
       sub_active: isActive,
-      plan_identifier: planIdentifier,
-      sub_period_end: toIso(sub.current_period_end),
-      stripe_customer_id: sub.customer as string,
+      plan_identifier: subscriptionForProfile.metadata?.plan_identifier || planIdentifier,
+      sub_period_end: toIso(subscriptionForProfile.current_period_end),
+      stripe_customer_id: subscriptionForProfile.customer as string,
     })
     .eq("id", userId);
   if (profileError) throw profileError;

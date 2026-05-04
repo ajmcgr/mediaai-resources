@@ -82,7 +82,7 @@ async function upsertSubscription(admin: ReturnType<typeof createClient>, sub: S
   if (error) throw error;
 
   const { error: profileError } = await admin.from("profiles").update({
-    sub_active: ACTIVE_STATUSES.has(sub.status),
+    sub_active: true,
     plan_identifier: planIdentifier,
     sub_period_end: toIso(sub.current_period_end),
     stripe_customer_id: sub.customer as string,
