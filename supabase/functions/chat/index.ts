@@ -273,45 +273,8 @@ async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Ro
   }));
 }
 
-async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
-  const orParts: string[] = [];
-  const add = (terms: string[], fields: string[]) => {
-    for (const t of terms) {
-      const s = safeIlike(t); if (!s) continue;
-      for (const f of fields) orParts.push(`${f}.ilike.%${s}%`);
-    }
-  };
-  add(intent.topics, ["category", "topics", "titles", "outlet"]);
-  add(intent.countries, ["country", "topics", "outlet", "titles"]);
-  add(intent.outlets, ["outlet", "titles"]);
-  add(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
-
-  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
-  let q = admin.from("journalist")
-    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-    .limit(limit);
-  if (orParts.length) q = q.or(orParts.join(","));
-  let { data, error } = await q;
-  if (error) {
-    console.log("[db.journalist.error]", error.message);
-    return fetchBroadJournalists(admin, limit);
-  }
-  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
-    const fallbackRows = await fetchBroadJournalists(admin, limit);
-    const currentRows = (data ?? []).map((r) => ({
-      source: "database" as const,
-      source_id: r.id as number,
-      source_table: "journalist" as const,
-      name: (r.name as string) ?? null,
-      outlet: (r.outlet as string) ?? null,
-      title: (r.titles as string) ?? null,
-      category: (r.category as string) ?? null,
-      country: (r.country as string) ?? null,
-      email: (r.email as string) ?? null,
-    }));
-    return dedupe([...currentRows, ...fallbackRows]);
-  }
-  return (data ?? []).map((r) => ({
+function journalistRow(r: Record<string, unknown>): Row {
+  return {
     source: "database" as const,
     source_id: r.id as number,
     source_table: "journalist" as const,
@@ -321,7 +284,70 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     category: (r.category as string) ?? null,
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
-  }));
+  };
+}
+
+function creatorRow(r: Record<string, unknown>): Row {
+  return {
+    source: "database" as const,
+    source_id: r.id as number,
+    source_table: "creators" as const,
+    name: (r.name as string) ?? null,
+    outlet: (r.type as string) ?? null,
+    title: null,
+    category: (r.category as string) ?? null,
+    country: null,
+    email: (r.email as string) ?? null,
+    ig_handle: (r.ig_handle as string) ?? null,
+    ig_followers: (r.ig_followers as number) ?? null,
+    youtube_url: (r.youtube_url as string) ?? null,
+  };
+}
+
+function ilikeOr(terms: string[], fields: string[]): string {
+  const parts: string[] = [];
+  for (const t of terms) {
+    const s = safeIlike(t);
+    if (!s) continue;
+    for (const f of fields) parts.push(`${f}.ilike.%${s}%`);
+  }
+  return parts.join(",");
+}
+
+async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
+  const limit = Math.max(1000, Math.min(5000, intent.count * 30));
+  const topicTerms = intent.topics.length ? intent.topics : intent.freeTerms;
+  const topicOr = ilikeOr(topicTerms, ["category", "topics", "outlet", "titles"]);
+  const locationOr = ilikeOr(intent.countries, ["country", "outlet", "topics", "titles"]);
+  const outletOr = ilikeOr(intent.outlets, ["outlet", "titles"]);
+  const freeOr = ilikeOr(intent.freeTerms, ["name", "outlet", "category", "topics", "titles", "country", "email", "xhandle"]);
+
+  const run = async (withLocation: boolean) => {
+    let q = admin.from("journalist")
+      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+      .limit(limit);
+    if (topicOr) q = q.or(topicOr);
+    else if (freeOr) q = q.or(freeOr);
+    if (withLocation && locationOr) q = q.or(locationOr);
+    if (outletOr) q = q.or(outletOr);
+    return q;
+  };
+
+  let { data, error } = await run(!!locationOr);
+  if (error) {
+    console.log("[db.journalist.error]", error.message);
+    return fetchBroadJournalists(admin, limit);
+  }
+  if ((data?.length ?? 0) < 10 && locationOr) {
+    const broadened = await run(false);
+    if (!broadened.error && (broadened.data?.length ?? 0) > (data?.length ?? 0)) data = broadened.data;
+  }
+  if ((data?.length ?? 0) < Math.min(intent.count, 25) && (intent.topics.length || intent.countries.length || intent.freeTerms.length)) {
+    const fallbackRows = await fetchBroadJournalists(admin, limit);
+    const currentRows = (data ?? []).map(journalistRow);
+    return dedupe([...currentRows, ...fallbackRows]);
+  }
+  return (data ?? []).map(journalistRow);
 }
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
