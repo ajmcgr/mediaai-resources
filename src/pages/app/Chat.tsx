@@ -62,12 +62,21 @@ const Chat = () => {
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
 
+  const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
 
   const sendText = async (text: string, reset = false) => {
     if (!text.trim() || loading) return;
+    if (usage && usage.remaining <= 0) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." },
+      ]);
+      return;
+    }
     const base = reset ? [] : messages;
     const next: Msg[] = [...base, { role: "user", content: text }];
     setMessages(next);
@@ -77,11 +86,22 @@ const Chat = () => {
       const { data, error } = await supabase.functions.invoke("chat", {
         body: { messages: next },
       });
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        let detail = "";
+        try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
+        if (detail.includes("quota_exhausted")) {
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." }]);
+          await refreshUsage();
+          return;
+        }
+        throw error;
+      }
       setMessages((m) => [
         ...m,
         { role: "assistant", content: data?.content || "(no response)" },
       ]);
+      if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         setResults(data.results);
         upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
