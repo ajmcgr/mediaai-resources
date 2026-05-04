@@ -32,6 +32,7 @@ const TIERS: Tier[] = [
     yearly: 290,
     cta: "Start Free Trial",
     features: [
+      "Verified journalist and creator contact emails",
       "AI chat assistant",
       "200,000 chat tokens / month",
       "Top-up tokens any time",
