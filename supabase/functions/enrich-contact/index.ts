@@ -15,7 +15,7 @@ const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "
 const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type"] as const;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal)@/i;
+const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal|advertising|subscribe|newsletter|tips)@/i;
 
 const FIELD_DESCRIPTIONS: Record<string, string> = {
   email: "Direct professional email address (avoid generic info@/press@).",
@@ -46,13 +46,18 @@ async function exaSearch(query: string, numResults = 5): Promise<Array<{ url: st
   return (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" }));
 }
 
-function pickEmail(snippets: Array<{ url: string; text: string }>, name: string): string | null {
+function hostFrom(value: string): string | null {
+  try { return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.replace(/^www\./, ""); } catch { return null; }
+}
+
+function pickEmail(snippets: Array<{ url: string; text: string }>, name: string): { email: string; source_url: string } | null {
   const nameParts = name.toLowerCase().split(/\s+/).filter((p) => p.length > 2);
-  const matches = snippets.flatMap((s) => `${s.url}\n${s.text}`.match(EMAIL_RE) ?? [])
-    .map((e) => e.trim().replace(/[),.;]+$/, ""))
-    .filter((e) => !BAD_EMAIL_RE.test(e));
+  const matches = snippets.flatMap((s) => (`${s.url}\n${s.text}`.match(EMAIL_RE) ?? []).map((raw) => ({
+    email: raw.trim().replace(/[),.;:]+$/, ""),
+    source_url: s.url,
+  }))).filter((m) => !BAD_EMAIL_RE.test(m.email) && !/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(m.email));
   if (!matches.length) return null;
-  return matches.find((e) => nameParts.some((p) => e.toLowerCase().includes(p))) ?? matches[0];
+  return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
 }
 
 async function extractFields(
