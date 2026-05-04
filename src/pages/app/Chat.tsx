@@ -392,7 +392,6 @@ const Chat = () => {
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="w-8" />
-                    <th className="text-left font-medium px-3 py-2.5">Source</th>
                     {cols.map((c) => (
                       <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
                     ))}
@@ -409,26 +408,6 @@ const Chat = () => {
                               journalistId={results.kind === "journalists" ? dbId : undefined}
                               creatorId={results.kind === "creators" ? dbId : undefined}
                             />
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {r.source === "database" ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Database
-                            </span>
-                          ) : savingIdx[i] === "saving" ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />Saving
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => saveExaRow(i)}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                              title="Save this web result to your database"
-                            >
-                              Exa web · Save
-                            </button>
                           )}
                         </td>
                         {cols.map((c) => {
