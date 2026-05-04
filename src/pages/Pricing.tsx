@@ -44,7 +44,7 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "Media AI chat + full journalist & creator database + brand monitoring.",
+    tagline: "Media AI chat + full journalist & creator database + brand monitoring + inbox.",
     monthly: 99,
     yearly: 990,
     highlight: true,
@@ -58,6 +58,7 @@ const TIERS: Tier[] = [
       "Sort, filter, save views, export",
       "Share contacts via link, email, or CSV",
       "Brand Monitor — daily PR signal alerts",
+      "Outreach Inbox — pitch & reply tracking",
       "1-month free trial",
     ],
   },
