@@ -67,6 +67,7 @@ const TIERS: Tier[] = [
     yearly: null,
     cta: "Contact us",
     features: [
+      "Verified journalist and creator contact emails",
       "Everything in Growth",
       "Custom API access",
       "Volume token pricing",
