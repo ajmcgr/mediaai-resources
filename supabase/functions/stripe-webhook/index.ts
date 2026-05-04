@@ -17,6 +17,8 @@ const admin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+const ACTIVE_STATUSES = new Set(["active", "trialing", "past_due"]);
+
 Deno.serve(async (req) => {
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("missing signature", { status: 400 });
@@ -36,7 +38,11 @@ Deno.serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription" && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-          await upsertSubscription(sub);
+          await upsertSubscription(sub, {
+            userId: session.metadata?.supabase_user_id,
+            planIdentifier: session.metadata?.plan_identifier,
+            customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
+          });
         } else if (session.mode === "payment" && session.metadata?.kind === "topup") {
           const userId = session.metadata.supabase_user_id;
           const tokens = Number(session.metadata.tokens || 0);
@@ -67,6 +73,14 @@ Deno.serve(async (req) => {
         }
         break;
       }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          const sub = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          await upsertSubscription(sub, { customerEmail: invoice.customer_email ?? undefined });
+        }
+        break;
+      }
       default:
         // ignore other events
         break;
@@ -80,19 +94,27 @@ Deno.serve(async (req) => {
   }
 });
 
-async function upsertSubscription(sub: Stripe.Subscription) {
+async function upsertSubscription(
+  sub: Stripe.Subscription,
+  fallback: { userId?: string; planIdentifier?: string; customerEmail?: string } = {},
+) {
   const priceId = sub.items.data[0]?.price.id;
-  let userId = sub.metadata?.supabase_user_id;
-  let planIdentifier = sub.metadata?.plan_identifier;
+  let userId = sub.metadata?.supabase_user_id || fallback.userId;
+  let planIdentifier = sub.metadata?.plan_identifier || fallback.planIdentifier;
 
   // Resolve plan from the price id if metadata is missing
   if (!planIdentifier && priceId) {
-    const { data: plan } = await admin
+    const { data: monthlyPlan } = await admin
       .from("plans")
       .select("identifier")
       .eq("monthly_price_id", priceId)
       .maybeSingle();
-    planIdentifier = plan?.identifier ?? undefined;
+    const { data: yearlyPlan } = monthlyPlan ? { data: monthlyPlan } : await admin
+      .from("plans")
+      .select("identifier")
+      .eq("yearly_price_id", priceId)
+      .maybeSingle();
+    planIdentifier = (monthlyPlan ?? yearlyPlan)?.identifier ?? undefined;
   }
 
   // Resolve user from stripe_customer_id on profiles when metadata absent
@@ -101,6 +123,16 @@ async function upsertSubscription(sub: Stripe.Subscription) {
       .from("profiles")
       .select("id")
       .eq("stripe_customer_id", sub.customer as string)
+      .maybeSingle();
+    userId = profile?.id ?? undefined;
+  }
+
+  // Final fallback for legacy sessions/customers that have no stored customer id yet.
+  if (!userId && fallback.customerEmail) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .ilike("email", fallback.customerEmail)
       .maybeSingle();
     userId = profile?.id ?? undefined;
   }
@@ -131,7 +163,7 @@ async function upsertSubscription(sub: Stripe.Subscription) {
   if (error) throw error;
 
   // Mirror to profiles so useSubscription (single source of truth) stays in sync
-  const isActive = ["active", "trialing", "past_due"].includes(sub.status);
+  const isActive = ACTIVE_STATUSES.has(sub.status);
   const { error: profErr } = await admin
     .from("profiles")
     .update({
