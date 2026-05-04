@@ -12,14 +12,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-color-official.png";
-
-const GROWTH_PLANS = ["growth", "both", "media-pro", "pro"];
+import { isGrowthPlanIdentifier } from "@/lib/plans";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
   const { planIdentifier } = useSubscription();
   const navigate = useNavigate();
-  const hasGrowth = !!planIdentifier && GROWTH_PLANS.includes(planIdentifier);
+  const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
 
   const handleSignOut = async () => {
     await signOut();
