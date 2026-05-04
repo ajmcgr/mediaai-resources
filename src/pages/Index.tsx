@@ -149,16 +149,22 @@ const FEATURE_BLOCKS = [
     bullets: ["Filter by beat, outlet, country, or title", "Save views and reuse your favorite filters", "Search by name, email, or social handle"],
   },
   {
+    eyebrow: "Seamless Export",
+    body: "Whether you need a shortlist of potential candidates or a comprehensive database, our export feature helps you stay organized and productive.",
+    image: featureExport,
+    bullets: ["Export to CSV, Excel, or PDF", "Share contacts with your team via link or email", "One-click sync to keep lists fresh"],
+  },
+  {
     eyebrow: "Brand Monitor",
     body: "Track your brand and competitors across the web. Media AI checks the URLs you care about every day, detects meaningful changes, and surfaces the PR opportunities — with a suggested pitch angle ready to go.",
     image: featureBrandMonitor,
     bullets: ["Daily monitoring of your brand and competitor URLs", "AI scores each change for PR opportunity", "Instant, daily, or weekly email alerts"],
   },
   {
-    eyebrow: "Seamless Export",
-    body: "Whether you need a shortlist of potential candidates or a comprehensive database, our export feature helps you stay organized and productive.",
-    image: featureExport,
-    bullets: ["Export to CSV, Excel, or PDF", "Share contacts with your team via link or email", "One-click sync to keep lists fresh"],
+    eyebrow: "Contact Inbox",
+    body: "Keep every journalist and creator reply in one place. Media AI threads conversations against the contacts in your database so you always know who replied, what they said, and what to send next.",
+    image: featureContactInbox,
+    bullets: ["Unified inbox across all your outreach", "Replies linked to journalist and outlet records", "See unread, scheduled, and follow-up status at a glance"],
   },
 ];
 
