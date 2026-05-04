@@ -58,28 +58,28 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid JSON body." }, 400);
     }
 
-    console.log("create-checkout request body", body);
+    console.log("create-checkout raw request body", body);
 
     const user_id = typeof body.user_id === "string" ? body.user_id.trim() : "";
     const user_email = typeof body.user_email === "string" ? body.user_email.trim() : "";
-    const rawPlan = (body.plan_identifier ?? body.plan ?? "") as string;
-    const normalizedPlan = String(rawPlan).toLowerCase().trim() as PlanIdentifier;
+    const plan = (body.plan_identifier ?? body.plan ?? "") as string;
+    const normalizedPlan = String(plan || "").toLowerCase().trim();
     const rawInterval = String(body.interval ?? "monthly").toLowerCase().trim();
     const interval: BillingInterval = rawInterval === "yearly" ? "yearly" : "monthly";
 
-    console.log("create-checkout normalized", { normalizedPlan, interval, user_id, user_email });
+    console.log("create-checkout plan mapping", { plan, normalizedPlan, interval, user_id, user_email });
 
     if (!user_id || !user_email) {
       console.error("create-checkout missing authenticated user", body);
       return json({ error: "Missing authenticated user" }, 400);
     }
-    if (!PRICE_IDS[normalizedPlan]) {
-      console.error("create-checkout invalid plan", { rawPlan, normalizedPlan, allowed: Object.keys(PRICE_IDS) });
-      return json({ error: `Invalid plan: ${rawPlan}` }, 400);
+    const priceId = PRICE_IDS[normalizedPlan]?.[interval] || MEDIA_PRO_PRICES[interval];
+    if (!priceId) {
+      console.error("create-checkout invalid plan", { receivedPlan: plan, normalizedPlan, allowed: Object.keys(PRICE_IDS) });
+      return json({ error: "invalid_plan", receivedPlan: plan, normalizedPlan }, 400);
     }
 
-    const priceId = PRICE_IDS[normalizedPlan][interval];
-    console.log("create-checkout selected price", { plan: normalizedPlan, interval, priceId });
+    console.log("create-checkout selected price", { plan, normalizedPlan, interval, priceId });
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     const session = await stripe.checkout.sessions.create({
