@@ -40,7 +40,6 @@ export async function startCheckout(plan: PlanId, interval: BillingInterval = "m
     user_id: session.user.id,
     user_email: session.user.email,
     plan,
-    plan_identifier: plan,
     interval,
   });
   if (!url) throw new Error("Checkout URL missing.");
