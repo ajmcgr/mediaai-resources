@@ -1062,10 +1062,19 @@ Deno.serve(async (req) => {
             allowance,
             used: usedSoFar,
             monthly_room: monthlyRoom,
+            ledger_purchased: summary.ledger_purchased,
+            profile_credits: summary.profile_credits,
           },
         }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Self-heal: if ledger has more credits than profile column, sync it.
+    if (summary.ledger_purchased > summary.profile_credits && summary.credits > summary.profile_credits) {
+      try {
+        await admin.from("profiles").update({ chat_credits: summary.credits }).eq("id", user.id);
+      } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
     const { messages, model } = await req.json();
