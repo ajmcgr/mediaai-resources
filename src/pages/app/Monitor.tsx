@@ -93,14 +93,14 @@ const Monitor = () => {
       <Helmet><title>Monitor — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <NavLink to="/dashboard" className="flex items-center">
+        <NavLink to="/database" className="flex items-center">
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/dashboard")}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/database")}>
             <Database className="h-3.5 w-3.5" />Database
           </Button>
           <Button variant="default" size="sm" className="gap-1.5">

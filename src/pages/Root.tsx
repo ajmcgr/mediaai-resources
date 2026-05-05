@@ -6,7 +6,7 @@ import Index from "./Index";
 const Root = () => {
   const { user, loading } = useAuth();
   if (loading) return <FullscreenSpinner />;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/database" replace />;
   return <Index />;
 };
 
