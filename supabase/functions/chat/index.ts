@@ -1129,7 +1129,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const userQuery = latestUserQuery(messages);
 
-    const summary = await loadUsageSummary(admin, user.id, userClient);
+    let summary: Awaited<ReturnType<typeof loadUsageSummary>>;
+    try {
+      summary = await loadUsageSummary(admin, user.id, userClient);
+    } catch (error) {
+      console.warn("[chat.usage_fallback_beta_allowance]", error instanceof Error ? error.message : String(error));
+      summary = {
+        allowance: 20_000,
+        used: 0,
+        remaining: 20_000,
+        credits: 0,
+        period_ym: new Date().toISOString().slice(0, 7),
+        sub_active: false,
+        plan_identifier: null,
+        ledger_purchased: 0,
+        profile_credits: 0,
+        rpc_remaining: null,
+        rpc_credits: null,
+      };
+    }
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
     const remaining = summary.remaining;
