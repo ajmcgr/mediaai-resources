@@ -1158,7 +1158,10 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { messages, model } = await req.json();
+    const body = await req.json();
+    const { messages, model } = body;
+    const reqLimit = Number.isFinite(Number(body?.limit)) ? Math.max(1, Math.floor(Number(body.limit))) : null;
+    const reqOffset = Number.isFinite(Number(body?.offset)) ? Math.max(0, Math.floor(Number(body.offset))) : 0;
     if (!Array.isArray(messages))
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const userQuery = latestUserQuery(messages);
@@ -1239,12 +1242,12 @@ Deno.serve(async (req) => {
     }
 
     const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") === "true";
-    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
+    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first", {}, reqLimit, reqOffset);
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
       console.warn("[chat.provider_fallback] missing_openai_key");
-      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key");
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key", {}, reqLimit, reqOffset);
     }
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
@@ -1254,6 +1257,8 @@ Deno.serve(async (req) => {
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
     let lastIntent: Intent | null = null;
+    let lastPagination: { limit: number; offset: number; total_estimated: number; has_more: boolean } | null = null;
+    let lastSources: { database: number; web: number } = { database: 0, web: 0 };
     let totalTokens = 0;
 
     for (let i = 0; i < 3; i++) {
@@ -1268,7 +1273,7 @@ Deno.serve(async (req) => {
         return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "model_provider_error", {
           provider_status: r.status,
           provider_error: text.slice(0, 500),
-        });
+        }, reqLimit, reqOffset);
       }
       const data = await r.json();
       totalTokens += Number(data?.usage?.total_tokens ?? 0);
@@ -1281,23 +1286,24 @@ Deno.serve(async (req) => {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
           const q = String(parsed.q ?? "");
-          const result = await hybridSearch(admin, q, plan);
+          const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
           lastKind = result.intent.kind;
           lastRows = result.rows;
           lastQuery = q;
           lastDebug = result.debug;
           lastIntent = result.intent;
-          const dbN = result.rows.filter((r) => r.source === "database").length;
-          const exaN = result.rows.filter((r) => r.source === "exa").length;
+          lastPagination = result.pagination;
+          lastSources = result.sources;
           convo.push({
             role: "tool",
             tool_call_id: tc.id,
             content: JSON.stringify({
               count: result.rows.length,
               requested: result.intent.count,
-              from_database: dbN,
-              from_web: exaN,
+              from_database: result.sources.database,
+              from_web: result.sources.web,
               kind: result.intent.kind,
+              has_more: result.pagination.has_more,
             }),
           });
         }
@@ -1314,6 +1320,8 @@ Deno.serve(async (req) => {
           warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+          pagination: lastPagination,
+          sources: lastSources,
           usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -1326,6 +1334,8 @@ Deno.serve(async (req) => {
         warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+        pagination: lastPagination,
+        sources: lastSources,
         usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: finalRemaining, tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
