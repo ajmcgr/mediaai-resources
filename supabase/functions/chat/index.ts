@@ -234,7 +234,7 @@ type Row = {
 
 // ---------- Supabase search ----------
 
-type AdminClient = ReturnType<typeof createClient>;
+type AdminClient = ReturnType<typeof createClient<any>>;
 
 function safeIlike(v: string): string {
   return v.replace(/[(),]/g, " ").trim();
@@ -930,13 +930,22 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
     target,
   };
 
-  const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
-  const exaPromise = searchExa(intent, target);
+  const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
+  let exaRows: Row[] = [];
+  debug.search_order = "database_first";
+  debug.exa_skipped = dbRows.length >= 10;
 
-  const [dbRows, exaRowsInitial] = await Promise.all([dbPromise, exaPromise]);
-  let exaRows = exaRowsInitial;
-  if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
-    exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+  if (dbRows.length < 10) {
+    try {
+      exaRows = await searchExa(intent, target);
+      if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
+        exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+      }
+    } catch (error) {
+      console.warn("[chat.exa_fallback_database_only]", error instanceof Error ? error.message : String(error));
+      debug.exa_error = error instanceof Error ? error.message : String(error);
+      exaRows = [];
+    }
   }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
@@ -983,9 +992,9 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
 }
 
 async function loadUsageSummary(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
-  userClient?: ReturnType<typeof createClient>,
+  userClient?: AdminClient,
 ): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number; rpc_remaining: number | null; rpc_credits: number | null }> {
   const period = new Date().toISOString().slice(0, 7);
   const [profileResult, usageResult, topupResult, summaryResult] = await Promise.all([
@@ -1034,6 +1043,64 @@ async function loadUsageSummary(
   };
 }
 
+function latestUserQuery(messages: unknown): string {
+  if (!Array.isArray(messages)) return "";
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i] as { role?: unknown; content?: unknown };
+    if (msg?.role === "user" && typeof msg.content === "string" && msg.content.trim()) return msg.content.trim();
+  }
+  return "";
+}
+
+async function recordUsage(admin: AdminClient, userId: string, tokens: number, fallbackRemaining: number): Promise<number> {
+  try {
+    const { data: rec } = await admin.rpc("chat_usage_record", { _user: userId, _tokens: tokens });
+    if (typeof rec === "number") return rec;
+  } catch (e) {
+    console.error("chat_usage_record failed", e);
+  }
+  return fallbackRemaining;
+}
+
+async function databaseOnlyResponse(
+  admin: AdminClient,
+  userId: string,
+  q: string,
+  plan: string | null,
+  summary: UsageSummary,
+  reason: string,
+  extraDebug: Record<string, unknown> = {},
+) {
+  const result = await hybridSearch(admin, q || "journalist", plan);
+  const dbRows = result.rows.filter((row) => row.source === "database");
+  const rows = dbRows.length ? dbRows : result.rows;
+  const tokens = Math.max(1, Math.ceil((q || "").length / 4));
+  const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
+  const kind = result.intent.kind;
+
+  return new Response(
+    JSON.stringify({
+      content: `Found ${rows.length} relevant results from your database.`,
+      results: {
+        kind,
+        rows: rows.slice(0, result.cap),
+        query: q,
+        debug: { ...result.debug, fallback_reason: reason, database_only: true, ...extraDebug },
+        intent: result.intent,
+      },
+      usage: {
+        allowance: summary.allowance,
+        used: Math.min(summary.allowance, summary.used + tokens),
+        credits: summary.credits,
+        period_ym: summary.period_ym,
+        remaining: remainingAfter,
+        tokens_this_request: tokens,
+      },
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
@@ -1057,7 +1124,30 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const summary = await loadUsageSummary(admin, user.id, userClient);
+    const { messages, model } = await req.json();
+    if (!Array.isArray(messages))
+      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const userQuery = latestUserQuery(messages);
+
+    let summary: Awaited<ReturnType<typeof loadUsageSummary>>;
+    try {
+      summary = await loadUsageSummary(admin, user.id, userClient);
+    } catch (error) {
+      console.warn("[chat.usage_fallback_beta_allowance]", error instanceof Error ? error.message : String(error));
+      summary = {
+        allowance: 20_000,
+        used: 0,
+        remaining: 20_000,
+        credits: 0,
+        period_ym: new Date().toISOString().slice(0, 7),
+        sub_active: false,
+        plan_identifier: null,
+        ledger_purchased: 0,
+        profile_credits: 0,
+        rpc_remaining: null,
+        rpc_credits: null,
+      };
+    }
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
     const remaining = summary.remaining;
@@ -1066,27 +1156,19 @@ Deno.serve(async (req) => {
     const trulyExhausted = remaining <= 0 && monthlyRoom <= 0 && !hasCredits;
     if (trulyExhausted) {
       console.log("[chat.quota_exhausted]", { user: user.id, summary });
-      return new Response(
-        JSON.stringify({
-          error: "quota_exhausted",
-          message: "You've used all of your chat tokens for this month.",
-          ...summary,
-          debug: {
-            remaining,
-            credits: summary.credits,
-            sub_active: summary.sub_active,
-            plan_identifier: summary.plan_identifier,
-            allowance,
-            used: usedSoFar,
-            monthly_room: monthlyRoom,
-            ledger_purchased: summary.ledger_purchased,
-            profile_credits: summary.profile_credits,
-            rpc_remaining: summary.rpc_remaining,
-            rpc_credits: summary.rpc_credits,
-          },
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "beta_quota_soft_unblock", {
+        remaining,
+        credits: summary.credits,
+        sub_active: summary.sub_active,
+        plan_identifier: summary.plan_identifier,
+        allowance,
+        used: usedSoFar,
+        monthly_room: monthlyRoom,
+        ledger_purchased: summary.ledger_purchased,
+        profile_credits: summary.profile_credits,
+        rpc_remaining: summary.rpc_remaining,
+        rpc_credits: summary.rpc_credits,
+      });
     }
 
     // Self-heal: if ledger has more credits than profile column, sync it.
@@ -1096,14 +1178,14 @@ Deno.serve(async (req) => {
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
-    const { messages, model } = await req.json();
-    if (!Array.isArray(messages))
-      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") !== "false";
+    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey)
-      return new Response(JSON.stringify({ error: "missing_key", message: "Chat is not configured. Contact support." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!apiKey) {
+      console.warn("[chat.provider_fallback] missing_openai_key");
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key");
+    }
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
@@ -1123,8 +1205,10 @@ Deno.serve(async (req) => {
       if (!r.ok) {
         const text = await r.text();
         console.error("openai_error", { status: r.status, body: text.slice(0, 500) });
-        return new Response(JSON.stringify({ error: "model_provider_error", provider_status: r.status, message: text, usage: summary }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "model_provider_error", {
+          provider_status: r.status,
+          provider_error: text.slice(0, 500),
+        });
       }
       const data = await r.json();
       totalTokens += Number(data?.usage?.total_tokens ?? 0);
@@ -1162,11 +1246,8 @@ Deno.serve(async (req) => {
 
       let remainingAfter = Math.max(remaining - totalTokens, 0);
       try {
-        const { data: rec } = await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens });
-        if (typeof rec === "number") remainingAfter = rec;
-      } catch (e) {
-        console.error("chat_usage_record failed", e);
-      }
+        remainingAfter = await recordUsage(admin, user.id, totalTokens, remainingAfter);
+      } catch (_) { /* handled in recordUsage */ }
 
       return new Response(
         JSON.stringify({
@@ -1178,12 +1259,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    try { await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens }); } catch (_) { /* noop */ }
+    const finalRemaining = await recordUsage(admin, user.id, totalTokens, Math.max(remaining - totalTokens, 0));
     return new Response(
       JSON.stringify({
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
+        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: finalRemaining, tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

@@ -42,13 +42,12 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const HUBSPOT_API_KEY = Deno.env.get("HUBSPOT_API_KEY");
     const HUBSPOT_ACCESS_TOKEN = Deno.env.get("HUBSPOT_ACCESS_TOKEN");
-    console.log("hubspot-upsert-contact env check", {
-      hasLovable: !!LOVABLE_API_KEY,
-      hasHubspotKey: !!HUBSPOT_API_KEY,
-      hasAccessToken: !!HUBSPOT_ACCESS_TOKEN,
-    });
     if (!HUBSPOT_ACCESS_TOKEN && (!LOVABLE_API_KEY || !HUBSPOT_API_KEY)) {
-      throw new Error("HubSpot is not configured (missing LOVABLE_API_KEY/HUBSPOT_API_KEY)");
+      console.warn("hubspot-upsert-contact skipped: HubSpot is not configured");
+      return new Response(JSON.stringify({ success: false, skipped: true, error: "hubspot_not_configured" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const parsed = validate(await req.json().catch(() => null));
@@ -125,7 +124,7 @@ Deno.serve(async (req) => {
     }
 
     if (!res.ok) {
-      console.error("HubSpot error", res.status, data);
+      console.warn("HubSpot sync skipped after upstream error", res.status, data);
       // Don't 500 on upstream errors; surface as 200 with success:false so signup flow isn't blocked
       return new Response(
         JSON.stringify({ success: false, status: res.status, error: data }),
@@ -139,9 +138,9 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("hubspot-upsert-contact error:", errorMessage);
+    console.warn("hubspot-upsert-contact skipped after error:", errorMessage);
     return new Response(JSON.stringify({ success: false, error: errorMessage }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
