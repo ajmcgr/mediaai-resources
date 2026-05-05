@@ -42,12 +42,24 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-11-20.acacia" });
 
-    if (String(body.action ?? "").toLowerCase() === "confirm") {
+    if (String(body.action ?? "").toLowerCase() === "confirm" || body.session_id) {
       return await confirmTopup(req, body, stripe);
     }
 
-    const user_id = String(body.user_id ?? "").trim();
-    const user_email = String(body.user_email ?? "").trim();
+    const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    let authUser: { id: string; email?: string } | null = null;
+    if (token) {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      if (SUPABASE_URL && SERVICE_KEY) {
+        const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+        const { data: authData } = await admin.auth.getUser(token);
+        authUser = authData.user ? { id: authData.user.id, email: authData.user.email ?? undefined } : null;
+      }
+    }
+
+    const user_id = String(body.user_id ?? authUser?.id ?? "").trim();
+    const user_email = String(body.user_email ?? authUser?.email ?? "").trim();
     const packKey = String(body.pack ?? "").toLowerCase().trim() as Pack;
     const pack = PACKS[packKey];
 

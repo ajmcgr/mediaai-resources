@@ -10,6 +10,8 @@ export interface ChatUsage {
   period_ym: string;
 }
 
+const currentPeriod = () => new Date().toISOString().slice(0, 7);
+
 export const useChatUsage = () => {
   const { user } = useAuth();
   const [usage, setUsage] = useState<ChatUsage | null>(null);
@@ -32,8 +34,14 @@ export const useChatUsage = () => {
       });
     } else if (error) {
       console.error("chat_usage_summary failed", error);
-      setUsage(null);
-      setError(error.message || "Could not load chat credits.");
+      const fallback = await loadUsageFallback(user.id);
+      if (fallback) {
+        setUsage(fallback);
+        setError(null);
+      } else {
+        setUsage(null);
+        setError(error.message || "Could not load chat credits.");
+      }
     }
     setLoading(false);
   }, [user]);
@@ -53,3 +61,42 @@ export const useChatUsage = () => {
 
   return { usage, loading, error, refresh, applyServerUsage };
 };
+
+async function loadUsageFallback(userId: string): Promise<ChatUsage | null> {
+  const period = currentPeriod();
+  const [profileResult, usageResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("chat_credits, sub_active, plan_identifier")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("chat_usage")
+      .select("tokens_used")
+      .eq("user_id", userId)
+      .eq("period_ym", period)
+      .maybeSingle(),
+  ]);
+
+  if (profileResult.error) return null;
+
+  const profile = profileResult.data as {
+    chat_credits?: number | string | null;
+    sub_active?: boolean | null;
+    plan_identifier?: string | null;
+  } | null;
+  const plan = String(profile?.plan_identifier ?? "").toLowerCase();
+  const allowance = profile?.sub_active
+    ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
+    : 20_000;
+  const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
+  const credits = Number(profile?.chat_credits ?? 0);
+
+  return {
+    allowance,
+    used,
+    credits,
+    remaining: Math.max(allowance - used, 0) + credits,
+    period_ym: period,
+  };
+}

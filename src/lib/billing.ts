@@ -10,7 +10,7 @@ export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; 
   large:  { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
 };
 
-type InvokeResponse = { url?: string; ok?: boolean; active?: boolean };
+type InvokeResponse = { url?: string; ok?: boolean; active?: boolean; tokens?: number; granted?: number; already?: boolean };
 
 async function authedInvoke(path: string, body: unknown) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -53,8 +53,25 @@ export async function confirmCheckout(sessionId: string) {
 }
 
 export async function confirmTopup(sessionId: string | null) {
-  const data = await authedInvoke("create-topup", { action: "confirm", session_id: sessionId });
-  return { ok: Boolean(data.ok), tokens: Number((data as { tokens?: number }).tokens ?? 0) };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
+
+  const payload = {
+    action: "confirm",
+    session_id: sessionId,
+    user_id: session.user.id,
+    user_email: session.user.email,
+  };
+
+  const data = sessionId
+    ? await authedInvoke("confirm-topup", { session_id: sessionId })
+    : await authedInvoke("create-topup", payload);
+
+  return {
+    ok: Boolean(data.ok),
+    tokens: Number(data.tokens ?? data.granted ?? 0),
+    already: Boolean(data.already),
+  };
 }
 
 export async function syncSubscription() {

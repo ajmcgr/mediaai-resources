@@ -57,12 +57,12 @@ const Account = () => {
   };
 
   useEffect(() => {
-    if (!user || usageLoading || usageError || recoveredTopups.current) return;
+    if (!user || usageLoading || recoveredTopups.current) return;
     recoveredTopups.current = true;
     confirmTopup(null)
       .then(({ ok }) => { if (ok) void refreshUsage(); })
       .catch((error) => console.warn("recent top-up recovery skipped", error));
-  }, [refreshUsage, usageError, usageLoading, user]);
+  }, [refreshUsage, usageLoading, user]);
 
   const handleTopup = async (pack: TopupPack) => {
     try {
