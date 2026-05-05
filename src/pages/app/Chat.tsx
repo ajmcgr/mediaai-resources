@@ -972,6 +972,8 @@ const Chat = () => {
                               {c.key === "email" ? (
                                 v ? (
                                   <span className="break-all">{String(v)}</span>
+                                ) : r.source === "exa" ? (
+                                  <span className="text-muted-foreground">—</span>
                                 ) : enriching ? (
                                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                     <Loader2 className="h-3 w-3 animate-spin" />Finding…
