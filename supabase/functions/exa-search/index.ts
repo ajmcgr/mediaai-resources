@@ -5,6 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -12,20 +18,16 @@ Deno.serve(async (req) => {
 
   try {
     const EXA_API_KEY = Deno.env.get("EXA_API_KEY");
+    console.log("EXA_API_KEY exists:", !!EXA_API_KEY);
     if (!EXA_API_KEY) {
-      return new Response(JSON.stringify({ error: "EXA_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ results: [], error: "EXA_API_KEY not configured", status: 500 }, 200);
     }
 
     const body = await req.json().catch(() => ({}));
     const query = typeof body?.query === "string" ? body.query.trim().slice(0, 500) : "";
+    console.log("EXA_QUERY", query);
     if (!query) {
-      return new Response(JSON.stringify({ error: "query is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ results: [], error: "query is required", status: 400 }, 200);
     }
 
     const exaQuery = `
@@ -47,32 +49,33 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const data = await res.json();
+    console.log("EXA_STATUS_CODE", res.status);
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      console.error("Exa API error", res.status, data);
-      return new Response(JSON.stringify({ error: "exa_failed", status: res.status, details: data }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("EXA_API_ERROR", res.status, data);
+      return json({
+        results: [],
+        error: typeof data?.error === "string" ? data.error : `Exa API returned status ${res.status}`,
+        status: res.status,
+        details: data,
+      }, 200);
     }
 
-    const results = (data.results || []).map((r: any) => ({
+    const rawCount = Array.isArray(data?.results) ? data.results.length : 0;
+    console.log("EXA_RAW_RESULTS", rawCount);
+
+    const results = (data.results || []).map((r: { title?: string; url?: string; text?: string }) => ({
       name: r.title || "",
       url: r.url,
       snippet: (r.text || "").slice(0, 200),
       source: "web",
     }));
 
-    return new Response(JSON.stringify({ results }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ results, error: null, status: 200 }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("exa-search error:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ results: [], error: message, status: 500 }, 200);
   }
 });
