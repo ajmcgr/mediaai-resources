@@ -947,6 +947,13 @@ const Chat = () => {
                     return ` · ${dbN} from database · ${exaN} from web`;
                   })()}
                 </div>
+                {(() => {
+                  const exaN = results.rows.filter((r) => r.source === "exa").length;
+                  if (exaN === 0 && exaError) {
+                    return <div className="text-xs text-destructive mt-1">Web search unavailable: {exaError}</div>;
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             {results.rows.length === 0 ? (
