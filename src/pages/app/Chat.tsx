@@ -26,6 +26,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
+import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -392,18 +393,11 @@ const Chat = () => {
     if (topup === "success") {
       (async () => {
         try {
-          const { error } = await supabase.functions.invoke("create-topup", {
-            body: {
-              action: "confirm",
-              session_id: sessionId,
-              user_id: user?.id,
-              user_email: user?.email,
-            },
-          });
-          if (error) console.error("confirm top-up error", error);
-          else toast.success("Credits added to your account");
+          await confirmTopup(sessionId);
+          toast.success("Credits added to your account");
         } catch (e) {
           console.error("confirm top-up failed", e);
+          toast.error((e as Error).message || "Could not confirm top-up");
         } finally {
           await refreshUsage();
           url.searchParams.delete("topup");
@@ -533,15 +527,10 @@ const Chat = () => {
 
   const send = () => sendText(input.trim());
 
-  const buyTokens = async (pack: "small" | "medium" | "large") => {
+  const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
     try {
-      const { data, error } = await supabase.functions.invoke("create-topup", {
-        body: { user_id: user.id, user_email: user.email, pack },
-      });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-      else throw new Error(data?.error || "Could not start checkout");
+      await startTopup(pack);
     } catch (e) {
       toast.error((e as Error).message || "Top-up failed");
     }
@@ -552,7 +541,7 @@ const Chat = () => {
 
   const enrichEmail = async (idx: number) => {
     if (!results) return;
-    let row = results.rows[idx];
+    const row = results.rows[idx];
     if (!row) return;
     setEnrichingIdx((s) => ({ ...s, [idx]: true }));
     try {

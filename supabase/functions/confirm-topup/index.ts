@@ -47,22 +47,22 @@ Deno.serve(async (req) => {
       .from("topup_transactions")
       .select("id")
       .eq("stripe_session_id", sessionId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return json({ ok: true, already: true });
     }
 
     // Grant credits
-    const { error: rpcError } = await admin.rpc("chat_credit_grant", { _user: userId, _tokens: tokens });
-    if (rpcError) return json({ error: rpcError.message }, 500);
+    await grantCredits(admin, userId, tokens);
 
     // Record the transaction
-    await admin.from("topup_transactions").insert({
+    const { error: insertError } = await admin.from("topup_transactions").insert({
       user_id: userId,
       stripe_session_id: sessionId,
       tokens: tokens,
     });
+    if (insertError) console.warn("topup transaction insert skipped", insertError);
 
     // Mark session as granted to prevent double-grant if webhook also fires.
     try {
@@ -85,4 +85,29 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function grantCredits(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  tokens: number,
+) {
+  const { error: rpcError } = await admin.rpc("chat_credit_grant", { _user: userId, _tokens: tokens });
+  if (!rpcError) return;
+
+  console.warn("chat_credit_grant failed, falling back to direct profile update", rpcError);
+  const { data: profile, error: readError } = await admin
+    .from("profiles")
+    .select("chat_credits")
+    .eq("id", userId)
+    .maybeSingle();
+  if (readError) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile read failed: ${readError.message}`);
+  if (!profile) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile not found`);
+
+  const nextCredits = Number(profile.chat_credits ?? 0) + tokens;
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({ chat_credits: nextCredits })
+    .eq("id", userId);
+  if (updateError) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile update failed: ${updateError.message}`);
 }

@@ -52,6 +52,11 @@ export async function confirmCheckout(sessionId: string) {
   return { ok: Boolean(data.ok) };
 }
 
+export async function confirmTopup(sessionId: string | null) {
+  const data = await authedInvoke("create-topup", { action: "confirm", session_id: sessionId });
+  return { ok: Boolean(data.ok), tokens: Number((data as { tokens?: number }).tokens ?? 0) };
+}
+
 export async function syncSubscription() {
   const data = await authedInvoke("sync-subscription", {});
   return { ok: Boolean(data.ok), active: Boolean(data.active) };

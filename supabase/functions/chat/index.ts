@@ -918,7 +918,8 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
   const exaPromise = searchExa(intent, target);
 
-  let [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  const [dbRows, exaRowsInitial] = await Promise.all([dbPromise, exaPromise]);
+  let exaRows = exaRowsInitial;
   if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
     exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
   }
@@ -989,11 +990,11 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { data: usageRow } = await admin.rpc("chat_usage_summary");
+    const { data: usageRow } = await userClient.rpc("chat_usage_summary");
     const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
     const allowance = Number(summary?.allowance ?? 0);
     const usedSoFar = Number(summary?.used ?? 0);
-    const remaining = Math.max(allowance - usedSoFar, 0);
+    const remaining = Number(summary?.remaining ?? Math.max(allowance - usedSoFar, 0));
     if (remaining <= 0) {
       return new Response(
         JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", allowance, used: usedSoFar, remaining: 0 }),
@@ -1064,10 +1065,10 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      let newUsed = usedSoFar + totalTokens;
+      let remainingAfter = Math.max(remaining - totalTokens, 0);
       try {
         const { data: rec } = await admin.rpc("chat_usage_record", { _user: user.id, _tokens: totalTokens });
-        if (typeof rec === "number") newUsed = rec;
+        if (typeof rec === "number") remainingAfter = rec;
       } catch (e) {
         console.error("chat_usage_record failed", e);
       }
@@ -1076,7 +1077,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-          usage: { allowance, used: newUsed, remaining: Math.max(allowance - newUsed, 0), tokens_this_request: totalTokens },
+          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: remainingAfter, tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -1087,7 +1088,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-        usage: { allowance, used: usedSoFar + totalTokens, remaining: Math.max(allowance - (usedSoFar + totalTokens), 0), tokens_this_request: totalTokens },
+        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
