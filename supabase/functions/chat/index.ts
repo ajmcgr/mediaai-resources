@@ -1216,7 +1216,7 @@ Deno.serve(async (req) => {
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
-    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") !== "false";
+    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") === "true";
     if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
