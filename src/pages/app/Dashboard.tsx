@@ -144,7 +144,7 @@ const Dashboard = () => {
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <NavLink to="/dashboard" className="flex items-center">
+          <NavLink to="/database" className="flex items-center">
             <img src={logoMedia} alt="Media AI" className="h-5" />
           </NavLink>
         </div>

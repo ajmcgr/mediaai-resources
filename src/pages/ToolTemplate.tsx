@@ -919,7 +919,7 @@ const ToolTemplate = () => {
                     Download CSV
                   </Button>
                   <Button variant="secondary" asChild>
-                    <Link to="/dashboard">
+                    <Link to="/database">
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Export to Media AI List
                     </Link>
@@ -950,7 +950,7 @@ const ToolTemplate = () => {
                 ))}
               </ol>
               <Button asChild>
-                <Link to="/dashboard">
+                <Link to="/database">
                   Open Media AI
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Link>

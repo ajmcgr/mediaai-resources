@@ -60,7 +60,7 @@ const Header = () => {
                   variant="ghost"
                   className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
                 >
-                  <Link to="/dashboard">Database</Link>
+                  <Link to="/database">Database</Link>
                 </Button>
                 {hasGrowth && (
                   <Button
@@ -91,7 +91,7 @@ const Header = () => {
                       <div className="text-sm truncate">{user.email}</div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => navigate("/dashboard")}>
+                    <DropdownMenuItem onSelect={() => navigate("/database")}>
                       Dashboard
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => navigate("/account")}>

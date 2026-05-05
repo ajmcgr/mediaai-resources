@@ -42,7 +42,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "chat", "monitor", "account", "pricing", "billing", "request-demo",
+  "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -85,10 +85,11 @@ const App = () => (
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 
               {/* Paid-only app */}
-              <Route path="/dashboard" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
+              <Route path="/database" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/database" replace />} />
               <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
               <Route path="/monitor" element={<PaidRoute requireGrowth><Monitor /></PaidRoute>} />
-              <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/app" element={<Navigate to="/database" replace />} />
 
               {/* Marketing pages at root */}
               <Route path="/about" element={<About />} />
