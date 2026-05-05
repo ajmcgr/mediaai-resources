@@ -46,8 +46,9 @@ type Row = {
   youtube_url?: string | null;
   reason?: string;
 };
+type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean };
 type Results =
-  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null }
+  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
 
 const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
@@ -366,8 +367,9 @@ const Chat = () => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [results, setResults] = useState<Results>(null);
-  
+  const [lastQuery, setLastQuery] = useState<string>("");
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -504,9 +506,10 @@ const Chat = () => {
     setMessages([...base, { role: "user", content: inputValue }]);
     setInput("");
     setLoading(true);
+    setLastQuery(inputValue);
     try {
       const chatRes = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }] },
+        body: { messages: [...base, { role: "user", content: inputValue }], limit: 100, offset: 0 },
       });
       const { data, error } = chatRes;
       if (error) {
@@ -519,8 +522,6 @@ const Chat = () => {
         if (detail.includes("quota_exhausted")) {
           const dbgRemaining = Number(parsed?.debug?.remaining ?? parsed?.usage?.remaining ?? 0);
           const dbgCredits = Number(parsed?.debug?.credits ?? parsed?.usage?.credits ?? 0);
-          // Soft-unblock: server said exhausted but debug shows positive balance.
-          // Sync local state, restore the prompt, and let the user retry.
           if (dbgRemaining > 0 || dbgCredits > 0) {
             applyServerUsage({
               remaining: dbgRemaining,
@@ -550,7 +551,7 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         const expanded = await expandChatResults(data.results, inputValue);
-        setResults(expanded);
+        setResults({ ...expanded, pagination: data?.pagination ?? null, sources: data?.sources ?? null });
         setSavingIdx({});
         upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
       } else {
@@ -563,6 +564,31 @@ const Chat = () => {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!results || !results.pagination?.has_more || loadingMore || !lastQuery) return;
+    setLoadingMore(true);
+    try {
+      const nextOffset = results.pagination.offset + results.pagination.limit;
+      const { data, error } = await supabase.functions.invoke("chat", {
+        body: { messages: [{ role: "user", content: lastQuery }], limit: results.pagination.limit, offset: nextOffset },
+      });
+      if (error) throw error;
+      if (data?.usage) applyServerUsage(data.usage);
+      if (data?.results?.rows?.length) {
+        setResults((prev) => prev ? {
+          ...prev,
+          rows: dedupeRows([...prev.rows, ...data.results.rows]),
+          pagination: data.pagination ?? prev.pagination,
+          sources: data.sources ?? prev.sources,
+        } : prev);
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Could not load more");
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -1013,6 +1039,13 @@ const Chat = () => {
                   })}
                 </tbody>
               </table>
+            )}
+            {results.pagination?.has_more && results.rows.length > 0 && (
+              <div className="p-4 flex justify-center">
+                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading…</> : "Load more"}
+                </Button>
+              </div>
             )}
           </section>
         )}

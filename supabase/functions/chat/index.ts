@@ -210,7 +210,7 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 500;
+  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 1000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
@@ -920,17 +920,26 @@ async function persistWebRows(
 
 // ---------- Hybrid orchestrator ----------
 
-async function hybridSearch(admin: AdminClient, q: string, plan: string | null): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number }> {
+async function hybridSearch(
+  admin: AdminClient,
+  q: string,
+  plan: string | null,
+  limitOverride: number | null = null,
+  offset = 0,
+): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
-  const cap = capForPlan(plan);
-  const target = Math.min(intent.count, cap);
+  const maxTotal = capForPlan(plan);
+  const requestedLimit = limitOverride && limitOverride > 0 ? limitOverride : maxTotal;
+  const effectiveLimit = Math.min(requestedLimit, maxTotal);
+  const safeOffset = Math.max(0, offset);
 
   const debug: Record<string, unknown> = {
     original: q,
     intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
-    cap,
-    target,
+    maxTotal,
+    requestedLimit: effectiveLimit,
+    offset: safeOffset,
   };
 
   const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
@@ -938,12 +947,13 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   debug.search_order = "database_plus_web";
   debug.exa_skipped = false;
 
-  // Always augment database results with Exa web results (do not skip on db_count).
+  // Always augment with Exa, capped at 50.
   try {
-    exaRows = await searchExa(intent, Math.max(target, 50));
+    exaRows = await searchExa(intent, 50);
     if (exaRows.length < 20) {
-      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, Math.max(target, 50)))]).filter((r) => r.source === "exa");
+      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, 50))]).filter((r) => r.source === "exa");
     }
+    exaRows = exaRows.slice(0, 50);
   } catch (error) {
     console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
     debug.exa_error = error instanceof Error ? error.message : String(error);
@@ -962,30 +972,32 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
       return topicHit || countryHit;
     });
   }
-  if (dbStrict.length < Math.min(target, 25)) dbStrict = dbRows;
+  if (dbStrict.length < Math.min(maxTotal, 25)) dbStrict = dbRows;
   debug.db_strict_count = dbStrict.length;
 
   let combined = [...dbStrict, ...exaRows];
   if (intent.emailRequired) {
     const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
+    if (withEmail.length >= Math.min(maxTotal, 5)) combined = withEmail;
   }
   combined = dedupe(combined);
-  if (combined.length < Math.min(target, 25)) {
-    const fallbackRows = intent.kind === "journalists"
-      ? await fetchBroadJournalists(admin, Math.max(1500, target * 40))
-      : await fetchBroadCreators(admin, Math.max(1500, target * 40));
-    combined = dedupe([...combined, ...fallbackRows]);
-  }
   debug.deduped_count = combined.length;
 
-  const blendedTarget = Math.max(target, Math.min(100, dbRows.length + exaRows.length));
-  const ranked = blendedResults(combined, intent, blendedTarget);
-  debug.blended_target = blendedTarget;
-  debug.final_count = ranked.length;
+  // Rank up to maxTotal candidates so pagination has something to slice.
+  const ranked = blendedResults(combined, intent, maxTotal);
+  const paged = ranked.slice(safeOffset, safeOffset + effectiveLimit);
+  const dbReturned = paged.filter((r) => r.source === "database").length;
+  const webReturned = paged.filter((r) => r.source === "exa").length;
+  const totalEstimated = Math.min(maxTotal, ranked.length);
+  const hasMore = (safeOffset + effectiveLimit) < totalEstimated;
+
+  debug.db_returned = dbReturned;
+  debug.web_returned = webReturned;
+  debug.final_count = paged.length;
+  debug.has_more = hasMore;
 
   try {
-    const persisted = await persistWebRows(admin, intent.kind, ranked);
+    const persisted = await persistWebRows(admin, intent.kind, paged);
     debug.persisted = persisted;
   } catch (error) {
     console.log("[chat.persist.error]", error instanceof Error ? error.message : String(error));
@@ -993,7 +1005,14 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   }
 
   console.log("[chat.hybrid]", JSON.stringify(debug));
-  return { rows: ranked, debug, intent, cap };
+  return {
+    rows: paged,
+    debug,
+    intent,
+    cap: maxTotal,
+    pagination: { limit: effectiveLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
+    sources: { database: dbReturned, web: webReturned },
+  };
 }
 
 async function loadUsageSummary(
@@ -1075,27 +1094,28 @@ async function databaseOnlyResponse(
   summary: UsageSummary,
   reason: string,
   extraDebug: Record<string, unknown> = {},
+  limit: number | null = null,
+  offset = 0,
 ) {
-  const result = await hybridSearch(admin, q || "journalist", plan);
+  const result = await hybridSearch(admin, q || "journalist", plan, limit, offset);
   const rows = result.rows;
-  const dbN = rows.filter((r) => r.source === "database").length;
-  const webN = rows.filter((r) => r.source === "exa").length;
   const tokens = Math.max(1, Math.ceil((q || "").length / 4));
   const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
   const kind = result.intent.kind;
-  const limit = Math.max(result.cap, dbN + webN);
 
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results: ${dbN} from your database and ${webN} from the web.`,
+      content: `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
       results: {
         kind,
-        rows: rows.slice(0, limit),
+        rows,
         query: q,
-        debug: { ...result.debug, fallback_reason: reason, database_only: false, web_count: webN, ...extraDebug },
+        debug: { ...result.debug, fallback_reason: reason, database_only: false, ...extraDebug },
         intent: result.intent,
       },
+      pagination: result.pagination,
+      sources: result.sources,
       usage: {
         allowance: summary.allowance,
         used: Math.min(summary.allowance, summary.used + tokens),
@@ -1138,7 +1158,10 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { messages, model } = await req.json();
+    const body = await req.json();
+    const { messages, model } = body;
+    const reqLimit = Number.isFinite(Number(body?.limit)) ? Math.max(1, Math.floor(Number(body.limit))) : null;
+    const reqOffset = Number.isFinite(Number(body?.offset)) ? Math.max(0, Math.floor(Number(body.offset))) : 0;
     if (!Array.isArray(messages))
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const userQuery = latestUserQuery(messages);
@@ -1219,12 +1242,12 @@ Deno.serve(async (req) => {
     }
 
     const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") === "true";
-    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
+    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first", {}, reqLimit, reqOffset);
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
       console.warn("[chat.provider_fallback] missing_openai_key");
-      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key");
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key", {}, reqLimit, reqOffset);
     }
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
@@ -1234,6 +1257,8 @@ Deno.serve(async (req) => {
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
     let lastIntent: Intent | null = null;
+    let lastPagination: { limit: number; offset: number; total_estimated: number; has_more: boolean } | null = null;
+    let lastSources: { database: number; web: number } = { database: 0, web: 0 };
     let totalTokens = 0;
 
     for (let i = 0; i < 3; i++) {
@@ -1248,7 +1273,7 @@ Deno.serve(async (req) => {
         return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "model_provider_error", {
           provider_status: r.status,
           provider_error: text.slice(0, 500),
-        });
+        }, reqLimit, reqOffset);
       }
       const data = await r.json();
       totalTokens += Number(data?.usage?.total_tokens ?? 0);
@@ -1261,23 +1286,24 @@ Deno.serve(async (req) => {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
           const q = String(parsed.q ?? "");
-          const result = await hybridSearch(admin, q, plan);
+          const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
           lastKind = result.intent.kind;
           lastRows = result.rows;
           lastQuery = q;
           lastDebug = result.debug;
           lastIntent = result.intent;
-          const dbN = result.rows.filter((r) => r.source === "database").length;
-          const exaN = result.rows.filter((r) => r.source === "exa").length;
+          lastPagination = result.pagination;
+          lastSources = result.sources;
           convo.push({
             role: "tool",
             tool_call_id: tc.id,
             content: JSON.stringify({
               count: result.rows.length,
               requested: result.intent.count,
-              from_database: dbN,
-              from_web: exaN,
+              from_database: result.sources.database,
+              from_web: result.sources.web,
               kind: result.intent.kind,
+              has_more: result.pagination.has_more,
             }),
           });
         }
@@ -1294,6 +1320,8 @@ Deno.serve(async (req) => {
           warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+          pagination: lastPagination,
+          sources: lastSources,
           usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -1306,6 +1334,8 @@ Deno.serve(async (req) => {
         warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+        pagination: lastPagination,
+        sources: lastSources,
         usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: finalRemaining, tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
