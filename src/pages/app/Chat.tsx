@@ -630,14 +630,41 @@ const Chat = () => {
 
         <div className="flex items-center gap-2">
           {usage && (
-            <Link
-              to="/pricing"
-              title={`${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly tokens used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}`}
-              className={`hidden md:inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs ${usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : "text-muted-foreground"}`}
-            >
-              <Sparkles className="h-3 w-3" />
-              {usage.remaining.toLocaleString()} tokens left
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title={`${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly tokens used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}`}
+                  className={`hidden md:inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-secondary transition-colors ${usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : "text-muted-foreground border-border"}`}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {usage.remaining.toLocaleString()} tokens left
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-xs text-muted-foreground">Buy more chat tokens</div>
+                  <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k tokens</span>
+                  <span className="text-xs text-muted-foreground">$10</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k tokens</span>
+                  <span className="text-xs text-muted-foreground">$40</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M tokens</span>
+                  <span className="text-xs text-muted-foreground">$120</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
+                  Or upgrade your plan →
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
             <MessageSquare className="h-3.5 w-3.5" />Chat
