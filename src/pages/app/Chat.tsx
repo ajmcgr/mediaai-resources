@@ -475,7 +475,7 @@ const Chat = () => {
 
   const sendText = async (text: string, reset = false) => {
     if (!text.trim() || loading) return;
-    if (usage && usage.remaining <= 0) {
+    if (usage && usage.remaining <= 0 && usage.credits <= 0) {
       setMessages((m) => [
         ...m,
         { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." },
