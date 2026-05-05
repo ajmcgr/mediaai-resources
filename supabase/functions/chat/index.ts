@@ -918,7 +918,8 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
   const exaPromise = searchExa(intent, target);
 
-  let [dbRows, exaRows] = await Promise.all([dbPromise, exaPromise]);
+  const [dbRows, exaRowsInitial] = await Promise.all([dbPromise, exaPromise]);
+  let exaRows = exaRowsInitial;
   if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
     exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
   }
@@ -989,7 +990,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { data: usageRow } = await admin.rpc("chat_usage_summary");
+    const { data: usageRow } = await userClient.rpc("chat_usage_summary");
     const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
     const allowance = Number(summary?.allowance ?? 0);
     const usedSoFar = Number(summary?.used ?? 0);
