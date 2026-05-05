@@ -5,10 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { confirmTopup, openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatTokens = (n: number) => new Intl.NumberFormat().format(Math.max(0, Math.round(n)));
 
