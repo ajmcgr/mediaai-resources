@@ -387,7 +387,7 @@ const Chat = () => {
 
   // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
   useEffect(() => {
-    const url = new URL(window.location.href);
+    const url = new URL(document.URL);
     const topup = url.searchParams.get("topup");
     const sessionId = url.searchParams.get("session_id");
     if (topup === "success") {
@@ -411,6 +411,16 @@ const Chat = () => {
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const preventChatFormSubmit = (event: SubmitEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("submit", preventChatFormSubmit, true);
+    return () => document.removeEventListener("submit", preventChatFormSubmit, true);
   }, []);
 
   useEffect(() => {
@@ -474,6 +484,7 @@ const Chat = () => {
   }, [results]);
 
   const handleSend = async (inputValue = input.trim(), reset = false) => {
+    console.log("CALLING EDGE FUNCTION CHAT");
     if (!inputValue.trim() || loading) return;
     const allowance = Number(usage?.allowance ?? 0);
     const used = Number(usage?.used ?? 0);
@@ -493,7 +504,6 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
-      console.log("CALLING EDGE FUNCTION");
       const { data, error } = await supabase.functions.invoke("chat", {
         body: { query: inputValue },
       });
@@ -867,7 +877,7 @@ const Chat = () => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleSend();
+                    void handleSend();
                   }
                 }}
                 placeholder="Ask Media AI to find journalists or creators…"
@@ -880,7 +890,7 @@ const Chat = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleSend();
+                  void handleSend();
                 }}
                 disabled={loading || !input.trim()}
                 size="icon"
