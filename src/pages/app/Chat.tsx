@@ -661,42 +661,6 @@ const Chat = () => {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy chat credits"}
-                className={`gap-1.5 ${usage && usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage && usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : ""}`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />Buy credits
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="font-normal">
-                <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more chat credits"}</div>
-                <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k credits</span>
-                <span className="text-xs text-muted-foreground">$10</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k credits</span>
-                <span className="text-xs text-muted-foreground">$40</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M credits</span>
-                <span className="text-xs text-muted-foreground">$120</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
-                Or upgrade your plan →
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
                 <Avatar className="h-8 w-8 border border-border">
                   <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
@@ -763,6 +727,45 @@ const Chat = () => {
                 ))}
               </ul>
             )}
+          </div>
+          <div className="border-t border-border p-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy chat credits"}
+                  className={`w-full justify-center gap-1.5 ${usage && usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage && usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : ""}`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {usage ? `${usage.remaining.toLocaleString()} credits` : "Buy credits"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-64">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more chat credits"}</div>
+                  <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k credits</span>
+                  <span className="text-xs text-muted-foreground">$10</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k credits</span>
+                  <span className="text-xs text-muted-foreground">$40</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M credits</span>
+                  <span className="text-xs text-muted-foreground">$120</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
+                  Or upgrade your plan →
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </aside>
 
