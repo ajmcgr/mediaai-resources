@@ -55,7 +55,7 @@ const TIERS: Tier[] = [
     yearly: 290,
     cta: "Start Free Trial",
     features: [
-      "~2,500 AI chat messages / month",
+      "~500 AI chat messages / month",
       "Verified journalist and creator contact emails",
       "Capped at 100 media contacts per query",
       "Top-up credits any time",
@@ -73,7 +73,7 @@ const TIERS: Tier[] = [
     badge: "Most popular",
     cta: "Start Free Trial",
     features: [
-      "~10,000 AI chat messages / month",
+      "~3,000 AI chat messages / month",
       "Verified journalist and creator contact emails",
       "Unlimited media contacts per query",
       "Everything in Starter",
