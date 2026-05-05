@@ -92,6 +92,7 @@ const App = () => (
               {/* Resources content */}
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
+              <Route path="/resources/success" element={<ProtectedRoute><Navigate to="/chat?topup=success" replace /></ProtectedRoute>} />
               <Route path="/resources/:slug" element={<ResourceArticle />} />
 
               {/* Tools (canonical) */}
