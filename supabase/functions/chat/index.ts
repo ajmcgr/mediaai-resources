@@ -1107,6 +1107,11 @@ async function databaseOnlyResponse(
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
+  console.log("CHAT_FN_REQUEST_START", {
+    method: req.method,
+    url: req.url,
+    hasAuth: !!req.headers.get("Authorization"),
+  });
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
 
   try {
@@ -1119,6 +1124,7 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: { user } } = await userClient.auth.getUser();
+    console.log("CHAT_FN_AUTH", { userId: user?.id, email: user?.email });
     if (!user)
       return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
