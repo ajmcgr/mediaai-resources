@@ -2,7 +2,7 @@
 // Body: { user_id, user_email, pack: "small"|"medium"|"large" }
 // Uses inline price_data — no Stripe dashboard setup required.
 
-import Stripe from "https://esm.sh/stripe@17.5.0?target=denonext";
+import Stripe from "npm:stripe@17.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
