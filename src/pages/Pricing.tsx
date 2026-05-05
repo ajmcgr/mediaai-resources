@@ -35,8 +35,8 @@ const TIERS: Tier[] = [
     features: [
       "Verified journalist and creator contact emails",
       "Media AI chat assistant",
-      "200,000 chat tokens / month",
-      "Top-up tokens any time",
+      "200,000 chat credits / month",
+      "Top-up credits any time",
       "Email support",
       "1-month free trial",
     ],
@@ -53,7 +53,7 @@ const TIERS: Tier[] = [
     features: [
       "Verified journalist and creator contact emails",
       "Everything in Starter",
-      "1,000,000 chat tokens / month",
+      "1,000,000 chat credits / month",
       "100% database access — no row limits",
       "Sort, filter, save views, export",
       "Share contacts via link, email, or CSV",
@@ -65,7 +65,7 @@ const TIERS: Tier[] = [
   {
     id: "enterprise",
     name: "Enterprise",
-    tagline: "Custom API, volume tokens, dedicated support.",
+    tagline: "Custom API, volume credits, dedicated support.",
     monthly: null,
     yearly: null,
     cta: "Contact us",
@@ -73,7 +73,7 @@ const TIERS: Tier[] = [
       "Verified journalist and creator contact emails",
       "Everything in Growth",
       "Custom API access",
-      "Volume token pricing",
+      "Volume credit pricing",
       "SSO + dedicated support",
       "Custom contracts",
     ],
