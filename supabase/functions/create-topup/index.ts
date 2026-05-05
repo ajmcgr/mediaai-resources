@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         pack: packKey,
         tokens: String(pack.tokens),
       },
-      success_url: `${siteUrl}/chat?topup=success`,
+      success_url: `${siteUrl}/chat?topup=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/chat?topup=cancelled`,
     });
 
