@@ -21,6 +21,14 @@ Never invent contacts. Be concise.`;
 
 type Tool = { type: "function"; function: { name: string; description: string; parameters: unknown } };
 
+type UsageSummary = {
+  allowance: number;
+  used: number;
+  remaining: number;
+  credits: number;
+  period_ym: string;
+};
+
 const tools: Tool[] = [
   {
     type: "function",
