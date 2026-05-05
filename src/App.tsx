@@ -52,6 +52,13 @@ const LegacySlugRedirect = () => {
   return <Navigate to={`/resources/${slug}`} replace />;
 };
 
+const TopupSuccessRedirect = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set("topup", "success");
+  return <Navigate to={`/chat?${params.toString()}`} replace />;
+};
+
 
 const App = () => (
   <HelmetProvider>
@@ -93,6 +100,7 @@ const App = () => (
               {/* Resources content */}
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
+              <Route path="/resources/success" element={<ProtectedRoute><TopupSuccessRedirect /></ProtectedRoute>} />
               
               <Route path="/resources/:slug" element={<ResourceArticle />} />
 
