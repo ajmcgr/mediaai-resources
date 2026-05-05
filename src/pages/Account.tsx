@@ -13,7 +13,9 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 
-const formatTokens = (n: number) => new Intl.NumberFormat().format(Math.max(0, Math.round(n)));
+const TOKENS_PER_MESSAGE = 80;
+const formatMessages = (tokens: number) =>
+  new Intl.NumberFormat().format(Math.max(0, Math.round(tokens / TOKENS_PER_MESSAGE)));
 
 
 const PLAN_LABELS: Record<string, string> = {
@@ -164,19 +166,19 @@ const Account = () => {
             <>
               <dl className="space-y-3 text-sm mb-6">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Monthly allowance remaining</dt>
+                  <dt className="text-muted-foreground">Monthly messages remaining</dt>
                   <dd className="font-medium">
-                    {formatTokens(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)))} / {formatTokens(usage?.allowance ?? 0)}
+                    ~{formatMessages(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)))} / ~{formatMessages(usage?.allowance ?? 0)}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Top-up credits</dt>
-                  <dd className="font-medium">{formatTokens(usage?.credits ?? 0)}</dd>
+                  <dt className="text-muted-foreground">Top-up messages</dt>
+                  <dd className="font-medium">~{formatMessages(usage?.credits ?? 0)}</dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-3">
                   <dt className="text-muted-foreground">Total available</dt>
                   <dd className="font-medium">
-                    {formatTokens(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)) + (usage?.credits ?? 0))}
+                    ~{formatMessages(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)) + (usage?.credits ?? 0))}
                   </dd>
                 </div>
               </dl>
