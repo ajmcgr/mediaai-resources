@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -449,7 +449,7 @@ const Chat = () => {
     if (usage && usage.remaining <= 0) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." },
+        { role: "assistant", content: "You've used all your chat tokens for this month. Click the **tokens left** button in the header to buy a top-up pack, or [upgrade your plan](/pricing)." },
       ]);
       return;
     }
@@ -467,7 +467,7 @@ const Chat = () => {
         let detail = "";
         try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
         if (detail.includes("quota_exhausted")) {
-          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat tokens for this month. [Upgrade your plan](/pricing) to continue." }]);
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat tokens for this month. Click the **tokens left** button in the header to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
           await refreshUsage();
           return;
         }
@@ -497,6 +497,20 @@ const Chat = () => {
   };
 
   const send = () => sendText(input.trim());
+
+  const buyTokens = async (pack: "small" | "medium" | "large") => {
+    if (!user) { navigate("/login"); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke("create-topup", {
+        body: { user_id: user.id, user_email: user.email, pack },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+      else throw new Error(data?.error || "Could not start checkout");
+    } catch (e) {
+      toast.error((e as Error).message || "Top-up failed");
+    }
+  };
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
   const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
@@ -616,14 +630,41 @@ const Chat = () => {
 
         <div className="flex items-center gap-2">
           {usage && (
-            <Link
-              to="/pricing"
-              title={`${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly tokens used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}`}
-              className={`hidden md:inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs ${usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : "text-muted-foreground"}`}
-            >
-              <Sparkles className="h-3 w-3" />
-              {usage.remaining.toLocaleString()} tokens left
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title={`${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly tokens used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}`}
+                  className={`hidden md:inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-secondary transition-colors ${usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : "text-muted-foreground border-border"}`}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {usage.remaining.toLocaleString()} tokens left
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-xs text-muted-foreground">Buy more chat tokens</div>
+                  <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k tokens</span>
+                  <span className="text-xs text-muted-foreground">$10</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k tokens</span>
+                  <span className="text-xs text-muted-foreground">$40</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M tokens</span>
+                  <span className="text-xs text-muted-foreground">$120</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
+                  Or upgrade your plan →
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
             <MessageSquare className="h-3.5 w-3.5" />Chat
