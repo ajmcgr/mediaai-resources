@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { Button } from "@/components/ui/button";
-import { openBillingPortal, openTopupCheckout } from "@/lib/billing";
+import { openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
