@@ -28,7 +28,7 @@ const TIERS: Tier[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "Media AI chat. No database access.",
+    tagline: "Media AI chat.",
     monthly: 29,
     yearly: 290,
     cta: "Start Free Trial",
