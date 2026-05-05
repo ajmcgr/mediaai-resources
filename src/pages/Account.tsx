@@ -122,7 +122,48 @@ const Account = () => {
           )}
         </section>
 
-        
+        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+            Chat credits
+          </h2>
+          {usageLoading ? (
+            <div className="py-2"><Spinner /></div>
+          ) : (
+            <>
+              <dl className="space-y-3 text-sm mb-6">
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Monthly allowance remaining</dt>
+                  <dd className="font-medium">
+                    {formatTokens(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)))} / {formatTokens(usage?.allowance ?? 0)}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Top-up credits</dt>
+                  <dd className="font-medium">{formatTokens(usage?.credits ?? 0)}</dd>
+                </div>
+                <div className="flex justify-between border-t border-border pt-3">
+                  <dt className="text-muted-foreground">Total available</dt>
+                  <dd className="font-medium">
+                    {formatTokens(Math.max(0, (usage?.allowance ?? 0) - (usage?.used ?? 0)) + (usage?.credits ?? 0))}
+                  </dd>
+                </div>
+              </dl>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(Object.entries(TOPUP_PACKS) as [TopupPack, typeof TOPUP_PACKS[TopupPack]][]).map(([key, pack]) => (
+                  <Button
+                    key={key}
+                    variant="outline"
+                    onClick={() => handleTopup(key)}
+                    disabled={topupLoading !== null}
+                  >
+                    {topupLoading === key ? "Opening…" : `${pack.label} — $${pack.priceUsd}`}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+
 
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
