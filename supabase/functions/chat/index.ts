@@ -1124,6 +1124,11 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
+    const { messages, model } = await req.json();
+    if (!Array.isArray(messages))
+      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const userQuery = latestUserQuery(messages);
+
     const summary = await loadUsageSummary(admin, user.id, userClient);
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
@@ -1133,27 +1138,19 @@ Deno.serve(async (req) => {
     const trulyExhausted = remaining <= 0 && monthlyRoom <= 0 && !hasCredits;
     if (trulyExhausted) {
       console.log("[chat.quota_exhausted]", { user: user.id, summary });
-      return new Response(
-        JSON.stringify({
-          error: "quota_exhausted",
-          message: "You've used all of your chat tokens for this month.",
-          ...summary,
-          debug: {
-            remaining,
-            credits: summary.credits,
-            sub_active: summary.sub_active,
-            plan_identifier: summary.plan_identifier,
-            allowance,
-            used: usedSoFar,
-            monthly_room: monthlyRoom,
-            ledger_purchased: summary.ledger_purchased,
-            profile_credits: summary.profile_credits,
-            rpc_remaining: summary.rpc_remaining,
-            rpc_credits: summary.rpc_credits,
-          },
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "beta_quota_soft_unblock", {
+        remaining,
+        credits: summary.credits,
+        sub_active: summary.sub_active,
+        plan_identifier: summary.plan_identifier,
+        allowance,
+        used: usedSoFar,
+        monthly_room: monthlyRoom,
+        ledger_purchased: summary.ledger_purchased,
+        profile_credits: summary.profile_credits,
+        rpc_remaining: summary.rpc_remaining,
+        rpc_credits: summary.rpc_credits,
+      });
     }
 
     // Self-heal: if ledger has more credits than profile column, sync it.
@@ -1163,14 +1160,11 @@ Deno.serve(async (req) => {
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
-    const { messages, model } = await req.json();
-    if (!Array.isArray(messages))
-      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
     const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey)
-      return new Response(JSON.stringify({ error: "missing_key", message: "Chat is not configured. Contact support." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!apiKey) {
+      console.warn("[chat.provider_fallback] missing_openai_key");
+      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key");
+    }
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
