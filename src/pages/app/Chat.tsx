@@ -474,6 +474,7 @@ const Chat = () => {
   }, [results]);
 
   const handleSend = async (inputValue = input.trim(), reset = false) => {
+    console.log("CALLING EDGE FUNCTION CHAT");
     if (!inputValue.trim() || loading) return;
     const allowance = Number(usage?.allowance ?? 0);
     const used = Number(usage?.used ?? 0);
@@ -493,7 +494,6 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
-      console.log("CALLING EDGE FUNCTION");
       const { data, error } = await supabase.functions.invoke("chat", {
         body: { query: inputValue },
       });
