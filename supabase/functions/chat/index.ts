@@ -935,23 +935,23 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
 
   const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
   let exaRows: Row[] = [];
-  debug.search_order = "database_first";
-  debug.exa_skipped = dbRows.length >= 10;
+  debug.search_order = "database_plus_web";
+  debug.exa_skipped = false;
 
-  if (dbRows.length < 10) {
-    try {
-      exaRows = await searchExa(intent, target);
-      if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
-        exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
-      }
-    } catch (error) {
-      console.warn("[chat.exa_fallback_database_only]", error instanceof Error ? error.message : String(error));
-      debug.exa_error = error instanceof Error ? error.message : String(error);
-      exaRows = [];
+  // Always augment database results with Exa web results (do not skip on db_count).
+  try {
+    exaRows = await searchExa(intent, Math.max(target, 50));
+    if (exaRows.length < 20) {
+      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, Math.max(target, 50)))]).filter((r) => r.source === "exa");
     }
+  } catch (error) {
+    console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
+    debug.exa_error = error instanceof Error ? error.message : String(error);
+    exaRows = [];
   }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
+  debug.web_count = exaRows.length;
 
   let dbStrict = dbRows;
   if (intent.topics.length || intent.countries.length) {
