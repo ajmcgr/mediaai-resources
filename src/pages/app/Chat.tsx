@@ -421,13 +421,14 @@ const Chat = () => {
           if (cancelled || error || !data?.ok) continue;
           setResults((prev) => {
             if (!prev || prev.kind !== results.kind) return prev;
+            const sourceTable: Row["source_table"] = prev.kind === "journalists" ? "journalist" : "creators";
             const rows = prev.rows.map((candidate) => {
               if (rowPersistenceKey(candidate) !== key) return candidate;
               return {
                 ...candidate,
                 source: "database" as const,
                 source_id: data.id,
-                source_table: prev.kind === "journalists" ? "journalist" : "creators",
+                source_table: sourceTable,
               };
             });
             return { ...prev, rows };
@@ -632,11 +633,9 @@ const Chat = () => {
               <Database className="h-3.5 w-3.5" />Database
             </Button>
           )}
-          {hasGrowth && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
-              <Bell className="h-3.5 w-3.5" />Monitor
-            </Button>
-          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+            <Bell className="h-3.5 w-3.5" />Monitor
+          </Button>
           <InboxSheet />
           <ListsSheet />
           <Button
