@@ -541,7 +541,7 @@ const Chat = () => {
 
   const enrichEmail = async (idx: number) => {
     if (!results) return;
-    let row = results.rows[idx];
+    const row = results.rows[idx];
     if (!row) return;
     setEnrichingIdx((s) => ({ ...s, [idx]: true }));
     try {
