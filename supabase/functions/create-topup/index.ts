@@ -164,6 +164,18 @@ async function processTopupGrant(
     return { already: true, granted: false, tokens: 0, session_id: session.id };
   }
 
+  const { data: existing } = await admin
+    .from("topup_transactions")
+    .select("id")
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+  if (existing) {
+    await stripe.checkout.sessions.update(session.id, {
+      metadata: { ...(session.metadata || {}), granted: "1" },
+    });
+    return { already: true, granted: false, tokens: 0, session_id: session.id };
+  }
+
   const userId = sessionUserId || authUserId;
   const tokens = Number(session.metadata?.tokens || 0);
   if (!tokens) throw new Error("missing_tokens");
