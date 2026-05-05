@@ -519,8 +519,9 @@ const Chat = () => {
       ]);
       console.log("EXA_RESPONSE", exaRes);
       const exaData = (exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }>; error?: string } } | null)?.data;
-      const exaError = exaData?.error;
-      if (exaError) console.log("EXA_ERROR", exaError);
+      const exaErr = exaData?.error ?? null;
+      setExaError(exaErr);
+      if (exaErr) console.log("EXA_ERROR", exaErr);
       const { data, error } = chatRes;
       const webResults: Row[] = ((exaData?.results) ?? []).map((r) => ({
         source: "exa" as const,
