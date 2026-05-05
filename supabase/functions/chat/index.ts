@@ -977,15 +977,17 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   return { rows: ranked, debug, intent, cap };
 }
 
-async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: string): Promise<UsageSummary> {
+async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: string): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number }> {
   const period = new Date().toISOString().slice(0, 7);
-  const [profileResult, usageResult] = await Promise.all([
+  const [profileResult, usageResult, topupResult] = await Promise.all([
     admin.from("profiles").select("chat_credits, sub_active, plan_identifier").eq("id", userId).maybeSingle(),
     admin.from("chat_usage").select("tokens_used").eq("user_id", userId).eq("period_ym", period).maybeSingle(),
+    admin.from("topup_transactions").select("tokens").eq("user_id", userId),
   ]);
 
   if (profileResult.error) throw new Error(`profile_usage_failed: ${profileResult.error.message}`);
   if (usageResult.error) throw new Error(`chat_usage_failed: ${usageResult.error.message}`);
+  if (topupResult.error) console.warn("[chat.topup_lookup_failed]", topupResult.error.message);
 
   const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
@@ -994,11 +996,25 @@ async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: 
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
     : 20_000;
   const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
-  const credits = Number(profile?.chat_credits ?? 0);
+  const profileCredits = Number(profile?.chat_credits ?? 0);
+
+  // Ledger fallback: if profiles.chat_credits is missing/zero but the user actually
+  // paid for top-ups, trust the ledger so we don't block paying users.
+  const ledgerPurchased = Array.isArray(topupResult.data)
+    ? (topupResult.data as Array<{ tokens?: number | string }>).reduce((sum, r) => sum + Number(r.tokens ?? 0), 0)
+    : 0;
+  const overflowUsed = Math.max(used - allowance, 0);
+  const ledgerCredits = Math.max(ledgerPurchased - overflowUsed, 0);
+  const credits = Math.max(profileCredits, ledgerCredits);
+
   const monthlyRemaining = Math.max(allowance - used, 0);
   const remaining = monthlyRemaining + Math.max(credits, 0);
 
-  return { allowance, used, credits, remaining, period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null };
+  return {
+    allowance, used, credits, remaining,
+    period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null,
+    ledger_purchased: ledgerPurchased, profile_credits: profileCredits,
+  };
 }
 
 // ---------- Handler ----------
@@ -1046,10 +1062,19 @@ Deno.serve(async (req) => {
             allowance,
             used: usedSoFar,
             monthly_room: monthlyRoom,
+            ledger_purchased: summary.ledger_purchased,
+            profile_credits: summary.profile_credits,
           },
         }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Self-heal: if ledger has more credits than profile column, sync it.
+    if (summary.ledger_purchased > summary.profile_credits && summary.credits > summary.profile_credits) {
+      try {
+        await admin.from("profiles").update({ chat_credits: summary.credits }).eq("id", user.id);
+      } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
     const { messages, model } = await req.json();
