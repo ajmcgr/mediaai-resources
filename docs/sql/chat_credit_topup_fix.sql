@@ -56,9 +56,9 @@ declare
 begin
   if uid is not null then
     alw := coalesce(public.chat_token_allowance(uid), 0);
-    select coalesce(tokens_used, 0) into usd
-      from public.chat_usage
-      where user_id = uid and period_ym = ym;
+    select coalesce(cu.tokens_used, 0) into usd
+      from public.chat_usage cu
+      where cu.user_id = uid and cu.period_ym = ym;
     usd := coalesce(usd, 0);
     select coalesce(chat_credits, 0) into cr
       from public.profiles
@@ -96,9 +96,9 @@ begin
   values (_user, ym, 0, now())
   on conflict (user_id, period_ym) do nothing;
 
-  select coalesce(tokens_used, 0) into cur_used
-    from public.chat_usage
-    where user_id = _user and period_ym = ym
+  select coalesce(cu.tokens_used, 0) into cur_used
+    from public.chat_usage cu
+    where cu.user_id = _user and cu.period_ym = ym
     for update;
 
   monthly_room := greatest(alw - cur_used, 0);
@@ -111,7 +111,7 @@ begin
 
   update public.chat_usage
     set tokens_used = new_used, updated_at = now()
-    where user_id = _user and period_ym = ym;
+    where public.chat_usage.user_id = _user and public.chat_usage.period_ym = ym;
 
   if overflow > 0 then
     update public.profiles
