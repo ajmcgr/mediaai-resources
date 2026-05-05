@@ -495,9 +495,16 @@ const Chat = () => {
         const ctx = (error as { context?: Response }).context;
         let detail = "";
         try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
+        let parsed: { error?: string; message?: string; usage?: Partial<import("@/hooks/useChatUsage").ChatUsage> } | null = null;
+        try { parsed = detail ? JSON.parse(detail) : null; } catch { /* ignore */ }
+        if (parsed?.usage) applyServerUsage(parsed.usage);
         if (detail.includes("quota_exhausted")) {
           setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
           await refreshUsage();
+          return;
+        }
+        if (parsed?.error === "model_provider_error") {
+          setMessages((m) => [...m, { role: "assistant", content: "Your Media AI credits are available, but the AI model provider rejected the request. Please check the configured OpenAI billing/API key." }]);
           return;
         }
         throw error;

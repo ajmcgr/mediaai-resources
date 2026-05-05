@@ -1025,7 +1025,7 @@ Deno.serve(async (req) => {
     const remaining = summary.remaining;
     if (remaining <= 0) {
       return new Response(
-        JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", allowance, used: usedSoFar, remaining: 0 }),
+        JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", ...summary }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -1056,8 +1056,9 @@ Deno.serve(async (req) => {
       });
       if (!r.ok) {
         const text = await r.text();
-        return new Response(JSON.stringify({ error: "openai_error", status: r.status, message: text }),
-          { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        console.error("openai_error", { status: r.status, body: text.slice(0, 500) });
+        return new Response(JSON.stringify({ error: "model_provider_error", provider_status: r.status, message: text, usage: summary }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const data = await r.json();
       totalTokens += Number(data?.usage?.total_tokens ?? 0);
