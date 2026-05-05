@@ -1160,6 +1160,8 @@ Deno.serve(async (req) => {
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
+    return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
+
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
       console.warn("[chat.provider_fallback] missing_openai_key");
