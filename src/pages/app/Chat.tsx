@@ -664,7 +664,6 @@ const Chat = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
           <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
