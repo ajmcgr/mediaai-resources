@@ -1258,6 +1258,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
+          warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
           usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
@@ -1269,6 +1270,7 @@ Deno.serve(async (req) => {
     const finalRemaining = await recordUsage(admin, user.id, totalTokens, Math.max(remaining - totalTokens, 0));
     return new Response(
       JSON.stringify({
+        warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
         usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: finalRemaining, tokens_this_request: totalTokens },
