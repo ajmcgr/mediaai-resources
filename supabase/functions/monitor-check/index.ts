@@ -1,7 +1,6 @@
 // Check a single brand monitor: fetch URLs, diff against last snapshot,
 // run AI evaluation, persist update, optionally send email.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { renderBrandedEmail } from "../_shared/email-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,10 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
 interface Monitor {
@@ -25,6 +20,19 @@ interface Monitor {
   keywords: string[];
   email_alerts: boolean;
   alert_frequency: string;
+}
+
+function env(name: string): string {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) throw new Error(`missing_env:${name}`);
+  return value;
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 async function sha256(s: string): Promise<string> {
@@ -86,20 +94,15 @@ async function aiEvaluate(opts: {
   keywords: string[];
   diff: string;
 }): Promise<AiResult | null> {
+  const lovableApiKey = env("LOVABLE_API_KEY");
   const sys =
     "You are a PR analyst. Given a website diff for a tracked brand, decide if the change is a meaningful PR signal (launch, funding, hire, partnership, pricing change, new product, controversy, milestone). Ignore navigation, copy tweaks, footer/legal updates, dynamic counters. Respond ONLY with JSON.";
-  const user = `Brand: ${opts.brand}
-URL: ${opts.url} (${opts.url_kind})
-Keywords: ${opts.keywords.join(", ") || "(none)"}
-DIFF (new/changed sentences):
-${opts.diff.slice(0, 8000)}
-
-Respond with JSON: {"meaningful": boolean, "summary": string (<=160 chars), "why_it_matters": string (<=240 chars), "pr_score": integer 0-100, "next_action": string (<=180 chars), "pitch_angle": string (<=240 chars)}`;
+  const user = `Brand: ${opts.brand}\nURL: ${opts.url} (${opts.url_kind})\nKeywords: ${opts.keywords.join(", ") || "(none)"}\nDIFF (new/changed sentences):\n${opts.diff.slice(0, 8000)}\n\nRespond with JSON: {"meaningful": boolean, "summary": string (<=160 chars), "why_it_matters": string (<=240 chars), "pr_score": integer 0-100, "next_action": string (<=180 chars), "pitch_angle": string (<=240 chars)}`;
 
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${lovableApiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -139,7 +142,11 @@ async function sendAlertEmail(opts: {
   url: string;
   result: AiResult;
 }) {
-  if (!RESEND_API_KEY) return;
+  const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
+  if (!resendApiKey) return;
+
+  const lovableApiKey = env("LOVABLE_API_KEY");
+  const { renderBrandedEmail } = await import("../_shared/email-template.ts");
   const html = renderBrandedEmail({
     preheader: `PR signal for ${opts.brand}`,
     heading: `New PR signal: ${opts.brand}`,
@@ -158,8 +165,8 @@ async function sendAlertEmail(opts: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": RESEND_API_KEY,
+      Authorization: `Bearer ${lovableApiKey}`,
+      "X-Connection-Api-Key": resendApiKey,
     },
     body: JSON.stringify({
       from: "Media AI <hello@trymedia.ai>",
@@ -246,17 +253,26 @@ async function checkOneUrl(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  if (req.method !== "POST") {
+    return json({ error: "method_not_allowed" }, 405);
+  }
+
   try {
     const { monitor_id } = await req.json().catch(() => ({}));
     if (!monitor_id) {
-      return new Response(JSON.stringify({ error: "monitor_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "monitor_id required" }, 400);
     }
 
-    const supa = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const supabaseUrl = env("SUPABASE_URL");
+    const serviceRole = env("SUPABASE_SERVICE_ROLE_KEY");
+    const supa = createClient(supabaseUrl, serviceRole);
     const { data: monitor, error } = await supa
       .from("brand_monitors")
       .select("*")
@@ -264,10 +280,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (error || !monitor) {
-      return new Response(JSON.stringify({ error: "monitor not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "monitor not found" }, 404);
     }
 
     const { data: userRow } = await supa.auth.admin.getUserById(monitor.user_id);
@@ -293,14 +306,9 @@ Deno.serve(async (req) => {
       .update({ last_checked_at: new Date().toISOString() })
       .eq("id", monitor.id);
 
-    return new Response(JSON.stringify({ ok: true, results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: true, results });
   } catch (e) {
     console.error("monitor-check error", e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: (e as Error).message }, 500);
   }
 });
