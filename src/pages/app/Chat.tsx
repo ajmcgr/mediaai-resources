@@ -684,6 +684,11 @@ const Chat = () => {
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
           </div>
+          <div className="px-3 py-2 border-b border-border">
+            <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
+              <Plus className="h-3.5 w-3.5" />New chat
+            </Button>
+          </div>
           <div className="flex-1 overflow-auto px-2 py-2">
             {savedSearches.isLoading ? (
               <div className="px-2 py-3 text-xs text-muted-foreground">Loading…</div>
