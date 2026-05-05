@@ -495,10 +495,26 @@ const Chat = () => {
         const ctx = (error as { context?: Response }).context;
         let detail = "";
         try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
-        let parsed: { error?: string; message?: string; usage?: Partial<import("@/hooks/useChatUsage").ChatUsage> } | null = null;
+        let parsed: { error?: string; message?: string; usage?: Partial<import("@/hooks/useChatUsage").ChatUsage>; debug?: { remaining?: number; credits?: number; sub_active?: boolean } } | null = null;
         try { parsed = detail ? JSON.parse(detail) : null; } catch { /* ignore */ }
         if (parsed?.usage) applyServerUsage(parsed.usage);
         if (detail.includes("quota_exhausted")) {
+          const dbgRemaining = Number(parsed?.debug?.remaining ?? parsed?.usage?.remaining ?? 0);
+          const dbgCredits = Number(parsed?.debug?.credits ?? parsed?.usage?.credits ?? 0);
+          // Soft-unblock: server said exhausted but debug shows positive balance.
+          // Sync local state, restore the prompt, and let the user retry.
+          if (dbgRemaining > 0 || dbgCredits > 0) {
+            applyServerUsage({
+              remaining: dbgRemaining,
+              credits: dbgCredits,
+              ...(parsed?.usage ?? {}),
+            });
+            setMessages((m) => m.slice(0, -1));
+            setInput(text);
+            setMessages((m) => [...m, { role: "assistant", content: `Your balance shows ${dbgRemaining.toLocaleString()} remaining + ${dbgCredits.toLocaleString()} credits, but the server reported quota exhausted. Please click **Send** again to retry.` }]);
+            await refreshUsage();
+            return;
+          }
           setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
           await refreshUsage();
           return;
