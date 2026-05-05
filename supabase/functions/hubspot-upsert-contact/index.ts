@@ -96,11 +96,13 @@ Deno.serve(async (req) => {
     });
     let data = await res.json();
 
-    // If contact already exists (409), update it instead
+    // If contact already exists (409), update by email idProperty
     if (res.status === 409) {
-      const existingId =
+      let existingId: string | undefined =
         data?.message?.match(/Existing ID:\s*(\d+)/i)?.[1] ||
-        data?.context?.id?.[0];
+        (Array.isArray(data?.context?.ids) ? data.context.ids[0] : undefined) ||
+        (Array.isArray(data?.context?.id) ? data.context.id[0] : undefined);
+
       if (existingId) {
         res = await fetch(`${baseUrl}/crm/v3/objects/contacts/${existingId}`, {
           method: "PATCH",
@@ -108,12 +110,27 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ properties }),
         });
         data = await res.json();
+      } else {
+        // Fallback: PATCH by email idProperty (idempotent upsert)
+        res = await fetch(
+          `${baseUrl}/crm/v3/objects/contacts/${encodeURIComponent(email)}?idProperty=email`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ properties }),
+          },
+        );
+        data = await res.json();
       }
     }
 
     if (!res.ok) {
       console.error("HubSpot error", res.status, data);
-      throw new Error(`HubSpot API failed [${res.status}]: ${JSON.stringify(data)}`);
+      // Don't 500 on upstream errors; surface as 200 with success:false so signup flow isn't blocked
+      return new Response(
+        JSON.stringify({ success: false, status: res.status, error: data }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     return new Response(JSON.stringify({ success: true, id: data?.id }), {
