@@ -1,6 +1,6 @@
 // Check a single brand monitor: fetch URLs, diff against last snapshot,
 // run AI evaluation, persist update, optionally send email.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { renderBrandedEmail } from "../_shared/email-template.ts";
 
 const corsHeaders = {
