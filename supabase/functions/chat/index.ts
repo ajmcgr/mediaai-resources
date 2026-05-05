@@ -992,9 +992,9 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
 }
 
 async function loadUsageSummary(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
-  userClient?: ReturnType<typeof createClient>,
+  userClient?: AdminClient,
 ): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number; rpc_remaining: number | null; rpc_credits: number | null }> {
   const period = new Date().toISOString().slice(0, 7);
   const [profileResult, usageResult, topupResult, summaryResult] = await Promise.all([
