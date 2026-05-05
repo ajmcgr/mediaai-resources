@@ -24,6 +24,9 @@ verify_jwt = false
 [functions.chat]
 verify_jwt = false
 
+[functions.exa-search]
+verify_jwt = false
+
 [functions.nylas-auth-start]
 verify_jwt = false
 
