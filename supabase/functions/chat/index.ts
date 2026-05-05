@@ -21,6 +21,14 @@ Never invent contacts. Be concise.`;
 
 type Tool = { type: "function"; function: { name: string; description: string; parameters: unknown } };
 
+type UsageSummary = {
+  allowance: number;
+  used: number;
+  remaining: number;
+  credits: number;
+  period_ym: string;
+};
+
 const tools: Tool[] = [
   {
     type: "function",
@@ -967,6 +975,27 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   return { rows: ranked, debug, intent, cap };
 }
 
+async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: string): Promise<UsageSummary> {
+  const period = new Date().toISOString().slice(0, 7);
+  const [profileResult, usageResult] = await Promise.all([
+    admin.from("profiles").select("chat_credits, sub_active, plan_identifier").eq("id", userId).maybeSingle(),
+    admin.from("chat_usage").select("tokens_used").eq("user_id", userId).eq("period_ym", period).maybeSingle(),
+  ]);
+
+  if (profileResult.error) throw new Error(`profile_usage_failed: ${profileResult.error.message}`);
+  if (usageResult.error) throw new Error(`chat_usage_failed: ${usageResult.error.message}`);
+
+  const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
+  const plan = String(profile?.plan_identifier ?? "").toLowerCase();
+  const allowance = profile?.sub_active
+    ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
+    : 20_000;
+  const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
+  const credits = Number(profile?.chat_credits ?? 0);
+
+  return { allowance, used, credits, remaining: Math.max(allowance - used, 0) + credits, period_ym: period };
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
@@ -990,11 +1019,10 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { data: usageRow } = await userClient.rpc("chat_usage_summary");
-    const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
-    const allowance = Number(summary?.allowance ?? 0);
-    const usedSoFar = Number(summary?.used ?? 0);
-    const remaining = Number(summary?.remaining ?? Math.max(allowance - usedSoFar, 0));
+    const summary = await loadUsageSummary(admin, user.id);
+    const allowance = summary.allowance;
+    const usedSoFar = summary.used;
+    const remaining = summary.remaining;
     if (remaining <= 0) {
       return new Response(
         JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", allowance, used: usedSoFar, remaining: 0 }),
@@ -1077,7 +1105,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: remainingAfter, tokens_this_request: totalTokens },
+          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -1088,7 +1116,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
+        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
