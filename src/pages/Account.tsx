@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 
-const TOKENS_PER_MESSAGE = 80;
+const TOKENS_PER_MESSAGE = 400;
 const formatMessages = (tokens: number) =>
   new Intl.NumberFormat().format(Math.max(0, Math.round(tokens / TOKENS_PER_MESSAGE)));
 
