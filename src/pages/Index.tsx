@@ -82,6 +82,7 @@ const TIERS: Tier[] = [
       "Share contacts via link, email, or CSV",
       "Brand Monitor — daily PR signal alerts",
       "Outreach Inbox — pitch & reply tracking",
+      "Email support",
       "1-month free trial",
     ],
   },
