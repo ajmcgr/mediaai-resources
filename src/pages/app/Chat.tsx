@@ -504,9 +504,23 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }] },
-      });
+      const [chatRes, exaRes] = await Promise.all([
+        supabase.functions.invoke("chat", {
+          body: { messages: [...base, { role: "user", content: inputValue }] },
+        }),
+        supabase.functions.invoke("exa-search", { body: { query: inputValue } }).catch(() => null),
+      ]);
+      const { data, error } = chatRes;
+      const webResults: Row[] = (((exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }> } } | null)?.data?.results) ?? []).map((r) => ({
+        source: "exa" as const,
+        source_url: r.url,
+        name: r.name ?? null,
+        outlet: null,
+        title: r.snippet ?? null,
+        category: null,
+        country: null,
+        email: null,
+      }));
       if (error) {
         const ctx = (error as { context?: Response }).context;
         let detail = "";
