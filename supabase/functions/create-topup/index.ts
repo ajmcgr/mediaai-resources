@@ -2,8 +2,6 @@
 // Body: { user_id, user_email, pack: "small"|"medium"|"large" }
 // Uses inline price_data — no Stripe dashboard setup required.
 
-import Stripe from "npm:stripe@17.5.0";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -20,12 +18,21 @@ export const PACKS: Record<Pack, { tokens: number; amount: number; name: string 
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  if (req.method !== "POST") {
+    return json({ error: "method_not_allowed" }, 405);
+  }
 
   try {
-    const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-    const SITE_URL = Deno.env.get("SITE_URL") ?? "https://trymedia.ai";
-    if (!STRIPE_SECRET_KEY) return json({ error: "missing_stripe_key" }, 500);
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+    const siteUrl = Deno.env.get("SITE_URL") ?? "https://trymedia.ai";
+    if (!stripeSecretKey) return json({ error: "missing_stripe_key" }, 500);
 
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const user_id = String(body.user_id ?? "").trim();
@@ -36,7 +43,8 @@ Deno.serve(async (req) => {
     if (!user_id || !user_email) return json({ error: "missing_user" }, 400);
     if (!pack) return json({ error: "invalid_pack", receivedPack: packKey }, 400);
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY);
+    const Stripe = (await import("npm:stripe@17.5.0")).default;
+    const stripe = new Stripe(stripeSecretKey);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: user_email,
@@ -55,8 +63,8 @@ Deno.serve(async (req) => {
         pack: packKey,
         tokens: String(pack.tokens),
       },
-      success_url: `${SITE_URL}/success?topup=1`,
-      cancel_url: `${SITE_URL}/chat`,
+      success_url: `${siteUrl}/success?topup=1`,
+      cancel_url: `${siteUrl}/chat`,
     });
 
     return json({ url: session.url });
