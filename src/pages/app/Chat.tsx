@@ -839,7 +839,7 @@ const Chat = () => {
                 <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-primary/10 text-primary mb-4">
                   <Sparkles className="h-6 w-6" />
                 </div>
-                <h1 className="text-2xl font-medium mb-2">What are you looking for?</h1>
+                <h1 className="text-2xl font-medium mb-2">What media are you looking for?</h1>
                 <p className="text-sm text-muted-foreground">
                   Ask things like "find tech journalists in the UK" or "beauty creators with 100k+ followers".
                 </p>
