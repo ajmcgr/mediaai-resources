@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-11-20.acacia" });
 
-    if (String(body.action ?? "").toLowerCase() === "confirm") {
+    if (String(body.action ?? "").toLowerCase() === "confirm" || body.session_id) {
       return await confirmTopup(req, body, stripe);
     }
 
