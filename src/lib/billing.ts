@@ -1,8 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const FUNCTIONS_BASE =
-  "https://uavbphkhomblzkjfuaot.functions.supabase.co";
-
 export type PlanId = "starter" | "growth";
 export type BillingInterval = "monthly" | "yearly";
 export type TopupPack = "small" | "medium" | "large";
@@ -13,24 +10,27 @@ export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; 
   large:  { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
 };
 
-async function authedPost(path: string, body: unknown) {
+type InvokeResponse = { url?: string; ok?: boolean; active?: boolean };
+
+async function authedInvoke(path: string, body: unknown) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("NOT_AUTHENTICATED");
-  console.log(`[billing] ${path} payload`, JSON.stringify(body));
-  const res = await fetch(`${FUNCTIONS_BASE}/${path}`, {
-    method: "POST",
+
+  const { data, error } = await supabase.functions.invoke(path, {
+    body,
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify(body ?? {}),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`[billing] ${path} error ${res.status}`, text);
-    throw new Error(text || `Request failed: ${res.status}`);
+
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let detail = "";
+    try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
+    throw new Error(detail || error.message || `Request failed: ${path}`);
   }
-  return res.json() as Promise<{ url: string }>;
+
+  return (data ?? {}) as InvokeResponse;
 }
 
 export async function startCheckout(plan: PlanId, interval: BillingInterval = "monthly") {
@@ -42,54 +42,25 @@ export async function startCheckout(plan: PlanId, interval: BillingInterval = "m
     plan_identifier: plan.toLowerCase() as PlanId,
     interval,
   };
-  console.log("CHECKOUT_PAYLOAD", payload);
-  const { url } = await authedPost("create-checkout", payload);
+  const { url } = await authedInvoke("create-checkout", payload);
   if (!url) throw new Error("Checkout URL missing.");
   window.location.href = url;
 }
 
 export async function confirmCheckout(sessionId: string) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("NOT_AUTHENTICATED");
-  const res = await fetch(`${FUNCTIONS_BASE}/confirm-checkout`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("[billing] confirm-checkout error", res.status, text);
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json() as Promise<{ ok: boolean }>;
+  const data = await authedInvoke("confirm-checkout", { session_id: sessionId });
+  return { ok: Boolean(data.ok) };
 }
 
 export async function syncSubscription() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("NOT_AUTHENTICATED");
-  const res = await fetch(`${FUNCTIONS_BASE}/sync-subscription`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("[billing] sync-subscription error", res.status, text);
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json() as Promise<{ ok: boolean; active: boolean }>;
+  const data = await authedInvoke("sync-subscription", {});
+  return { ok: Boolean(data.ok), active: Boolean(data.active) };
 }
 
 export async function startTopup(pack: TopupPack) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
-  const { url } = await authedPost("create-topup", {
+  const { url } = await authedInvoke("create-topup", {
     user_id: session.user.id,
     user_email: session.user.email,
     pack,
@@ -99,6 +70,7 @@ export async function startTopup(pack: TopupPack) {
 }
 
 export async function openBillingPortal() {
-  const { url } = await authedPost("customer-portal", {});
+  const { url } = await authedInvoke("customer-portal", {});
+  if (!url) throw new Error("Billing portal URL missing.");
   window.location.href = url;
 }
