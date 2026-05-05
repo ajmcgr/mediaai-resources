@@ -46,8 +46,9 @@ type Row = {
   youtube_url?: string | null;
   reason?: string;
 };
+type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean };
 type Results =
-  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null }
+  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
 
 const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
@@ -366,8 +367,9 @@ const Chat = () => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [results, setResults] = useState<Results>(null);
-  
+  const [lastQuery, setLastQuery] = useState<string>("");
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
