@@ -979,7 +979,9 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   }
   debug.deduped_count = combined.length;
 
-  const ranked = blendedResults(combined, intent, target);
+  const blendedTarget = Math.max(target, Math.min(100, dbRows.length + exaRows.length));
+  const ranked = blendedResults(combined, intent, blendedTarget);
+  debug.blended_target = blendedTarget;
   debug.final_count = ranked.length;
 
   try {
