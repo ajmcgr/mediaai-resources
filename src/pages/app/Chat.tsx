@@ -505,7 +505,7 @@ const Chat = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { query: inputValue },
+        body: { messages: [...base, { role: "user", content: inputValue }] },
       });
       if (error) {
         const ctx = (error as { context?: Response }).context;

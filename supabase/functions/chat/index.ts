@@ -1168,13 +1168,16 @@ Deno.serve(async (req) => {
       rpc_credits: summary.rpc_credits,
       sub_active: summary.sub_active,
     };
+    console.log("CREDIT DEBUG", {
+      profileCredits: summary.profile_credits,
+      tokensUsed: usedSoFar,
+      topupCredits: summary.credits,
+      creditsRemaining,
+      userId: user.id,
+    });
     console.log("[chat.credit_check]", creditDebug);
     if (creditsRemaining <= 0) {
-      console.warn("Credit check failed", {
-        ...creditDebug,
-        bypassed: true,
-        reason: "temporary_authenticated_chat_unblock",
-      });
+      console.log("BYPASSING CREDIT BLOCK", creditsRemaining);
       summary.beta_credit_bypass = true;
     }
     summary.remaining = remaining;
