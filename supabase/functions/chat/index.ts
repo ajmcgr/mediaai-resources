@@ -935,23 +935,23 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
 
   const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
   let exaRows: Row[] = [];
-  debug.search_order = "database_first";
-  debug.exa_skipped = dbRows.length >= 10;
+  debug.search_order = "database_plus_web";
+  debug.exa_skipped = false;
 
-  if (dbRows.length < 10) {
-    try {
-      exaRows = await searchExa(intent, target);
-      if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
-        exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
-      }
-    } catch (error) {
-      console.warn("[chat.exa_fallback_database_only]", error instanceof Error ? error.message : String(error));
-      debug.exa_error = error instanceof Error ? error.message : String(error);
-      exaRows = [];
+  // Always augment database results with Exa web results (do not skip on db_count).
+  try {
+    exaRows = await searchExa(intent, Math.max(target, 50));
+    if (exaRows.length < 20) {
+      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, Math.max(target, 50)))]).filter((r) => r.source === "exa");
     }
+  } catch (error) {
+    console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
+    debug.exa_error = error instanceof Error ? error.message : String(error);
+    exaRows = [];
   }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
+  debug.web_count = exaRows.length;
 
   let dbStrict = dbRows;
   if (intent.topics.length || intent.countries.length) {
@@ -979,7 +979,9 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   }
   debug.deduped_count = combined.length;
 
-  const ranked = blendedResults(combined, intent, target);
+  const blendedTarget = Math.max(target, Math.min(100, dbRows.length + exaRows.length));
+  const ranked = blendedResults(combined, intent, blendedTarget);
+  debug.blended_target = blendedTarget;
   debug.final_count = ranked.length;
 
   try {
@@ -1075,21 +1077,23 @@ async function databaseOnlyResponse(
   extraDebug: Record<string, unknown> = {},
 ) {
   const result = await hybridSearch(admin, q || "journalist", plan);
-  const dbRows = result.rows.filter((row) => row.source === "database");
-  const rows = dbRows.length ? dbRows : result.rows;
+  const rows = result.rows;
+  const dbN = rows.filter((r) => r.source === "database").length;
+  const webN = rows.filter((r) => r.source === "exa").length;
   const tokens = Math.max(1, Math.ceil((q || "").length / 4));
   const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
   const kind = result.intent.kind;
+  const limit = Math.max(result.cap, dbN + webN);
 
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results from your database.`,
+      content: `Found ${rows.length} relevant results: ${dbN} from your database and ${webN} from the web.`,
       results: {
         kind,
-        rows: rows.slice(0, result.cap),
+        rows: rows.slice(0, limit),
         query: q,
-        debug: { ...result.debug, fallback_reason: reason, database_only: true, ...extraDebug },
+        debug: { ...result.debug, fallback_reason: reason, database_only: false, web_count: webN, ...extraDebug },
         intent: result.intent,
       },
       usage: {
@@ -1214,7 +1218,7 @@ Deno.serve(async (req) => {
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
 
-    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") !== "false";
+    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") === "true";
     if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first");
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
