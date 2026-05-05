@@ -516,7 +516,7 @@ const Chat = () => {
               ...(parsed?.usage ?? {}),
             });
             setMessages((m) => m.slice(0, -1));
-            setInput(text);
+            setInput(inputValue);
             setMessages((m) => [...m, { role: "assistant", content: `Your balance shows ${dbgRemaining.toLocaleString()} remaining + ${dbgCredits.toLocaleString()} credits, but the server reported quota exhausted. Please click **Send** again to retry.` }]);
             await refreshUsage();
             return;
@@ -537,10 +537,10 @@ const Chat = () => {
       ]);
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
-        const expanded = await expandChatResults(data.results, text);
+        const expanded = await expandChatResults(data.results, inputValue);
         setResults(expanded);
         setSavingIdx({});
-        upsertSearch.mutate({ tab: expanded.kind, query: { q: text } });
+        upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
       } else {
         setResults(null);
       }
@@ -553,8 +553,6 @@ const Chat = () => {
       setLoading(false);
     }
   };
-
-  const send = () => sendText(input.trim());
 
   const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
