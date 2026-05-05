@@ -47,6 +47,7 @@ returns table(
   period_ym text
 )
 language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
 declare
   uid uuid := auth.uid();
   ym text := to_char(now() at time zone 'utc', 'YYYY-MM');
@@ -60,9 +61,9 @@ begin
       from public.chat_usage cu
       where cu.user_id = uid and cu.period_ym = ym;
     usd := coalesce(usd, 0);
-    select coalesce(chat_credits, 0) into cr
-      from public.profiles
-      where id = uid;
+    select coalesce(p.chat_credits, 0) into cr
+      from public.profiles p
+      where p.id = uid;
     cr := coalesce(cr, 0);
   end if;
 
