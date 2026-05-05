@@ -506,9 +506,10 @@ const Chat = () => {
     setMessages([...base, { role: "user", content: inputValue }]);
     setInput("");
     setLoading(true);
+    setLastQuery(inputValue);
     try {
       const chatRes = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }] },
+        body: { messages: [...base, { role: "user", content: inputValue }], limit: 100, offset: 0 },
       });
       const { data, error } = chatRes;
       if (error) {
@@ -521,8 +522,6 @@ const Chat = () => {
         if (detail.includes("quota_exhausted")) {
           const dbgRemaining = Number(parsed?.debug?.remaining ?? parsed?.usage?.remaining ?? 0);
           const dbgCredits = Number(parsed?.debug?.credits ?? parsed?.usage?.credits ?? 0);
-          // Soft-unblock: server said exhausted but debug shows positive balance.
-          // Sync local state, restore the prompt, and let the user retry.
           if (dbgRemaining > 0 || dbgCredits > 0) {
             applyServerUsage({
               remaining: dbgRemaining,
@@ -552,7 +551,7 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         const expanded = await expandChatResults(data.results, inputValue);
-        setResults(expanded);
+        setResults({ ...expanded, pagination: data?.pagination ?? null, sources: data?.sources ?? null });
         setSavingIdx({});
         upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
       } else {
@@ -565,6 +564,31 @@ const Chat = () => {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!results || !results.pagination?.has_more || loadingMore || !lastQuery) return;
+    setLoadingMore(true);
+    try {
+      const nextOffset = results.pagination.offset + results.pagination.limit;
+      const { data, error } = await supabase.functions.invoke("chat", {
+        body: { messages: [{ role: "user", content: lastQuery }], limit: results.pagination.limit, offset: nextOffset },
+      });
+      if (error) throw error;
+      if (data?.usage) applyServerUsage(data.usage);
+      if (data?.results?.rows?.length) {
+        setResults((prev) => prev ? {
+          ...prev,
+          rows: dedupeRows([...prev.rows, ...data.results.rows]),
+          pagination: data.pagination ?? prev.pagination,
+          sources: data.sources ?? prev.sources,
+        } : prev);
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Could not load more");
+    } finally {
+      setLoadingMore(false);
     }
   };
 
