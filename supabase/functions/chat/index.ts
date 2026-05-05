@@ -975,6 +975,27 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   return { rows: ranked, debug, intent, cap };
 }
 
+async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: string): Promise<UsageSummary> {
+  const period = new Date().toISOString().slice(0, 7);
+  const [profileResult, usageResult] = await Promise.all([
+    admin.from("profiles").select("chat_credits, sub_active, plan_identifier").eq("id", userId).maybeSingle(),
+    admin.from("chat_usage").select("tokens_used").eq("user_id", userId).eq("period_ym", period).maybeSingle(),
+  ]);
+
+  if (profileResult.error) throw new Error(`profile_usage_failed: ${profileResult.error.message}`);
+  if (usageResult.error) throw new Error(`chat_usage_failed: ${usageResult.error.message}`);
+
+  const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
+  const plan = String(profile?.plan_identifier ?? "").toLowerCase();
+  const allowance = profile?.sub_active
+    ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
+    : 20_000;
+  const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
+  const credits = Number(profile?.chat_credits ?? 0);
+
+  return { allowance, used, credits, remaining: Math.max(allowance - used, 0) + credits, period_ym: period };
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
