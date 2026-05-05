@@ -504,14 +504,24 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
+      console.log("CALLING_EXA_SEARCH", inputValue);
       const [chatRes, exaRes] = await Promise.all([
         supabase.functions.invoke("chat", {
           body: { messages: [...base, { role: "user", content: inputValue }] },
         }),
-        supabase.functions.invoke("exa-search", { body: { query: inputValue } }).catch(() => null),
+        supabase.functions
+          .invoke("exa-search", { body: { query: inputValue } })
+          .catch((err) => {
+            console.log("EXA_ERROR", err);
+            return { data: { results: [], error: (err as Error)?.message ?? "invoke_failed" }, error: err } as { data: { results: unknown[]; error?: string }; error: unknown };
+          }),
       ]);
+      console.log("EXA_RESPONSE", exaRes);
+      const exaData = (exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }>; error?: string } } | null)?.data;
+      const exaError = exaData?.error;
+      if (exaError) console.log("EXA_ERROR", exaError);
       const { data, error } = chatRes;
-      const webResults: Row[] = (((exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }> } } | null)?.data?.results) ?? []).map((r) => ({
+      const webResults: Row[] = ((exaData?.results) ?? []).map((r) => ({
         source: "exa" as const,
         source_url: r.url,
         name: r.name ?? null,
