@@ -22,7 +22,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      // HubSpot sync temporarily disabled
+      // Sync to HubSpot on sign-in (upsert is idempotent)
+      if (event === "SIGNED_IN" && newSession?.user) {
+        const u = newSession.user;
+        const meta = (u.user_metadata ?? {}) as Record<string, string | undefined>;
+        const fullName = meta.display_name || meta.full_name || meta.name;
+        // Fire and forget — don't block auth flow
+        setTimeout(() => {
+          supabase.functions.invoke("hubspot-upsert-contact", {
+            body: {
+              email: u.email,
+              fullName,
+              company: meta.company,
+              source: "app-signup",
+            },
+          }).catch((err) => console.warn("HubSpot sync failed:", err));
+        }, 0);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
