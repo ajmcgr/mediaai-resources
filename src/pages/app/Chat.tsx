@@ -867,7 +867,7 @@ const Chat = () => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleSend();
+                    void handleSend();
                   }
                 }}
                 placeholder="Ask Media AI to find journalists or creators…"
@@ -880,7 +880,7 @@ const Chat = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleSend();
+                  void handleSend();
                 }}
                 disabled={loading || !input.trim()}
                 size="icon"
