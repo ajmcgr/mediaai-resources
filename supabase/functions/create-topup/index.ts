@@ -180,21 +180,46 @@ async function processTopupGrant(
   const tokens = Number(session.metadata?.tokens || 0);
   if (!tokens) throw new Error("missing_tokens");
 
-  const { error: rpcError } = await admin.rpc("chat_credit_grant", { _user: userId, _tokens: tokens });
-  if (rpcError) throw new Error(rpcError.message);
+  await grantCredits(admin, userId, tokens);
 
   // Best-effort transaction record for audit/idempotency if the table exists.
-  await admin.from("topup_transactions").insert({
+  const { error: insertError } = await admin.from("topup_transactions").insert({
     user_id: userId,
     stripe_session_id: session.id,
     tokens,
   });
+  if (insertError) console.warn("topup transaction insert skipped", insertError);
 
   await stripe.checkout.sessions.update(session.id, {
     metadata: { ...(session.metadata || {}), granted: "1" },
   });
 
   return { already: false, granted: true, tokens, session_id: session.id };
+}
+
+async function grantCredits(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  tokens: number,
+) {
+  const { error: rpcError } = await admin.rpc("chat_credit_grant", { _user: userId, _tokens: tokens });
+  if (!rpcError) return;
+
+  console.warn("chat_credit_grant failed, falling back to direct profile update", rpcError);
+  const { data: profile, error: readError } = await admin
+    .from("profiles")
+    .select("chat_credits")
+    .eq("id", userId)
+    .maybeSingle();
+  if (readError) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile read failed: ${readError.message}`);
+  if (!profile) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile not found`);
+
+  const nextCredits = Number(profile.chat_credits ?? 0) + tokens;
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({ chat_credits: nextCredits })
+    .eq("id", userId);
+  if (updateError) throw new Error(`chat_credit_grant failed: ${rpcError.message}; profile update failed: ${updateError.message}`);
 }
 
 function siteOrigin(req: Request) {
