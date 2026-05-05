@@ -31,6 +31,11 @@ type UsageSummary = {
   plan_identifier: string | null;
 };
 
+function finiteNumber(value: unknown, fallback = 0): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 const tools: Tool[] = [
   {
     type: "function",
@@ -977,17 +982,23 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   return { rows: ranked, debug, intent, cap };
 }
 
-async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: string): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number }> {
+async function loadUsageSummary(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  userClient?: ReturnType<typeof createClient>,
+): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number; rpc_remaining: number | null; rpc_credits: number | null }> {
   const period = new Date().toISOString().slice(0, 7);
-  const [profileResult, usageResult, topupResult] = await Promise.all([
+  const [profileResult, usageResult, topupResult, summaryResult] = await Promise.all([
     admin.from("profiles").select("chat_credits, sub_active, plan_identifier").eq("id", userId).maybeSingle(),
     admin.from("chat_usage").select("tokens_used").eq("user_id", userId).eq("period_ym", period).maybeSingle(),
     admin.from("topup_transactions").select("tokens").eq("user_id", userId),
+    userClient ? userClient.rpc("chat_usage_summary") : Promise.resolve({ data: null, error: null }),
   ]);
 
   if (profileResult.error) throw new Error(`profile_usage_failed: ${profileResult.error.message}`);
   if (usageResult.error) throw new Error(`chat_usage_failed: ${usageResult.error.message}`);
   if (topupResult.error) console.warn("[chat.topup_lookup_failed]", topupResult.error.message);
+  if (summaryResult.error) console.warn("[chat.usage_summary_rpc_failed]", summaryResult.error.message);
 
   const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
@@ -995,25 +1006,31 @@ async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: 
   const allowance = subActive
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
     : 20_000;
-  const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
-  const profileCredits = Number(profile?.chat_credits ?? 0);
+  const used = finiteNumber((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
+  const profileCredits = finiteNumber(profile?.chat_credits ?? 0);
 
   // Ledger fallback: if profiles.chat_credits is missing/zero but the user actually
   // paid for top-ups, trust the ledger so we don't block paying users.
   const ledgerPurchased = Array.isArray(topupResult.data)
-    ? (topupResult.data as Array<{ tokens?: number | string }>).reduce((sum, r) => sum + Number(r.tokens ?? 0), 0)
+    ? (topupResult.data as Array<{ tokens?: number | string }>).reduce((sum, r) => sum + finiteNumber(r.tokens ?? 0), 0)
     : 0;
   const overflowUsed = Math.max(used - allowance, 0);
   const ledgerCredits = Math.max(ledgerPurchased - overflowUsed, 0);
-  const credits = Math.max(profileCredits, ledgerCredits);
+  const rpcRow = !summaryResult.error && Array.isArray(summaryResult.data) && summaryResult.data[0]
+    ? summaryResult.data[0] as Record<string, unknown>
+    : null;
+  const rpcRemaining = rpcRow ? finiteNumber(rpcRow.remaining ?? 0) : null;
+  const rpcCredits = rpcRow ? finiteNumber(rpcRow.credits ?? 0) : null;
+  const credits = Math.max(profileCredits, ledgerCredits, rpcCredits ?? 0);
 
   const monthlyRemaining = Math.max(allowance - used, 0);
-  const remaining = monthlyRemaining + Math.max(credits, 0);
+  const remaining = Math.max(monthlyRemaining + Math.max(credits, 0), rpcRemaining ?? 0);
 
   return {
     allowance, used, credits, remaining,
     period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null,
     ledger_purchased: ledgerPurchased, profile_credits: profileCredits,
+    rpc_remaining: rpcRemaining, rpc_credits: rpcCredits,
   };
 }
 
@@ -1040,7 +1057,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const summary = await loadUsageSummary(admin, user.id);
+    const summary = await loadUsageSummary(admin, user.id, userClient);
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
     const remaining = summary.remaining;
@@ -1064,6 +1081,8 @@ Deno.serve(async (req) => {
             monthly_room: monthlyRoom,
             ledger_purchased: summary.ledger_purchased,
             profile_credits: summary.profile_credits,
+            rpc_remaining: summary.rpc_remaining,
+            rpc_credits: summary.rpc_credits,
           },
         }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
