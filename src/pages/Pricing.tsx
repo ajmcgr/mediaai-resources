@@ -35,7 +35,7 @@ const TIERS: Tier[] = [
     features: [
       "Verified journalist and creator contact emails",
       "Capped at 100 media contacts per query",
-      "200,000 chat credits / month",
+      "2,500 chat credits / month",
       "Top-up credits any time",
       "Email support",
       "1-month free trial",
@@ -54,7 +54,7 @@ const TIERS: Tier[] = [
       "Verified journalist and creator contact emails",
       "Unlimited media contacts per query",
       "Everything in Starter",
-      "1,000,000 chat credits / month",
+      "10,000 chat credits / month",
       "100% database access — no row limits",
       "Sort, filter, save views, export",
       "Share contacts via link, email, or CSV",
