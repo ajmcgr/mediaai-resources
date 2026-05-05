@@ -989,13 +989,16 @@ async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: 
 
   const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
-  const allowance = profile?.sub_active
+  const subActive = profile?.sub_active === true;
+  const allowance = subActive
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
     : 20_000;
   const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
   const credits = Number(profile?.chat_credits ?? 0);
+  const monthlyRemaining = Math.max(allowance - used, 0);
+  const remaining = monthlyRemaining + Math.max(credits, 0);
 
-  return { allowance, used, credits, remaining: Math.max(allowance - used, 0) + credits, period_ym: period };
+  return { allowance, used, credits, remaining, period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null };
 }
 
 // ---------- Handler ----------
