@@ -14,10 +14,12 @@ export const useChatUsage = () => {
   const { user } = useAuth();
   const [usage, setUsage] = useState<ChatUsage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!user) { setUsage(null); setLoading(false); return; }
+    if (!user) { setUsage(null); setError(null); setLoading(false); return; }
     setLoading(true);
+    setError(null);
     const { data, error } = await supabase.rpc("chat_usage_summary");
     if (!error && Array.isArray(data) && data[0]) {
       const row = data[0] as Record<string, unknown>;
@@ -28,6 +30,10 @@ export const useChatUsage = () => {
         credits: Number(row.credits ?? 0),
         period_ym: String(row.period_ym ?? ""),
       });
+    } else if (error) {
+      console.error("chat_usage_summary failed", error);
+      setUsage(null);
+      setError(error.message || "Could not load chat credits.");
     }
     setLoading(false);
   }, [user]);
@@ -45,5 +51,5 @@ export const useChatUsage = () => {
     }));
   }, []);
 
-  return { usage, loading, refresh, applyServerUsage };
+  return { usage, loading, error, refresh, applyServerUsage };
 };
