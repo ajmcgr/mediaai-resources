@@ -387,7 +387,7 @@ const Chat = () => {
 
   // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
   useEffect(() => {
-    const url = new URL(window.location.href);
+    const url = new URL(document.URL);
     const topup = url.searchParams.get("topup");
     const sessionId = url.searchParams.get("session_id");
     if (topup === "success") {
@@ -411,6 +411,16 @@ const Chat = () => {
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const preventChatFormSubmit = (event: SubmitEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("submit", preventChatFormSubmit, true);
+    return () => document.removeEventListener("submit", preventChatFormSubmit, true);
   }, []);
 
   useEffect(() => {
