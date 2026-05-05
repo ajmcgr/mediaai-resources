@@ -1175,27 +1175,35 @@ Deno.serve(async (req) => {
       rpc_credits: summary.rpc_credits,
       sub_active: summary.sub_active,
     };
-    console.log("CREDIT DEBUG", {
-      profileCredits: summary.profile_credits,
-      tokensUsed: usedSoFar,
-      topupCredits: summary.credits,
-      creditsRemaining,
-      userId: user.id,
+    const monthlyAllowance = allowance;
+    const monthlyUsed = usedSoFar;
+    const monthlyRemaining = monthlyAllowance - monthlyUsed;
+    const topupCredits = Math.max(
+      Number(summary.credits ?? 0),
+      Number(summary.profile_credits ?? 0),
+      Number(summary.ledger_purchased ?? 0),
+    );
+    const totalAvailable =
+      Math.max(0, monthlyRemaining || 0) +
+      Math.max(0, topupCredits || 0);
+
+    console.log("CREDIT_VALUES", {
+      monthlyAllowance,
+      monthlyUsed,
+      monthlyRemaining,
+      topupCredits,
+      totalAvailable,
     });
     console.log("[chat.credit_check]", creditDebug);
-    if (creditsRemaining <= 0) {
-      console.log("CHAT_FN_402_DEBUG", {
-        userId: user.id,
-        profileCredits: summary.profile_credits,
-        monthlyAllowance: allowance,
-        monthlyUsed: usedSoFar,
-        monthlyRemaining: creditsRemaining,
-        topupCredits: summary.credits,
-        totalAvailable: creditsRemaining + (summary.credits ?? 0),
-        reason: "monthly_credits_exhausted",
-      });
-      console.log("BYPASSING CREDIT BLOCK", creditsRemaining);
-      summary.beta_credit_bypass = true;
+
+    if (totalAvailable <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: "No chat credits remaining",
+          debug: { monthlyRemaining, topupCredits, totalAvailable },
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
     summary.remaining = remaining;
 
