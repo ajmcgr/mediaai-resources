@@ -29,6 +29,7 @@ type UsageSummary = {
   period_ym: string;
   sub_active: boolean;
   plan_identifier: string | null;
+  beta_credit_bypass?: boolean;
 };
 
 function finiteNumber(value: unknown, fallback = 0): number {
@@ -1080,6 +1081,7 @@ async function databaseOnlyResponse(
 
   return new Response(
     JSON.stringify({
+      warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
       content: `Found ${rows.length} relevant results from your database.`,
       results: {
         kind,
