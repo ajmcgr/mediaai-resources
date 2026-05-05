@@ -22,7 +22,7 @@ const PLAN_LABELS: Record<string, string> = {
 const Account = () => {
   const { user, signOut } = useAuth();
   const sub = useSubscription();
-  const { usage, loading: usageLoading } = useChatUsage();
+  const { usage, loading: usageLoading, error: usageError } = useChatUsage();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
   const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
@@ -128,6 +128,10 @@ const Account = () => {
           </h2>
           {usageLoading ? (
             <div className="py-2"><Spinner /></div>
+          ) : usageError ? (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Chat credit balance could not load. {usageError}
+            </div>
           ) : (
             <>
               <dl className="space-y-3 text-sm mb-6">
