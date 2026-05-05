@@ -149,3 +149,11 @@ revoke all on function public.chat_usage_record(uuid, bigint) from public, anon,
 revoke all on function public.chat_credit_grant(uuid, bigint) from public, anon, authenticated;
 grant execute on function public.chat_usage_summary() to authenticated;
 grant execute on function public.chat_token_allowance(uuid) to authenticated;
+
+-- If a paid Stripe top-up session did not grant automatically, replace the
+-- values below and run once. Do not run this for sessions that already appear
+-- in topup_transactions.
+-- select public.chat_credit_grant('USER_UUID_HERE'::uuid, 100000);
+-- insert into public.topup_transactions (user_id, stripe_session_id, tokens)
+-- values ('USER_UUID_HERE'::uuid, 'STRIPE_CHECKOUT_SESSION_ID_HERE', 100000)
+-- on conflict (stripe_session_id) do nothing;
