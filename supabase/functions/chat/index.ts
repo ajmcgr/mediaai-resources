@@ -1094,27 +1094,28 @@ async function databaseOnlyResponse(
   summary: UsageSummary,
   reason: string,
   extraDebug: Record<string, unknown> = {},
+  limit: number | null = null,
+  offset = 0,
 ) {
-  const result = await hybridSearch(admin, q || "journalist", plan);
+  const result = await hybridSearch(admin, q || "journalist", plan, limit, offset);
   const rows = result.rows;
-  const dbN = rows.filter((r) => r.source === "database").length;
-  const webN = rows.filter((r) => r.source === "exa").length;
   const tokens = Math.max(1, Math.ceil((q || "").length / 4));
   const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
   const kind = result.intent.kind;
-  const limit = Math.max(result.cap, dbN + webN);
 
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results: ${dbN} from your database and ${webN} from the web.`,
+      content: `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
       results: {
         kind,
-        rows: rows.slice(0, limit),
+        rows,
         query: q,
-        debug: { ...result.debug, fallback_reason: reason, database_only: false, web_count: webN, ...extraDebug },
+        debug: { ...result.debug, fallback_reason: reason, database_only: false, ...extraDebug },
         intent: result.intent,
       },
+      pagination: result.pagination,
+      sources: result.sources,
       usage: {
         allowance: summary.allowance,
         used: Math.min(summary.allowance, summary.used + tokens),
