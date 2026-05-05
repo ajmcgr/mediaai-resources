@@ -9,6 +9,104 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type AdminClient = ReturnType<typeof createClient>;
+
+type SaveRow = {
+  name?: string;
+  outlet?: string | null;
+  title?: string | null;
+  category?: string | null;
+  country?: string | null;
+  email?: string | null;
+  source_url?: string | null;
+  ig_handle?: string | null;
+  youtube_url?: string | null;
+};
+
+function clean(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+async function findExistingJournalist(admin: AdminClient, row: SaveRow): Promise<number | null> {
+  const email = clean(row.email);
+  if (email) {
+    const { data } = await admin
+      .from("journalist")
+      .select("id")
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  const name = clean(row.name);
+  const outlet = clean(row.outlet);
+  if (name && outlet) {
+    const { data } = await admin
+      .from("journalist")
+      .select("id")
+      .eq("name", name)
+      .eq("outlet", outlet)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  return null;
+}
+
+async function findExistingCreator(admin: AdminClient, row: SaveRow): Promise<number | null> {
+  const email = clean(row.email);
+  if (email) {
+    const { data } = await admin
+      .from("creators")
+      .select("id")
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  const igHandle = clean(row.ig_handle);
+  if (igHandle) {
+    const { data } = await admin
+      .from("creators")
+      .select("id")
+      .eq("ig_handle", igHandle)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  const youtubeUrl = clean(row.youtube_url);
+  if (youtubeUrl) {
+    const { data } = await admin
+      .from("creators")
+      .select("id")
+      .eq("youtube_url", youtubeUrl)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  const name = clean(row.name);
+  const type = clean(row.outlet);
+  if (name && type) {
+    const { data } = await admin
+      .from("creators")
+      .select("id")
+      .eq("name", name)
+      .eq("type", type)
+      .limit(1)
+      .maybeSingle();
+    if (typeof data?.id === "number") return data.id;
+  }
+
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
   try {
@@ -24,11 +122,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const kind: "journalists" | "creators" = body?.kind;
-    const row = body?.row ?? {};
+    const row: SaveRow = body?.row ?? {};
     if (!["journalists", "creators"].includes(kind)) {
       return new Response(JSON.stringify({ error: "invalid_kind" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!row.name || typeof row.name !== "string") {
+    if (!clean(row.name)) {
       return new Response(JSON.stringify({ error: "name_required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -36,18 +134,22 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
 
     if (kind === "journalists") {
+      const existingId = await findExistingJournalist(admin, row);
+      if (existingId !== null) {
+        return new Response(JSON.stringify({ ok: true, id: existingId, existing: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       const insert: Record<string, unknown> = {
-        name: row.name,
-        outlet: row.outlet ?? null,
-        category: row.category ?? null,
-        titles: row.title ?? null,
-        country: row.country ?? null,
-        email: row.email ?? null,
+        name: clean(row.name),
+        outlet: clean(row.outlet),
+        category: clean(row.category),
+        titles: clean(row.title),
+        country: clean(row.country),
+        email: clean(row.email),
       };
-      // Try with enrichment columns first
       let { data, error } = await admin.from("journalist").insert({
         ...insert,
-        enrichment_source_url: row.source_url ?? null,
+        enrichment_source_url: clean(row.source_url),
         enriched_at: now,
       }).select("id").maybeSingle();
       if (error && /enrichment|enriched_at/.test(error.message)) {
@@ -58,19 +160,23 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, id: data?.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // creators
+    const existingId = await findExistingCreator(admin, row);
+    if (existingId !== null) {
+      return new Response(JSON.stringify({ ok: true, id: existingId, existing: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const insert: Record<string, unknown> = {
-      name: row.name,
-      category: row.category ?? null,
-      email: row.email ?? null,
-      ig_handle: row.ig_handle ?? null,
-      youtube_url: row.youtube_url ?? null,
-      type: row.outlet ?? null,
-      bio: row.title ?? null,
+      name: clean(row.name),
+      category: clean(row.category),
+      email: clean(row.email),
+      ig_handle: clean(row.ig_handle),
+      youtube_url: clean(row.youtube_url),
+      type: clean(row.outlet),
+      bio: clean(row.title),
     };
     let { data, error } = await admin.from("creators").insert({
       ...insert,
-      enrichment_source_url: row.source_url ?? null,
+      enrichment_source_url: clean(row.source_url),
       enriched_at: now,
     }).select("id").maybeSingle();
     if (error && /enrichment|enriched_at/.test(error.message)) {
