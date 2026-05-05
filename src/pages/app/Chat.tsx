@@ -46,7 +46,7 @@ type Row = {
   reason?: string;
 };
 type Results =
-  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null }
+  | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null }
   | null;
 
 const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
@@ -63,6 +63,165 @@ const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "category", label: "Topic" },
   { key: "email", label: "Email" },
 ];
+
+const MIN_CHAT_RESULTS = 12;
+const CHAT_STOPWORDS = new Set([
+  "a", "an", "and", "are", "at", "based", "best", "by", "find", "for", "from",
+  "get", "give", "help", "i", "i'm", "im", "in", "is", "journalist", "journalists",
+  "list", "looking", "me", "need", "of", "on", "or", "please", "reporter", "reporters",
+  "search", "show", "tech", "that", "the", "to", "want", "who", "with",
+]);
+
+function normalizeQuery(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildFallbackTerms(text: string) {
+  const normalized = normalizeQuery(text)
+    .replace(/\bi am looking for\b/g, " ")
+    .replace(/\bi m looking for\b/g, " ")
+    .replace(/\blooking for\b/g, " ")
+    .replace(/\bcan you find\b/g, " ")
+    .replace(/\bfind me\b/g, " ")
+    .replace(/\bfind\b/g, " ")
+    .replace(/\bshow me\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const tokens = normalized
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 1 && !CHAT_STOPWORDS.has(token));
+
+  const phrases: string[] = [];
+  if (normalized) phrases.push(normalized);
+  if (tokens.length >= 2) phrases.push(tokens.join(" "));
+  if (tokens.length >= 3) phrases.push(tokens.slice(0, 3).join(" "));
+  for (let i = 0; i < tokens.length - 1; i += 1) phrases.push(`${tokens[i]} ${tokens[i + 1]}`);
+
+  const unique = new Set<string>();
+  const ordered: string[] = [];
+  for (const term of [...phrases, ...tokens]) {
+    const cleaned = term.trim();
+    if (!cleaned || unique.has(cleaned)) continue;
+    unique.add(cleaned);
+    ordered.push(cleaned);
+  }
+  return ordered.slice(0, 8);
+}
+
+function dedupeRows(rows: Row[]) {
+  const seen = new Set<string>();
+  const out: Row[] = [];
+  for (const row of rows) {
+    const key = row.source === "database"
+      ? `db:${row.source_table ?? "unknown"}:${String(row.source_id ?? row.email ?? `${row.name}|${row.outlet}`)}`
+      : `exa:${String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}`)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+async function fetchJournalistFallback(query: string): Promise<Row[]> {
+  const terms = buildFallbackTerms(query);
+  if (!terms.length) return [];
+
+  const collected: Row[] = [];
+  for (const term of terms) {
+    const pattern = `%${term}%`;
+    const { data, error } = await supabase
+      .from("journalist")
+      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+      .or(`name.ilike.${pattern},email.ilike.${pattern},outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},xhandle.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
+      .limit(25);
+
+    if (error) continue;
+    for (const row of data ?? []) {
+      collected.push({
+        source: "database",
+        source_id: row.id,
+        source_table: "journalist",
+        name: row.name,
+        outlet: row.outlet,
+        title: row.titles,
+        category: row.category ?? row.topics,
+        country: row.country,
+        email: row.email,
+      });
+    }
+    if (collected.length >= 50) break;
+  }
+
+  return dedupeRows(collected).slice(0, 50);
+}
+
+async function fetchCreatorFallback(query: string): Promise<Row[]> {
+  const terms = buildFallbackTerms(query);
+  if (!terms.length) return [];
+
+  const collected: Row[] = [];
+  for (const term of terms) {
+    const pattern = `%${term}%`;
+    const { data, error } = await supabase
+      .from("creators")
+      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+      .or(`name.ilike.${pattern},email.ilike.${pattern},category.ilike.${pattern},bio.ilike.${pattern},ig_handle.ilike.${pattern},youtube_url.ilike.${pattern},type.ilike.${pattern}`)
+      .limit(25);
+
+    if (error) continue;
+    for (const row of data ?? []) {
+      collected.push({
+        source: "database",
+        source_id: row.id,
+        source_table: "creators",
+        name: row.name,
+        outlet: row.type,
+        title: row.bio,
+        category: row.category,
+        country: null,
+        email: row.email,
+        ig_handle: row.ig_handle,
+        ig_followers: row.ig_followers,
+        youtube_url: row.youtube_url,
+      });
+    }
+    if (collected.length >= 50) break;
+  }
+
+  return dedupeRows(collected).slice(0, 50);
+}
+
+async function expandChatResults(base: Exclude<Results, null>, query: string): Promise<Exclude<Results, null>> {
+  if (base.rows.length >= MIN_CHAT_RESULTS) return base;
+
+  const supplemental = base.kind === "journalists"
+    ? await fetchJournalistFallback(query)
+    : await fetchCreatorFallback(query);
+
+  if (!supplemental.length) return base;
+
+  const merged = dedupeRows([
+    ...base.rows.filter((row) => row.source === "database"),
+    ...supplemental,
+    ...base.rows.filter((row) => row.source === "exa"),
+  ]);
+
+  return {
+    ...base,
+    rows: merged,
+    debug: {
+      ...(base.debug ?? {}),
+      ui_fallback_query: query,
+      ui_fallback_added: Math.max(0, merged.length - base.rows.length),
+    },
+  };
+}
 
 const Chat = () => {
   const { user, signOut } = useAuth();
@@ -125,9 +284,10 @@ const Chat = () => {
       ]);
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
-        setResults(data.results);
+        const expanded = await expandChatResults(data.results, text);
+        setResults(expanded);
         setSavingIdx({});
-        upsertSearch.mutate({ tab: data.results.kind, query: { q: text } });
+        upsertSearch.mutate({ tab: expanded.kind, query: { q: text } });
       } else {
         setResults(null);
       }
