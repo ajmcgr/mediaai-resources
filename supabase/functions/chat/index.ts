@@ -210,7 +210,7 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 500;
+  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 1000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
@@ -920,17 +920,26 @@ async function persistWebRows(
 
 // ---------- Hybrid orchestrator ----------
 
-async function hybridSearch(admin: AdminClient, q: string, plan: string | null): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number }> {
+async function hybridSearch(
+  admin: AdminClient,
+  q: string,
+  plan: string | null,
+  limitOverride: number | null = null,
+  offset = 0,
+): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
-  const cap = capForPlan(plan);
-  const target = Math.min(intent.count, cap);
+  const maxTotal = capForPlan(plan);
+  const requestedLimit = limitOverride && limitOverride > 0 ? limitOverride : maxTotal;
+  const effectiveLimit = Math.min(requestedLimit, maxTotal);
+  const safeOffset = Math.max(0, offset);
 
   const debug: Record<string, unknown> = {
     original: q,
     intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
-    cap,
-    target,
+    maxTotal,
+    requestedLimit: effectiveLimit,
+    offset: safeOffset,
   };
 
   const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
@@ -938,12 +947,13 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   debug.search_order = "database_plus_web";
   debug.exa_skipped = false;
 
-  // Always augment database results with Exa web results (do not skip on db_count).
+  // Always augment with Exa, capped at 50.
   try {
-    exaRows = await searchExa(intent, Math.max(target, 50));
+    exaRows = await searchExa(intent, 50);
     if (exaRows.length < 20) {
-      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, Math.max(target, 50)))]).filter((r) => r.source === "exa");
+      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, 50))]).filter((r) => r.source === "exa");
     }
+    exaRows = exaRows.slice(0, 50);
   } catch (error) {
     console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
     debug.exa_error = error instanceof Error ? error.message : String(error);
@@ -962,30 +972,32 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
       return topicHit || countryHit;
     });
   }
-  if (dbStrict.length < Math.min(target, 25)) dbStrict = dbRows;
+  if (dbStrict.length < Math.min(maxTotal, 25)) dbStrict = dbRows;
   debug.db_strict_count = dbStrict.length;
 
   let combined = [...dbStrict, ...exaRows];
   if (intent.emailRequired) {
     const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
+    if (withEmail.length >= Math.min(maxTotal, 5)) combined = withEmail;
   }
   combined = dedupe(combined);
-  if (combined.length < Math.min(target, 25)) {
-    const fallbackRows = intent.kind === "journalists"
-      ? await fetchBroadJournalists(admin, Math.max(1500, target * 40))
-      : await fetchBroadCreators(admin, Math.max(1500, target * 40));
-    combined = dedupe([...combined, ...fallbackRows]);
-  }
   debug.deduped_count = combined.length;
 
-  const blendedTarget = Math.max(target, Math.min(100, dbRows.length + exaRows.length));
-  const ranked = blendedResults(combined, intent, blendedTarget);
-  debug.blended_target = blendedTarget;
-  debug.final_count = ranked.length;
+  // Rank up to maxTotal candidates so pagination has something to slice.
+  const ranked = blendedResults(combined, intent, maxTotal);
+  const paged = ranked.slice(safeOffset, safeOffset + effectiveLimit);
+  const dbReturned = paged.filter((r) => r.source === "database").length;
+  const webReturned = paged.filter((r) => r.source === "exa").length;
+  const totalEstimated = Math.min(maxTotal, ranked.length);
+  const hasMore = (safeOffset + effectiveLimit) < totalEstimated;
+
+  debug.db_returned = dbReturned;
+  debug.web_returned = webReturned;
+  debug.final_count = paged.length;
+  debug.has_more = hasMore;
 
   try {
-    const persisted = await persistWebRows(admin, intent.kind, ranked);
+    const persisted = await persistWebRows(admin, intent.kind, paged);
     debug.persisted = persisted;
   } catch (error) {
     console.log("[chat.persist.error]", error instanceof Error ? error.message : String(error));
@@ -993,7 +1005,14 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
   }
 
   console.log("[chat.hybrid]", JSON.stringify(debug));
-  return { rows: ranked, debug, intent, cap };
+  return {
+    rows: paged,
+    debug,
+    intent,
+    cap: maxTotal,
+    pagination: { limit: effectiveLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
+    sources: { database: dbReturned, web: webReturned },
+  };
 }
 
 async function loadUsageSummary(
