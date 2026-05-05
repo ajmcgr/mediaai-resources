@@ -930,13 +930,22 @@ async function hybridSearch(admin: AdminClient, q: string, plan: string | null):
     target,
   };
 
-  const dbPromise = intent.kind === "journalists" ? searchJournalistsDb(admin, intent) : searchCreatorsDb(admin, intent);
-  const exaPromise = searchExa(intent, target);
+  const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
+  let exaRows: Row[] = [];
+  debug.search_order = "database_first";
+  debug.exa_skipped = dbRows.length >= 10;
 
-  const [dbRows, exaRowsInitial] = await Promise.all([dbPromise, exaPromise]);
-  let exaRows = exaRowsInitial;
-  if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
-    exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+  if (dbRows.length < 10) {
+    try {
+      exaRows = await searchExa(intent, target);
+      if (exaRows.length < 20 || dbRows.length + exaRows.length < 20) {
+        exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, target))]).filter((r) => r.source === "exa");
+      }
+    } catch (error) {
+      console.warn("[chat.exa_fallback_database_only]", error instanceof Error ? error.message : String(error));
+      debug.exa_error = error instanceof Error ? error.message : String(error);
+      exaRows = [];
+    }
   }
   debug.db_count = dbRows.length;
   debug.exa_count = exaRows.length;
