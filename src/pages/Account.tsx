@@ -5,10 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { confirmTopup, openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatTokens = (n: number) => new Intl.NumberFormat().format(Math.max(0, Math.round(n)));
 
@@ -27,6 +30,31 @@ const Account = () => {
   const [opening, setOpening] = useState(false);
   const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
   const recoveredTopups = useRef(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setPwSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPwSaving(false);
+    if (error) {
+      toast.error(error.message || "Could not update password");
+      return;
+    }
+    setNewPassword("");
+    setConfirmPassword("");
+    toast.success("Password updated");
+  };
 
   useEffect(() => {
     if (!user || usageLoading || usageError || recoveredTopups.current) return;
@@ -177,6 +205,41 @@ const Account = () => {
           )}
         </section>
 
+
+        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+            Change password
+          </h2>
+          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm new password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={pwSaving}>
+              {pwSaving ? "Updating…" : "Update password"}
+            </Button>
+          </form>
+        </section>
 
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
