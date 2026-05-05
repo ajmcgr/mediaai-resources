@@ -1043,6 +1043,64 @@ async function loadUsageSummary(
   };
 }
 
+function latestUserQuery(messages: unknown): string {
+  if (!Array.isArray(messages)) return "";
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i] as { role?: unknown; content?: unknown };
+    if (msg?.role === "user" && typeof msg.content === "string" && msg.content.trim()) return msg.content.trim();
+  }
+  return "";
+}
+
+async function recordUsage(admin: AdminClient, userId: string, tokens: number, fallbackRemaining: number): Promise<number> {
+  try {
+    const { data: rec } = await admin.rpc("chat_usage_record", { _user: userId, _tokens: tokens });
+    if (typeof rec === "number") return rec;
+  } catch (e) {
+    console.error("chat_usage_record failed", e);
+  }
+  return fallbackRemaining;
+}
+
+async function databaseOnlyResponse(
+  admin: AdminClient,
+  userId: string,
+  q: string,
+  plan: string | null,
+  summary: UsageSummary,
+  reason: string,
+  extraDebug: Record<string, unknown> = {},
+) {
+  const result = await hybridSearch(admin, q || "journalist", plan);
+  const dbRows = result.rows.filter((row) => row.source === "database");
+  const rows = dbRows.length ? dbRows : result.rows;
+  const tokens = Math.max(1, Math.ceil((q || "").length / 4));
+  const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
+  const kind = result.intent.kind;
+
+  return new Response(
+    JSON.stringify({
+      content: `Found ${rows.length} relevant results from your database.`,
+      results: {
+        kind,
+        rows: rows.slice(0, result.cap),
+        query: q,
+        debug: { ...result.debug, fallback_reason: reason, database_only: true, ...extraDebug },
+        intent: result.intent,
+      },
+      usage: {
+        allowance: summary.allowance,
+        used: Math.min(summary.allowance, summary.used + tokens),
+        credits: summary.credits,
+        period_ym: summary.period_ym,
+        remaining: remainingAfter,
+        tokens_this_request: tokens,
+      },
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
