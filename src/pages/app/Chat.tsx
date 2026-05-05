@@ -467,7 +467,7 @@ const Chat = () => {
         let detail = "";
         try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
         if (detail.includes("quota_exhausted")) {
-          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat tokens for this month. Click the **Buy tokens** button in the header to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the header to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
           await refreshUsage();
           return;
         }
