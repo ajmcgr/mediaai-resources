@@ -862,13 +862,21 @@ const Chat = () => {
           </div>
 
           <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
-            <div className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                send();
+              }}
+              className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60"
+            >
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
+                    e.stopPropagation();
                     send();
                   }
                 }}
@@ -878,14 +886,19 @@ const Chat = () => {
                 className="resize-none border-0 focus-visible:ring-0 shadow-none px-4 py-3 pr-14 min-h-[64px]"
               />
               <Button
-                onClick={send}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  send();
+                }}
                 disabled={loading || !input.trim()}
                 size="icon"
                 className="absolute right-2 bottom-2 h-9 w-9 rounded-full"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
-            </div>
+            </form>
             <p className="mt-2 text-xs text-muted-foreground text-center">Enter to send · Shift+Enter for newline</p>
           </div>
         </section>
