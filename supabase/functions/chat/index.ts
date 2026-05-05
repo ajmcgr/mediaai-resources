@@ -1183,6 +1183,16 @@ Deno.serve(async (req) => {
     });
     console.log("[chat.credit_check]", creditDebug);
     if (creditsRemaining <= 0) {
+      console.log("CHAT_FN_402_DEBUG", {
+        userId: user.id,
+        profileCredits: summary.profile_credits,
+        monthlyAllowance: allowance,
+        monthlyUsed: usedSoFar,
+        monthlyRemaining: creditsRemaining,
+        topupCredits: summary.credits,
+        totalAvailable: creditsRemaining + (summary.credits ?? 0),
+        reason: "monthly_credits_exhausted",
+      });
       console.log("BYPASSING CREDIT BLOCK", creditsRemaining);
       summary.beta_credit_bypass = true;
     }
