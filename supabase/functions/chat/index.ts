@@ -1077,21 +1077,23 @@ async function databaseOnlyResponse(
   extraDebug: Record<string, unknown> = {},
 ) {
   const result = await hybridSearch(admin, q || "journalist", plan);
-  const dbRows = result.rows.filter((row) => row.source === "database");
-  const rows = dbRows.length ? dbRows : result.rows;
+  const rows = result.rows;
+  const dbN = rows.filter((r) => r.source === "database").length;
+  const webN = rows.filter((r) => r.source === "exa").length;
   const tokens = Math.max(1, Math.ceil((q || "").length / 4));
   const remainingAfter = await recordUsage(admin, userId, tokens, Math.max(summary.remaining - tokens, 0));
   const kind = result.intent.kind;
+  const limit = Math.max(result.cap, dbN + webN);
 
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results from your database.`,
+      content: `Found ${rows.length} relevant results: ${dbN} from your database and ${webN} from the web.`,
       results: {
         kind,
-        rows: rows.slice(0, result.cap),
+        rows: rows.slice(0, limit),
         query: q,
-        debug: { ...result.debug, fallback_reason: reason, database_only: true, ...extraDebug },
+        debug: { ...result.debug, fallback_reason: reason, database_only: false, web_count: webN, ...extraDebug },
         intent: result.intent,
       },
       usage: {
