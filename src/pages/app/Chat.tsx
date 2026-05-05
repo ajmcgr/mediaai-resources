@@ -367,6 +367,7 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
+  const [exaError, setExaError] = useState<string | null>(null);
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -504,14 +505,25 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
+      console.log("CALLING_EXA_SEARCH", inputValue);
       const [chatRes, exaRes] = await Promise.all([
         supabase.functions.invoke("chat", {
           body: { messages: [...base, { role: "user", content: inputValue }] },
         }),
-        supabase.functions.invoke("exa-search", { body: { query: inputValue } }).catch(() => null),
+        supabase.functions
+          .invoke("exa-search", { body: { query: inputValue } })
+          .catch((err) => {
+            console.log("EXA_ERROR", err);
+            return { data: { results: [], error: (err as Error)?.message ?? "invoke_failed" }, error: err } as { data: { results: unknown[]; error?: string }; error: unknown };
+          }),
       ]);
+      console.log("EXA_RESPONSE", exaRes);
+      const exaData = (exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }>; error?: string } } | null)?.data;
+      const exaErr = exaData?.error ?? null;
+      setExaError(exaErr);
+      if (exaErr) console.log("EXA_ERROR", exaErr);
       const { data, error } = chatRes;
-      const webResults: Row[] = (((exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }> } } | null)?.data?.results) ?? []).map((r) => ({
+      const webResults: Row[] = ((exaData?.results) ?? []).map((r) => ({
         source: "exa" as const,
         source_url: r.url,
         name: r.name ?? null,
@@ -935,6 +947,13 @@ const Chat = () => {
                     return ` · ${dbN} from database · ${exaN} from web`;
                   })()}
                 </div>
+                {(() => {
+                  const exaN = results.rows.filter((r) => r.source === "exa").length;
+                  if (exaN === 0 && exaError) {
+                    return <div className="text-xs text-destructive mt-1">Web search unavailable: {exaError}</div>;
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             {results.rows.length === 0 ? (
