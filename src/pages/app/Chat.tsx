@@ -367,7 +367,7 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Results>(null);
-  const [exaError, setExaError] = useState<string | null>(null);
+  
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -505,34 +505,10 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
-      console.log("CALLING_EXA_SEARCH", inputValue);
-      const [chatRes, exaRes] = await Promise.all([
-        supabase.functions.invoke("chat", {
-          body: { messages: [...base, { role: "user", content: inputValue }] },
-        }),
-        supabase.functions
-          .invoke("exa-search", { body: { query: inputValue } })
-          .catch((err) => {
-            console.log("EXA_ERROR", err);
-            return { data: { results: [], error: (err as Error)?.message ?? "invoke_failed" }, error: err } as { data: { results: unknown[]; error?: string }; error: unknown };
-          }),
-      ]);
-      console.log("EXA_RESPONSE", exaRes);
-      const exaData = (exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }>; error?: string } } | null)?.data;
-      const exaErr = exaData?.error ?? null;
-      setExaError(exaErr);
-      if (exaErr) console.log("EXA_ERROR", exaErr);
+      const chatRes = await supabase.functions.invoke("chat", {
+        body: { messages: [...base, { role: "user", content: inputValue }] },
+      });
       const { data, error } = chatRes;
-      const webResults: Row[] = ((exaData?.results) ?? []).map((r) => ({
-        source: "exa" as const,
-        source_url: r.url,
-        name: r.name ?? null,
-        outlet: null,
-        title: r.snippet ?? null,
-        category: null,
-        country: null,
-        email: null,
-      }));
       if (error) {
         const ctx = (error as { context?: Response }).context;
         let detail = "";
@@ -574,13 +550,9 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         const expanded = await expandChatResults(data.results, inputValue);
-        const merged = { ...expanded, rows: [...expanded.rows, ...webResults] };
-        setResults(merged);
+        setResults(expanded);
         setSavingIdx({});
         upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
-      } else if (webResults.length) {
-        setResults({ kind: "journalists", rows: webResults, query: inputValue });
-        setSavingIdx({});
       } else {
         setResults(null);
       }
