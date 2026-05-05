@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
         pack: packKey,
         tokens: String(pack.tokens),
       },
-      success_url: `${siteUrl}/success?topup=1`,
-      cancel_url: `${siteUrl}/chat`,
+      success_url: `${siteUrl}/chat?topup=success`,
+      cancel_url: `${siteUrl}/chat?topup=cancelled`,
     });
 
     return json({ url: session.url });
