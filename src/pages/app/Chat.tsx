@@ -633,11 +633,9 @@ const Chat = () => {
               <Database className="h-3.5 w-3.5" />Database
             </Button>
           )}
-          {hasGrowth && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
-              <Bell className="h-3.5 w-3.5" />Monitor
-            </Button>
-          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+            <Bell className="h-3.5 w-3.5" />Monitor
+          </Button>
           <InboxSheet />
           <ListsSheet />
           <Button
