@@ -27,6 +27,8 @@ type UsageSummary = {
   remaining: number;
   credits: number;
   period_ym: string;
+  sub_active: boolean;
+  plan_identifier: string | null;
 };
 
 const tools: Tool[] = [
