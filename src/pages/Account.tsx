@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -7,7 +7,7 @@ import { useChatUsage } from "@/hooks/useChatUsage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { confirmTopup, openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
+import { openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
@@ -29,7 +29,6 @@ const Account = () => {
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
   const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
-  const recoveredTopups = useRef(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
@@ -55,14 +54,6 @@ const Account = () => {
     setConfirmPassword("");
     toast.success("Password updated");
   };
-
-  useEffect(() => {
-    if (!user || usageLoading || recoveredTopups.current) return;
-    recoveredTopups.current = true;
-    confirmTopup(null)
-      .then(({ ok }) => { if (ok) void refreshUsage(); })
-      .catch((error) => console.warn("recent top-up recovery skipped", error));
-  }, [refreshUsage, usageLoading, user]);
 
   const handleTopup = async (pack: TopupPack) => {
     try {
