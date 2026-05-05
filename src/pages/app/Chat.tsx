@@ -389,16 +389,21 @@ const Chat = () => {
     const url = new URL(window.location.href);
     const topup = url.searchParams.get("topup");
     const sessionId = url.searchParams.get("session_id");
-    if (topup === "success" && sessionId) {
+    if (topup === "success") {
       (async () => {
         try {
-          const { error } = await supabase.functions.invoke("confirm-topup", {
-            body: { session_id: sessionId },
+          const { error } = await supabase.functions.invoke("create-topup", {
+            body: {
+              action: "confirm",
+              session_id: sessionId,
+              user_id: user?.id,
+              user_email: user?.email,
+            },
           });
-          if (error) console.error("confirm-topup error", error);
+          if (error) console.error("confirm top-up error", error);
           else toast.success("Credits added to your account");
         } catch (e) {
-          console.error("confirm-topup failed", e);
+          console.error("confirm top-up failed", e);
         } finally {
           await refreshUsage();
           url.searchParams.delete("topup");
