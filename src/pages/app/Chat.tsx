@@ -498,6 +498,20 @@ const Chat = () => {
 
   const send = () => sendText(input.trim());
 
+  const buyTokens = async (pack: "small" | "medium" | "large") => {
+    if (!user) { navigate("/login"); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke("create-topup", {
+        body: { user_id: user.id, user_email: user.email, pack },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+      else throw new Error(data?.error || "Could not start checkout");
+    } catch (e) {
+      toast.error((e as Error).message || "Top-up failed");
+    }
+  };
+
   const handleSignOut = async () => { await signOut(); navigate("/"); };
   const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
 
