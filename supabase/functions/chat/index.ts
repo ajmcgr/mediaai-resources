@@ -1144,6 +1144,7 @@ Deno.serve(async (req) => {
         period_ym: new Date().toISOString().slice(0, 7),
         sub_active: false,
         plan_identifier: null,
+        beta_credit_bypass: true,
         ledger_purchased: 0,
         profile_credits: 0,
         rpc_remaining: null,
@@ -1173,6 +1174,7 @@ Deno.serve(async (req) => {
         bypassed: true,
         reason: "temporary_authenticated_chat_unblock",
       });
+      summary.beta_credit_bypass = true;
     }
     summary.remaining = remaining;
 
