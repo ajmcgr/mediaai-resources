@@ -998,11 +998,10 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
     const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
 
-    const { data: usageRow } = await userClient.rpc("chat_usage_summary");
-    const summary = Array.isArray(usageRow) ? usageRow[0] : usageRow;
-    const allowance = Number(summary?.allowance ?? 0);
-    const usedSoFar = Number(summary?.used ?? 0);
-    const remaining = Number(summary?.remaining ?? Math.max(allowance - usedSoFar, 0));
+    const summary = await loadUsageSummary(admin, user.id);
+    const allowance = summary.allowance;
+    const usedSoFar = summary.used;
+    const remaining = summary.remaining;
     if (remaining <= 0) {
       return new Response(
         JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", allowance, used: usedSoFar, remaining: 0 }),
@@ -1085,7 +1084,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           content: msg.content ?? "",
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: remainingAfter, tokens_this_request: totalTokens },
+          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -1096,7 +1095,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         content: "(no response)",
         results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
+        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: Math.max(remaining - totalTokens, 0), tokens_this_request: totalTokens },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
