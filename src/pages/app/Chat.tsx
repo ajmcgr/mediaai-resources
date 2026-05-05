@@ -656,9 +656,6 @@ const Chat = () => {
           >
             <Download className="h-3.5 w-3.5" />Export
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={newChat}>
-            <Plus className="h-3.5 w-3.5" />New chat
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
@@ -686,6 +683,11 @@ const Chat = () => {
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
+          </div>
+          <div className="px-3 py-2 border-b border-border">
+            <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
+              <Plus className="h-3.5 w-3.5" />New chat
+            </Button>
           </div>
           <div className="flex-1 overflow-auto px-2 py-2">
             {savedSearches.isLoading ? (
