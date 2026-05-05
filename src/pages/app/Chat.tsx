@@ -384,6 +384,36 @@ const Chat = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
 
+  // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const topup = url.searchParams.get("topup");
+    const sessionId = url.searchParams.get("session_id");
+    if (topup === "success" && sessionId) {
+      (async () => {
+        try {
+          const { error } = await supabase.functions.invoke("confirm-topup", {
+            body: { session_id: sessionId },
+          });
+          if (error) console.error("confirm-topup error", error);
+          else toast.success("Credits added to your account");
+        } catch (e) {
+          console.error("confirm-topup failed", e);
+        } finally {
+          await refreshUsage();
+          url.searchParams.delete("topup");
+          url.searchParams.delete("session_id");
+          window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+        }
+      })();
+    } else if (topup === "cancelled") {
+      toast.info("Top-up cancelled");
+      url.searchParams.delete("topup");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!results) return;
 
