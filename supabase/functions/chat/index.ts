@@ -1,3 +1,4 @@
+// redeploy trigger: chat edge function sync 2026-05-05
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
