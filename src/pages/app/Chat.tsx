@@ -64,18 +64,48 @@ const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "email", label: "Email" },
 ];
 
-const MIN_CHAT_RESULTS = 12;
+const MIN_CHAT_RESULTS = 25;
+const AUTO_PERSIST_WEB_ROWS = 12;
 const CHAT_STOPWORDS = new Set([
   "a", "an", "and", "are", "at", "based", "best", "by", "find", "for", "from",
   "get", "give", "help", "i", "i'm", "im", "in", "is", "journalist", "journalists",
   "list", "looking", "me", "need", "of", "on", "or", "please", "reporter", "reporters",
-  "search", "show", "tech", "that", "the", "to", "want", "who", "with",
+  "search", "show", "that", "the", "to", "want", "who", "with",
 ]);
+
+const COUNTRY_FALLBACK_ALIASES: Array<{ canonical: string; terms: string[] }> = [
+  { canonical: "united kingdom", terms: ["united kingdom", "uk", "britain", "british", "england", "london"] },
+  { canonical: "united states", terms: ["united states", "usa", "us", "america", "american"] },
+  { canonical: "singapore", terms: ["singapore", "sg"] },
+  { canonical: "united arab emirates", terms: ["united arab emirates", "uae", "dubai", "abu dhabi"] },
+  { canonical: "canada", terms: ["canada", "canadian"] },
+  { canonical: "australia", terms: ["australia", "australian"] },
+  { canonical: "india", terms: ["india", "indian"] },
+];
+
+const TOPIC_FALLBACK_ALIASES: Array<{ trigger: string; terms: string[] }> = [
+  { trigger: "tech", terms: ["tech", "technology", "software", "saas", "startup", "innovation"] },
+  { trigger: "ai", terms: ["ai", "artificial intelligence", "machine learning", "technology", "tech"] },
+  { trigger: "fintech", terms: ["fintech", "finance", "financial", "banking", "payments"] },
+  { trigger: "health", terms: ["health", "healthcare", "medical", "wellness", "fitness"] },
+  { trigger: "real estate", terms: ["real estate", "property", "realty", "housing"] },
+  { trigger: "beauty", terms: ["beauty", "makeup", "skincare"] },
+  { trigger: "gaming", terms: ["gaming", "games", "esports"] },
+  { trigger: "travel", terms: ["travel", "tourism", "destination"] },
+];
 
 function normalizeQuery(text: string) {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeSearchFragment(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[,%()]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -92,26 +122,41 @@ function buildFallbackTerms(text: string) {
     .replace(/\s+/g, " ")
     .trim();
 
-  const tokens = normalized
+  const rawTokens = normalized
     .split(" ")
     .map((token) => token.trim())
-    .filter((token) => token.length > 1 && !CHAT_STOPWORDS.has(token));
+    .filter(Boolean);
 
-  const phrases: string[] = [];
-  if (normalized) phrases.push(normalized);
-  if (tokens.length >= 2) phrases.push(tokens.join(" "));
-  if (tokens.length >= 3) phrases.push(tokens.slice(0, 3).join(" "));
-  for (let i = 0; i < tokens.length - 1; i += 1) phrases.push(`${tokens[i]} ${tokens[i + 1]}`);
+  const tokens = rawTokens.filter((token) => token.length > 1 && !CHAT_STOPWORDS.has(token));
+  const collected = new Set<string>();
+  const push = (value: string) => {
+    const cleaned = safeSearchFragment(value);
+    if (!cleaned) return;
+    collected.add(cleaned);
+  };
 
-  const unique = new Set<string>();
-  const ordered: string[] = [];
-  for (const term of [...phrases, ...tokens]) {
-    const cleaned = term.trim();
-    if (!cleaned || unique.has(cleaned)) continue;
-    unique.add(cleaned);
-    ordered.push(cleaned);
+  push(normalized);
+  push(normalized.replace(/\bjournalists?\b/g, " ").replace(/\breporters?\b/g, " ").trim());
+  push(tokens.join(" "));
+
+  for (const token of tokens) push(token);
+  for (let i = 0; i < tokens.length - 1; i += 1) push(`${tokens[i]} ${tokens[i + 1]}`);
+  for (let i = 0; i < tokens.length - 2; i += 1) push(`${tokens[i]} ${tokens[i + 1]} ${tokens[i + 2]}`);
+
+  const normalizedBlob = ` ${normalized} `;
+  for (const { canonical, terms } of COUNTRY_FALLBACK_ALIASES) {
+    if (normalizedBlob.includes(` ${canonical} `) || terms.some((term) => normalizedBlob.includes(` ${term} `))) {
+      for (const term of terms) push(term);
+    }
   }
-  return ordered.slice(0, 8);
+
+  for (const { trigger, terms } of TOPIC_FALLBACK_ALIASES) {
+    if (normalizedBlob.includes(` ${trigger} `)) {
+      for (const term of terms) push(term);
+    }
+  }
+
+  return [...collected].slice(0, 16);
 }
 
 function dedupeRows(rows: Row[]) {
@@ -128,37 +173,89 @@ function dedupeRows(rows: Row[]) {
   return out;
 }
 
+function buildOrExpression(fields: string[], terms: string[]) {
+  return terms
+    .flatMap((term) => {
+      const fragment = safeSearchFragment(term);
+      if (!fragment) return [] as string[];
+      return fields.map((field) => `${field}.ilike.%${fragment}%`);
+    })
+    .join(",");
+}
+
+function rowPersistenceKey(row: Row) {
+  return String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}|${row.title}`);
+}
+
+function shouldAutoPersistRow(kind: "journalists" | "creators", row: Row) {
+  if (row.source !== "exa" || !row.name) return false;
+  if (kind === "journalists") return !!(row.email || row.outlet || row.title);
+  return !!(row.email || row.ig_handle || row.youtube_url || row.outlet);
+}
+
 async function fetchJournalistFallback(query: string): Promise<Row[]> {
   const terms = buildFallbackTerms(query);
   if (!terms.length) return [];
 
   const collected: Row[] = [];
-  for (const term of terms) {
-    const pattern = `%${term}%`;
+  const expression = buildOrExpression(
+    ["name", "email", "outlet", "titles", "topics", "xhandle", "country", "category"],
+    terms,
+  );
+
+  if (expression) {
     const { data, error } = await supabase
       .from("journalist")
       .select("id,name,email,category,titles,topics,xhandle,outlet,country")
-      .or(`name.ilike.${pattern},email.ilike.${pattern},outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},xhandle.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
-      .limit(25);
+      .or(expression)
+      .limit(75);
 
-    if (error) continue;
-    for (const row of data ?? []) {
-      collected.push({
-        source: "database",
-        source_id: row.id,
-        source_table: "journalist",
-        name: row.name,
-        outlet: row.outlet,
-        title: row.titles,
-        category: row.category ?? row.topics,
-        country: row.country,
-        email: row.email,
-      });
+    if (!error) {
+      for (const row of data ?? []) {
+        collected.push({
+          source: "database",
+          source_id: row.id,
+          source_table: "journalist",
+          name: row.name,
+          outlet: row.outlet,
+          title: row.titles,
+          category: row.category ?? row.topics,
+          country: row.country,
+          email: row.email,
+        });
+      }
     }
-    if (collected.length >= 50) break;
   }
 
-  return dedupeRows(collected).slice(0, 50);
+  if (collected.length < 12) {
+    const simpleTokens = terms.filter((term) => !term.includes(" ")).slice(0, 6);
+    for (const term of simpleTokens) {
+      const pattern = `%${safeSearchFragment(term)}%`;
+      const { data, error } = await supabase
+        .from("journalist")
+        .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+        .or(`name.ilike.${pattern},email.ilike.${pattern},outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},xhandle.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
+        .limit(25);
+
+      if (error) continue;
+      for (const row of data ?? []) {
+        collected.push({
+          source: "database",
+          source_id: row.id,
+          source_table: "journalist",
+          name: row.name,
+          outlet: row.outlet,
+          title: row.titles,
+          category: row.category ?? row.topics,
+          country: row.country,
+          email: row.email,
+        });
+      }
+      if (collected.length >= 75) break;
+    }
+  }
+
+  return dedupeRows(collected).slice(0, 75);
 }
 
 async function fetchCreatorFallback(query: string): Promise<Row[]> {
@@ -166,39 +263,75 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
   if (!terms.length) return [];
 
   const collected: Row[] = [];
-  for (const term of terms) {
-    const pattern = `%${term}%`;
+  const expression = buildOrExpression(
+    ["name", "email", "category", "bio", "ig_handle", "youtube_url", "type"],
+    terms,
+  );
+
+  if (expression) {
     const { data, error } = await supabase
       .from("creators")
       .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
-      .or(`name.ilike.${pattern},email.ilike.${pattern},category.ilike.${pattern},bio.ilike.${pattern},ig_handle.ilike.${pattern},youtube_url.ilike.${pattern},type.ilike.${pattern}`)
-      .limit(25);
+      .or(expression)
+      .limit(75);
 
-    if (error) continue;
-    for (const row of data ?? []) {
-      collected.push({
-        source: "database",
-        source_id: row.id,
-        source_table: "creators",
-        name: row.name,
-        outlet: row.type,
-        title: row.bio,
-        category: row.category,
-        country: null,
-        email: row.email,
-        ig_handle: row.ig_handle,
-        ig_followers: row.ig_followers,
-        youtube_url: row.youtube_url,
-      });
+    if (!error) {
+      for (const row of data ?? []) {
+        collected.push({
+          source: "database",
+          source_id: row.id,
+          source_table: "creators",
+          name: row.name,
+          outlet: row.type,
+          title: row.bio,
+          category: row.category,
+          country: null,
+          email: row.email,
+          ig_handle: row.ig_handle,
+          ig_followers: row.ig_followers,
+          youtube_url: row.youtube_url,
+        });
+      }
     }
-    if (collected.length >= 50) break;
   }
 
-  return dedupeRows(collected).slice(0, 50);
+  if (collected.length < 12) {
+    const simpleTokens = terms.filter((term) => !term.includes(" ")).slice(0, 6);
+    for (const term of simpleTokens) {
+      const pattern = `%${safeSearchFragment(term)}%`;
+      const { data, error } = await supabase
+        .from("creators")
+        .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+        .or(`name.ilike.${pattern},email.ilike.${pattern},category.ilike.${pattern},bio.ilike.${pattern},ig_handle.ilike.${pattern},youtube_url.ilike.${pattern},type.ilike.${pattern}`)
+        .limit(25);
+
+      if (error) continue;
+      for (const row of data ?? []) {
+        collected.push({
+          source: "database",
+          source_id: row.id,
+          source_table: "creators",
+          name: row.name,
+          outlet: row.type,
+          title: row.bio,
+          category: row.category,
+          country: null,
+          email: row.email,
+          ig_handle: row.ig_handle,
+          ig_followers: row.ig_followers,
+          youtube_url: row.youtube_url,
+        });
+      }
+      if (collected.length >= 75) break;
+    }
+  }
+
+  return dedupeRows(collected).slice(0, 75);
 }
 
 async function expandChatResults(base: Exclude<Results, null>, query: string): Promise<Exclude<Results, null>> {
-  if (base.rows.length >= MIN_CHAT_RESULTS) return base;
+  const dbRows = base.rows.filter((row) => row.source === "database").length;
+  if (base.rows.length >= MIN_CHAT_RESULTS && dbRows >= 8) return base;
 
   const supplemental = base.kind === "journalists"
     ? await fetchJournalistFallback(query)
@@ -218,6 +351,7 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
     debug: {
       ...(base.debug ?? {}),
       ui_fallback_query: query,
+      ui_fallback_terms: buildFallbackTerms(query),
       ui_fallback_added: Math.max(0, merged.length - base.rows.length),
     },
   };
@@ -235,6 +369,7 @@ const Chat = () => {
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoPersistedWebRows = useRef<Set<string>>(new Set());
 
   const savedSearches = useSavedSearches(!!user);
   const upsertSearch = useUpsertSavedSearch();
@@ -248,6 +383,65 @@ const Chat = () => {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!results) return;
+
+    const persistable = results.rows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => shouldAutoPersistRow(results.kind, row))
+      .filter(({ row }) => !autoPersistedWebRows.current.has(rowPersistenceKey(row)))
+      .slice(0, AUTO_PERSIST_WEB_ROWS);
+
+    if (!persistable.length) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const { row } of persistable) {
+        if (cancelled) break;
+        const key = rowPersistenceKey(row);
+        autoPersistedWebRows.current.add(key);
+        try {
+          const { data, error } = await supabase.functions.invoke("save-contact", {
+            body: {
+              kind: results.kind,
+              row: {
+                name: row.name,
+                outlet: row.outlet,
+                title: row.title,
+                category: row.category,
+                country: row.country,
+                email: row.email,
+                ig_handle: row.ig_handle,
+                youtube_url: row.youtube_url,
+                source_url: row.source_url,
+              },
+            },
+          });
+          if (cancelled || error || !data?.ok) continue;
+          setResults((prev) => {
+            if (!prev || prev.kind !== results.kind) return prev;
+            const rows = prev.rows.map((candidate) => {
+              if (rowPersistenceKey(candidate) !== key) return candidate;
+              return {
+                ...candidate,
+                source: "database" as const,
+                source_id: data.id,
+                source_table: prev.kind === "journalists" ? "journalist" : "creators",
+              };
+            });
+            return { ...prev, rows };
+          });
+        } catch {
+          // Silent on background persistence.
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [results]);
 
   const sendText = async (text: string, reset = false) => {
     if (!text.trim() || loading) return;
@@ -312,7 +506,6 @@ const Chat = () => {
     if (!row) return;
     setEnrichingIdx((s) => ({ ...s, [idx]: true }));
     try {
-      // Need a database row to enrich. Save Exa row first if necessary.
       let dbId = typeof row.source_id === "number" ? row.source_id : null;
       let table: "journalist" | "creators" =
         row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
@@ -487,7 +680,6 @@ const Chat = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        {/* Left: saved searches */}
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
@@ -535,7 +727,6 @@ const Chat = () => {
           </div>
         </aside>
 
-        {/* Center: chat */}
         <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
             {messages.length === 0 ? (
@@ -599,7 +790,6 @@ const Chat = () => {
           </div>
         </section>
 
-        {/* Right: results */}
         {results && (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
