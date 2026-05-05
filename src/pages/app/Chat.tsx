@@ -753,7 +753,7 @@ const Chat = () => {
                   <li key={s.id} className="group flex items-center gap-1 rounded-md hover:bg-secondary/60">
                     <button
                       type="button"
-                      onClick={() => sendText(s.query.q ?? s.name, true)}
+                      onClick={() => handleSend(s.query.q ?? s.name, true)}
                       className="flex-1 text-left px-2 py-1.5 text-sm truncate"
                       title={s.query.q ?? s.name}
                     >
@@ -857,22 +857,17 @@ const Chat = () => {
           </div>
 
           <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                send();
-              }}
+            <div
               className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60"
             >
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-                    send();
+                    handleSend();
                   }
                 }}
                 placeholder="Ask Media AI to find journalists or creators…"
@@ -885,7 +880,7 @@ const Chat = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  send();
+                  handleSend();
                 }}
                 disabled={loading || !input.trim()}
                 size="icon"
@@ -893,7 +888,7 @@ const Chat = () => {
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
-            </form>
+            </div>
             <p className="mt-2 text-xs text-muted-foreground text-center">Enter to send · Shift+Enter for newline</p>
           </div>
         </section>
