@@ -52,3 +52,7 @@ verify_jwt = false
 
 [functions.blog-generate]
 verify_jwt = false
+
+[functions.confirm-topup]
+verify_jwt = false
+
