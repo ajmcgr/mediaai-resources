@@ -34,7 +34,7 @@ const TIERS: Tier[] = [
     cta: "Start Free Trial",
     features: [
       "Verified journalist and creator contact emails",
-      "Media AI chat assistant",
+      "Capped at 100 media contacts per query",
       "200,000 chat credits / month",
       "Top-up credits any time",
       "Email support",
@@ -52,6 +52,7 @@ const TIERS: Tier[] = [
     cta: "Start Free Trial",
     features: [
       "Verified journalist and creator contact emails",
+      "Unlimited media contacts per query",
       "Everything in Starter",
       "1,000,000 chat credits / month",
       "100% database access — no row limits",
