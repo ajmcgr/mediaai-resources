@@ -473,18 +473,15 @@ const Chat = () => {
     };
   }, [results]);
 
-  const sendText = async (text: string, reset = false) => {
-    if (!text.trim() || loading) return;
-    // Re-fetch latest usage from the same RPC the Account page uses, so we never block on stale state.
-    const { data: usageRows, error: usageErr } = await supabase.rpc("chat_usage_summary");
-    const fresh = !usageErr && Array.isArray(usageRows) && usageRows[0] ? usageRows[0] as Record<string, unknown> : null;
-    const allowance = Number(fresh?.allowance ?? usage?.allowance ?? 0);
-    const used = Number(fresh?.used ?? usage?.used ?? 0);
-    const topup_credits = Number(fresh?.credits ?? usage?.credits ?? 0);
+  const handleSend = async (inputValue = input.trim(), reset = false) => {
+    if (!inputValue.trim() || loading) return;
+    const allowance = Number(usage?.allowance ?? 0);
+    const used = Number(usage?.used ?? 0);
+    const topup_credits = Number(usage?.credits ?? 0);
     const monthly_remaining = Math.max(0, allowance - used);
     const total_available = monthly_remaining + topup_credits;
-    console.log("[chat] credit check", { allowance, used, monthly_remaining, topup_credits, total_available, usageErr });
-    if (fresh && total_available <= 0) {
+    console.log("[chat] credit check", { allowance, used, monthly_remaining, topup_credits, total_available });
+    if (total_available <= 0) {
       setMessages((m) => [
         ...m,
         { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." },
@@ -492,13 +489,13 @@ const Chat = () => {
       return;
     }
     const base = reset ? [] : messages;
-    const next: Msg[] = [...base, { role: "user", content: text }];
-    setMessages(next);
+    setMessages([...base, { role: "user", content: inputValue }]);
     setInput("");
     setLoading(true);
     try {
+      console.log("CALLING EDGE FUNCTION");
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: next },
+        body: { query: inputValue },
       });
       if (error) {
         const ctx = (error as { context?: Response }).context;
@@ -519,7 +516,7 @@ const Chat = () => {
               ...(parsed?.usage ?? {}),
             });
             setMessages((m) => m.slice(0, -1));
-            setInput(text);
+            setInput(inputValue);
             setMessages((m) => [...m, { role: "assistant", content: `Your balance shows ${dbgRemaining.toLocaleString()} remaining + ${dbgCredits.toLocaleString()} credits, but the server reported quota exhausted. Please click **Send** again to retry.` }]);
             await refreshUsage();
             return;
@@ -540,10 +537,10 @@ const Chat = () => {
       ]);
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
-        const expanded = await expandChatResults(data.results, text);
+        const expanded = await expandChatResults(data.results, inputValue);
         setResults(expanded);
         setSavingIdx({});
-        upsertSearch.mutate({ tab: expanded.kind, query: { q: text } });
+        upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
       } else {
         setResults(null);
       }
@@ -556,8 +553,6 @@ const Chat = () => {
       setLoading(false);
     }
   };
-
-  const send = () => sendText(input.trim());
 
   const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
@@ -758,7 +753,7 @@ const Chat = () => {
                   <li key={s.id} className="group flex items-center gap-1 rounded-md hover:bg-secondary/60">
                     <button
                       type="button"
-                      onClick={() => sendText(s.query.q ?? s.name, true)}
+                      onClick={() => handleSend(s.query.q ?? s.name, true)}
                       className="flex-1 text-left px-2 py-1.5 text-sm truncate"
                       title={s.query.q ?? s.name}
                     >
@@ -862,22 +857,17 @@ const Chat = () => {
           </div>
 
           <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                send();
-              }}
+            <div
               className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60"
             >
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-                    send();
+                    handleSend();
                   }
                 }}
                 placeholder="Ask Media AI to find journalists or creators…"
@@ -890,7 +880,7 @@ const Chat = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  send();
+                  handleSend();
                 }}
                 disabled={loading || !input.trim()}
                 size="icon"
@@ -898,7 +888,7 @@ const Chat = () => {
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
-            </form>
+            </div>
             <p className="mt-2 text-xs text-muted-foreground text-center">Enter to send · Shift+Enter for newline</p>
           </div>
         </section>
