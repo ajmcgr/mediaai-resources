@@ -562,9 +562,13 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         const expanded = await expandChatResults(data.results, inputValue);
-        setResults(expanded);
+        const merged = { ...expanded, rows: [...expanded.rows, ...webResults] };
+        setResults(merged);
         setSavingIdx({});
         upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
+      } else if (webResults.length) {
+        setResults({ kind: "journalists", rows: webResults, query: inputValue });
+        setSavingIdx({});
       } else {
         setResults(null);
       }
