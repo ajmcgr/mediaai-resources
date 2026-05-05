@@ -1047,9 +1047,6 @@ const Chat = () => {
                 </Button>
               </div>
             )}
-            {/* end results */}
-            <div hidden />
-            )}
           </section>
         )}
       </div>
