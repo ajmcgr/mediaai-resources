@@ -70,11 +70,7 @@ Deno.serve(async (req) => {
           const userId = session.metadata.supabase_user_id;
           const tokens = Number(session.metadata.tokens || 0);
           if (userId && tokens > 0) {
-            const { error } = await admin.rpc("chat_credit_grant", {
-              _user: userId, _tokens: tokens,
-            });
-            if (error) console.error("chat_credit_grant error", error);
-            else console.log("granted topup credits", { userId, tokens });
+            await grantTopupOnce(session.id, userId, tokens);
           }
         }
         break;
@@ -116,6 +112,43 @@ Deno.serve(async (req) => {
     return new Response((e as Error).message, { status: 500 });
   }
 });
+
+async function grantTopupOnce(sessionId: string, userId: string, tokens: number) {
+  const { data: existing } = await admin
+    .from("topup_transactions")
+    .select("id")
+    .eq("stripe_session_id", sessionId)
+    .maybeSingle();
+  if (existing) return;
+
+  await grantCredits(userId, tokens);
+  const { error: insertError } = await admin.from("topup_transactions").insert({
+    user_id: userId,
+    stripe_session_id: sessionId,
+    tokens,
+  });
+  if (insertError) console.warn("topup transaction insert skipped", insertError);
+  console.log("granted topup credits", { userId, tokens });
+}
+
+async function grantCredits(userId: string, tokens: number) {
+  const { error: rpcError } = await admin.rpc("chat_credit_grant", { _user: userId, _tokens: tokens });
+  if (!rpcError) return;
+
+  console.warn("chat_credit_grant error; falling back to direct profile update", rpcError);
+  const { data: profile, error: readError } = await admin
+    .from("profiles")
+    .select("chat_credits")
+    .eq("id", userId)
+    .maybeSingle();
+  if (readError || !profile) throw readError ?? new Error("profile not found");
+
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({ chat_credits: Number(profile.chat_credits ?? 0) + tokens })
+    .eq("id", userId);
+  if (updateError) throw updateError;
+}
 
 async function upsertSubscription(
   sub: Stripe.Subscription,
