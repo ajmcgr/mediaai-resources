@@ -22,8 +22,20 @@ const PLAN_LABELS: Record<string, string> = {
 const Account = () => {
   const { user, signOut } = useAuth();
   const sub = useSubscription();
+  const { usage, loading: usageLoading } = useChatUsage();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
+  const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
+
+  const handleTopup = async (pack: TopupPack) => {
+    try {
+      setTopupLoading(pack);
+      await startTopup(pack);
+    } catch (e) {
+      toast.error((e as Error).message || "Could not start checkout");
+      setTopupLoading(null);
+    }
+  };
 
   const handleManage = async () => {
     try {
