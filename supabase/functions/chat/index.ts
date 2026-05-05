@@ -1172,6 +1172,7 @@ Deno.serve(async (req) => {
         reason: "temporary_authenticated_chat_unblock",
       });
     }
+    summary.remaining = remaining;
 
     // Self-heal: if ledger has more credits than profile column, sync it.
     if (summary.ledger_purchased > summary.profile_credits && summary.credits > summary.profile_credits) {
