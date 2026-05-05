@@ -802,7 +802,7 @@ const Chat = () => {
                   className={`w-full justify-center gap-1.5 ${usage && usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage && usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : ""}`}
                 >
                   <Sparkles className="h-3.5 w-3.5" />
-                  {usage ? `${usage.remaining.toLocaleString()} credits` : "Buy credits"}
+                  Buy credits
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
