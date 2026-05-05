@@ -940,20 +940,7 @@ const Chat = () => {
                 <div className="text-sm font-medium capitalize">{results.kind}</div>
                 <div className="text-xs text-muted-foreground">
                   {results.rows.length} results
-                  {(() => {
-                    const dbN = results.rows.filter((r) => r.source === "database").length;
-                    const exaN = results.rows.length - dbN;
-                    if (dbN === 0) return ` · Expanded search to find more relevant contacts · ${exaN} from web`;
-                    return ` · ${dbN} from database · ${exaN} from web`;
-                  })()}
                 </div>
-                {(() => {
-                  const exaN = results.rows.filter((r) => r.source === "exa").length;
-                  if (exaN === 0 && exaError) {
-                    return <div className="text-xs text-destructive mt-1">Web search unavailable: {exaError}</div>;
-                  }
-                  return null;
-                })()}
               </div>
             </div>
             {results.rows.length === 0 ? (
