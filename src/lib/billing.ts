@@ -8,9 +8,9 @@ export type BillingInterval = "monthly" | "yearly";
 export type TopupPack = "small" | "medium" | "large";
 
 export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; label: string }> = {
-  small:  { tokens:  100_000, priceUsd: 10, label: "100k tokens" },
-  medium: { tokens:  500_000, priceUsd: 40, label: "500k tokens" },
-  large:  { tokens: 2_000_000, priceUsd: 120, label: "2M tokens" },
+  small:  { tokens:  100_000, priceUsd: 10, label: "100k credits" },
+  medium: { tokens:  500_000, priceUsd: 40, label: "500k credits" },
+  large:  { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
 };
 
 async function authedPost(path: string, body: unknown) {
