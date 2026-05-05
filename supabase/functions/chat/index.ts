@@ -234,7 +234,7 @@ type Row = {
 
 // ---------- Supabase search ----------
 
-type AdminClient = ReturnType<typeof createClient>;
+type AdminClient = ReturnType<typeof createClient<any>>;
 
 function safeIlike(v: string): string {
   return v.replace(/[(),]/g, " ").trim();
