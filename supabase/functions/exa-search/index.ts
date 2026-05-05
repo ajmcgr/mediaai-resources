@@ -1,48 +1,32 @@
-const ALLOWED_ORIGINS = new Set([
-  "https://trymedia.ai",
-  "https://www.trymedia.ai",
-  "https://mediaai-resources.lovable.app",
-]);
-
-function buildCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "";
-  const allow =
-    ALLOWED_ORIGINS.has(origin) || origin.endsWith(".lovable.app") || origin.endsWith(".lovable.dev")
-      ? origin
-      : "https://trymedia.ai";
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Vary": "Origin",
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://trymedia.ai",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 Deno.serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req);
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   const json = (body: Record<string, unknown>, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 200, headers: corsHeaders });
-  }
-
   try {
     const EXA_API_KEY = Deno.env.get("EXA_API_KEY");
     console.log("EXA_API_KEY exists:", !!EXA_API_KEY);
     if (!EXA_API_KEY) {
-      return json({ results: [], error: "EXA_API_KEY not configured", status: 500 }, 200);
+      return json({ results: [], error: "EXA_API_KEY not configured", status: 500 });
     }
 
     const body = await req.json().catch(() => ({}));
     const query = typeof body?.query === "string" ? body.query.trim().slice(0, 500) : "";
     console.log("EXA_QUERY", query);
     if (!query) {
-      return json({ results: [], error: "query is required", status: 400 }, 200);
+      return json({ results: [], error: "query is required", status: 400 });
     }
 
     const exaQuery = `
@@ -74,7 +58,7 @@ Deno.serve(async (req) => {
         error: typeof data?.error === "string" ? data.error : `Exa API returned status ${res.status}`,
         status: res.status,
         details: data,
-      }, 200);
+      });
     }
 
     const rawCount = Array.isArray(data?.results) ? data.results.length : 0;
@@ -87,10 +71,10 @@ Deno.serve(async (req) => {
       source: "web",
     }));
 
-    return json({ results, error: null, status: 200 }, 200);
+    return json({ results, error: null, status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("exa-search error:", message);
-    return json({ results: [], error: message, status: 500 }, 200);
+    return json({ results: [], error: message, status: 500 });
   }
 });
