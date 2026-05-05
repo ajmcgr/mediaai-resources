@@ -504,9 +504,23 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }] },
-      });
+      const [chatRes, exaRes] = await Promise.all([
+        supabase.functions.invoke("chat", {
+          body: { messages: [...base, { role: "user", content: inputValue }] },
+        }),
+        supabase.functions.invoke("exa-search", { body: { query: inputValue } }).catch(() => null),
+      ]);
+      const { data, error } = chatRes;
+      const webResults: Row[] = (((exaRes as { data?: { results?: Array<{ name?: string; url?: string; snippet?: string }> } } | null)?.data?.results) ?? []).map((r) => ({
+        source: "exa" as const,
+        source_url: r.url,
+        name: r.name ?? null,
+        outlet: null,
+        title: r.snippet ?? null,
+        category: null,
+        country: null,
+        email: null,
+      }));
       if (error) {
         const ctx = (error as { context?: Response }).context;
         let detail = "";
@@ -548,9 +562,13 @@ const Chat = () => {
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
         const expanded = await expandChatResults(data.results, inputValue);
-        setResults(expanded);
+        const merged = { ...expanded, rows: [...expanded.rows, ...webResults] };
+        setResults(merged);
         setSavingIdx({});
         upsertSearch.mutate({ tab: expanded.kind, query: { q: inputValue } });
+      } else if (webResults.length) {
+        setResults({ kind: "journalists", rows: webResults, query: inputValue });
+        setSavingIdx({});
       } else {
         setResults(null);
       }
@@ -954,6 +972,8 @@ const Chat = () => {
                               {c.key === "email" ? (
                                 v ? (
                                   <span className="break-all">{String(v)}</span>
+                                ) : r.source === "exa" ? (
+                                  <span className="text-muted-foreground">—</span>
                                 ) : enriching ? (
                                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                     <Loader2 className="h-3 w-3 animate-spin" />Finding…
@@ -972,6 +992,15 @@ const Chat = () => {
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
                                 v.toLocaleString()
+                              ) : c.key === "name" && r.source === "exa" ? (
+                                <span className="inline-flex items-center gap-2">
+                                  {r.source_url ? (
+                                    <a href={r.source_url} target="_blank" rel="noreferrer" className="hover:underline">{String(v)}</a>
+                                  ) : (
+                                    String(v)
+                                  )}
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">Web</span>
+                                </span>
                               ) : (
                                 String(v)
                               )}
