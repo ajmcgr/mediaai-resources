@@ -992,6 +992,15 @@ const Chat = () => {
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
                                 v.toLocaleString()
+                              ) : c.key === "name" && r.source === "exa" ? (
+                                <span className="inline-flex items-center gap-2">
+                                  {r.source_url ? (
+                                    <a href={r.source_url} target="_blank" rel="noreferrer" className="hover:underline">{String(v)}</a>
+                                  ) : (
+                                    String(v)
+                                  )}
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">Web</span>
+                                </span>
                               ) : (
                                 String(v)
                               )}
