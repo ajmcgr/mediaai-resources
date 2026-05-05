@@ -25,7 +25,7 @@ const PLAN_LABELS: Record<string, string> = {
 const Account = () => {
   const { user, signOut } = useAuth();
   const sub = useSubscription();
-  const { usage, loading: usageLoading, error: usageError, refresh: refreshUsage } = useChatUsage();
+  const { usage, loading: usageLoading, error: usageError } = useChatUsage();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
   const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
