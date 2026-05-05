@@ -27,6 +27,8 @@ type UsageSummary = {
   remaining: number;
   credits: number;
   period_ym: string;
+  sub_active: boolean;
+  plan_identifier: string | null;
 };
 
 const tools: Tool[] = [
@@ -987,13 +989,16 @@ async function loadUsageSummary(admin: ReturnType<typeof createClient>, userId: 
 
   const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
-  const allowance = profile?.sub_active
+  const subActive = profile?.sub_active === true;
+  const allowance = subActive
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
     : 20_000;
   const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
   const credits = Number(profile?.chat_credits ?? 0);
+  const monthlyRemaining = Math.max(allowance - used, 0);
+  const remaining = monthlyRemaining + Math.max(credits, 0);
 
-  return { allowance, used, credits, remaining: Math.max(allowance - used, 0) + credits, period_ym: period };
+  return { allowance, used, credits, remaining, period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null };
 }
 
 // ---------- Handler ----------
@@ -1023,9 +1028,26 @@ Deno.serve(async (req) => {
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
     const remaining = summary.remaining;
-    if (remaining <= 0) {
+    const monthlyRoom = Math.max(allowance - usedSoFar, 0);
+    const hasCredits = summary.credits > 0;
+    const trulyExhausted = remaining <= 0 && monthlyRoom <= 0 && !hasCredits;
+    if (trulyExhausted) {
+      console.log("[chat.quota_exhausted]", { user: user.id, summary });
       return new Response(
-        JSON.stringify({ error: "quota_exhausted", message: "You've used all of your chat tokens for this month.", ...summary }),
+        JSON.stringify({
+          error: "quota_exhausted",
+          message: "You've used all of your chat tokens for this month.",
+          ...summary,
+          debug: {
+            remaining,
+            credits: summary.credits,
+            sub_active: summary.sub_active,
+            plan_identifier: summary.plan_identifier,
+            allowance,
+            used: usedSoFar,
+            monthly_room: monthlyRoom,
+          },
+        }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
