@@ -206,6 +206,41 @@ const Account = () => {
         </section>
 
 
+        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+            Change password
+          </h2>
+          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm new password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={pwSaving}>
+              {pwSaving ? "Updating…" : "Update password"}
+            </Button>
+          </form>
+        </section>
+
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
             Session
