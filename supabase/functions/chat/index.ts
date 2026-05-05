@@ -1150,24 +1150,26 @@ Deno.serve(async (req) => {
     }
     const allowance = summary.allowance;
     const usedSoFar = summary.used;
-    const remaining = summary.remaining;
-    const monthlyRoom = Math.max(allowance - usedSoFar, 0);
-    const hasCredits = summary.credits > 0;
-    const trulyExhausted = remaining <= 0 && monthlyRoom <= 0 && !hasCredits;
-    if (trulyExhausted) {
-      console.log("[chat.quota_exhausted]", { user: user.id, summary });
-      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "beta_quota_soft_unblock", {
-        remaining,
-        credits: summary.credits,
-        sub_active: summary.sub_active,
-        plan_identifier: summary.plan_identifier,
-        allowance,
-        used: usedSoFar,
-        monthly_room: monthlyRoom,
-        ledger_purchased: summary.ledger_purchased,
-        profile_credits: summary.profile_credits,
-        rpc_remaining: summary.rpc_remaining,
-        rpc_credits: summary.rpc_credits,
+    const creditsRemaining = allowance - usedSoFar;
+    const remaining = Math.max(creditsRemaining, 0);
+    const creditDebug = {
+      user_id: user.id,
+      plan,
+      monthly_allowance: allowance,
+      credits_used: usedSoFar,
+      credits_remaining: creditsRemaining,
+      profile_credits: summary.profile_credits,
+      ledger_purchased: summary.ledger_purchased,
+      rpc_remaining: summary.rpc_remaining,
+      rpc_credits: summary.rpc_credits,
+      sub_active: summary.sub_active,
+    };
+    console.log("[chat.credit_check]", creditDebug);
+    if (creditsRemaining <= 0) {
+      console.warn("Credit check failed", {
+        ...creditDebug,
+        bypassed: true,
+        reason: "temporary_authenticated_chat_unblock",
       });
     }
 
