@@ -1,3 +1,4 @@
+// redeploy: hubspot upsert resilience 2026-05-06
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
