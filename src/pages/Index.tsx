@@ -32,6 +32,85 @@ import avatar4 from "@/assets/home/avatar-4-v2.png";
 import jacksonAvatar from "@/assets/home/testimonial-jackson-v2.jpg";
 
 type Interval = "monthly" | "yearly";
+function HeroVideo({ src, poster }: { src: string; poster: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    const vid = videoRef.current;
+    if (!el || !vid) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!videoRef.current) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
+          if (!userPaused) videoRef.current.play().catch(() => {});
+        } else {
+          videoRef.current.pause();
+        }
+      },
+      { threshold: [0, 0.4, 0.75] }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [userPaused]);
+
+  const toggle = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      setUserPaused(false);
+      v.play().catch(() => {});
+    } else {
+      setUserPaused(true);
+      v.pause();
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="group relative w-full rounded-xl overflow-hidden cursor-pointer"
+      style={{ filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.1)) drop-shadow(-8px 0 10px rgba(0,0,0,0.06)) drop-shadow(8px 0 10px rgba(0,0,0,0.06))" }}
+      onClick={toggle}
+      role="button"
+      aria-label={playing ? "Pause demo video" : "Play demo video"}
+    >
+      <img src={poster} alt="" aria-hidden="true" className="w-full h-auto block" />
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        onCanPlay={() => setReady(true)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
+        className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-out ${ready && playing ? "opacity-100" : "opacity-0"}`}
+      />
+      <div
+        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+      >
+        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center ring-1 ring-black/5">
+          {playing ? (
+            <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground translate-x-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type PlanId = "starter" | "growth" | "enterprise";
 
 type Tier = {
