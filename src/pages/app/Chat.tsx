@@ -968,8 +968,6 @@ const Chat = () => {
                               {c.key === "email" ? (
                                 v ? (
                                   <span className="block truncate" title={String(v)}>{String(v)}</span>
-                                ) : r.source === "exa" ? (
-                                  <span className="text-muted-foreground">—</span>
                                 ) : enriching ? (
                                   <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
                                     <Loader2 className="h-3 w-3 animate-spin" />Finding…
