@@ -47,6 +47,7 @@ type Row = {
   ig_followers?: number | null;
   youtube_url?: string | null;
   linkedin_url?: string | null;
+  xhandle?: string | null;
   reason?: string;
 };
 type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
@@ -56,10 +57,12 @@ type Results =
 
 const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
+  { key: "title", label: "Title" },
   { key: "outlet", label: "Outlet" },
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
+  { key: "xhandle", label: "X" },
   { key: "linkedin_url", label: "LinkedIn" },
 ];
 const CREATOR_COLS: { key: keyof Row; label: string }[] = [
