@@ -95,6 +95,58 @@ async function hunterDomainSearch({ fullName, domain }: { fullName: string; doma
   }
 }
 
+let snovTokenCache: { token: string; expiresAt: number } | null = null;
+async function snovGetToken(): Promise<string | null> {
+  const id = Deno.env.get("SNOV_CLIENT_ID");
+  const secret = Deno.env.get("SNOV_CLIENT_SECRET");
+  if (!id || !secret) return null;
+  if (snovTokenCache && snovTokenCache.expiresAt > Date.now() + 60_000) return snovTokenCache.token;
+  try {
+    const r = await fetch("https://api.snov.io/v1/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j?.access_token) return null;
+    snovTokenCache = { token: j.access_token, expiresAt: Date.now() + (Number(j.expires_in ?? 3600) * 1000) };
+    return j.access_token;
+  } catch {
+    return null;
+  }
+}
+
+async function snovFindEmail({ fullName, domain, company }: { fullName: string; domain?: string; company?: string }): Promise<{ email: string | null; status: string; error: string | null }> {
+  if (!domain) return { email: null, status: "skipped_no_domain", error: null };
+  const tokens = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return { email: null, status: "skipped_no_name", error: null };
+  const firstName = tokens[0];
+  const lastName = tokens[tokens.length - 1];
+  const token = await snovGetToken();
+  if (!token) return { email: null, status: "no_token", error: "snov_auth_failed" };
+  try {
+    const payload: Record<string, string> = { domain, firstName, lastName };
+    if (company) payload.company = company;
+    const r = await fetch("https://api.snov.io/v2/email-finder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const text = await r.text();
+    if (!r.ok) return { email: null, status: `http_${r.status}`, error: text.slice(0, 200) };
+    let j: any = {};
+    try { j = JSON.parse(text); } catch { return { email: null, status: "invalid_json", error: text.slice(0, 200) }; }
+    const email: string | undefined = j?.data?.email ?? j?.email ?? j?.data?.emails?.[0]?.email;
+    if (email && email.includes("@") && !BAD_EMAIL_RE.test(email)) {
+      return { email, status: "ok", error: null };
+    }
+    return { email: null, status: "no_match", error: null };
+  } catch (e) {
+    return { email: null, status: "exception", error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
