@@ -507,13 +507,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!Object.keys(extracted).length) {
+    if (!Object.keys(extracted).length && !debug.linkedin_url) {
       return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
+    const linkedinUrl = extracted.linkedin_url ?? debug.linkedin_url ?? null;
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
+      return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -523,7 +524,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    return json({ email, linkedin_url: extracted.linkedin_url ?? debug.linkedin_url ?? null, found: Boolean(email || extracted.linkedin_url || debug.linkedin_url), source: email ? "exa" : extracted.linkedin_url || debug.linkedin_url ? "exa-linkedin" : "none", confidence: email ? 0.72 : extracted.linkedin_url || debug.linkedin_url ? 0.7 : null, error: email || extracted.linkedin_url || debug.linkedin_url ? null : "no_email_found", debug });
+    return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
