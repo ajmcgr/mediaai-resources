@@ -687,7 +687,6 @@ const Chat = () => {
   };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
-  if (results) console.log("CHAT_RESULTS_TABLE_EMAIL_COLUMN_UPDATED_cors_fix_003");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -927,14 +926,15 @@ const Chat = () => {
             {results.rows.length === 0 ? (
               <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-sm table-fixed">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="w-8" />
                     {cols.map((c) => (
                       <th
                         key={String(c.key)}
-                        className={`text-left font-medium px-4 py-2.5 ${c.key === "email" ? "min-w-[240px] max-w-[280px] w-[260px]" : ""}`}
+                        className={`text-left font-medium px-4 py-2.5 ${c.key === "email" ? "w-[280px]" : ""}`}
                       >
                         {c.label}
                       </th>
@@ -962,7 +962,7 @@ const Chat = () => {
                           return (
                             <td
                               key={String(c.key)}
-                              className={`px-4 py-2.5 ${c.key === "email" ? "min-w-[240px] max-w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
+                              className={`px-4 py-2.5 ${c.key === "email" ? "w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
                             >
                               {c.key === "email" ? (
                                 v ? (
@@ -1028,6 +1028,7 @@ const Chat = () => {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
             {results.pagination?.has_more && results.rows.length > 0 && (
               <div className="p-4 flex justify-center">
