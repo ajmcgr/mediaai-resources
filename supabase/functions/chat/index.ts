@@ -609,33 +609,32 @@ async function exaSearchOnce(query: string, numResults: number): Promise<Array<{
 }
 
 function buildExaQueries(intent: Intent): string[] {
-  const topic = cleanTopicForQuery(intent);
+  const topic = intent.topics[0] ? cleanTopicForQuery(intent) : "";
   const loc = intent.countryCanonical ?? "";
   const outlet = intent.outlets[0] ?? "";
-  const queries: string[] = [];
-
-  if (intent.raw.trim()) queries.push(intent.raw.trim());
-
   const platform = intent.platforms[0] ?? "";
-  const followers = intent.minFollowers ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers` : "";
+  const followers = intent.minFollowers
+    ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers`
+    : "";
   const wantJ = intent.kind === "journalists" || intent.kind === "both";
   const wantC = intent.kind === "creators" || intent.kind === "both";
+  const queries: string[] = [];
 
+  // Strict: every query must include location if user asked for one.
   if (wantJ) {
-    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
-    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
-    if (outlet && topic) queries.push(`${topic} reporter ${outlet}`);
-    if (outlet && topic) queries.push(`site:${outlet.replace(/\s+/g, "")}.com ${topic} reporter`);
-    if (topic && !loc) queries.push(`${topic} journalist bylines`);
-    if (!topic && loc) queries.push(`${loc} journalist contact`);
+    const role = "journalist";
+    const parts = [topic, role, loc, outlet].filter(Boolean).join(" ").trim();
+    if (parts) queries.push(parts);
+    if (topic && loc) queries.push(`${topic} reporter ${loc}`.trim());
+    if (outlet && loc) queries.push(`${topic} ${outlet} ${loc}`.trim());
   }
   if (wantC) {
-    if (topic && loc) queries.push(`${topic} creator ${loc} ${platform} ${followers}`.trim().replace(/\s+/g, " "));
-    if (topic && platform) queries.push(`${topic} ${platform} creator ${loc}`.trim());
-    if (topic) queries.push(`${topic} influencer ${loc || ""} ${followers}`.trim().replace(/\s+/g, " "));
+    const parts = [topic, "creator", loc, platform, followers].filter(Boolean).join(" ").trim();
+    if (parts) queries.push(parts);
+    if (topic && loc) queries.push(`${topic} influencer ${loc} ${followers}`.trim().replace(/\s+/g, " "));
   }
-  if (!queries.length) queries.push(`${intent.raw}`.trim());
-  return [...new Set(queries)].slice(0, 8);
+  if (!queries.length) queries.push(intent.raw.trim());
+  return [...new Set(queries.filter(Boolean))].slice(0, 6);
 }
 
 async function searchExa(intent: Intent, target: number): Promise<Row[]> {
