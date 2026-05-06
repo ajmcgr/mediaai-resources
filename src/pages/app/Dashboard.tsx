@@ -37,7 +37,7 @@ import {
 type Tab = "journalists" | "creators";
 
 const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
-const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
+const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
   <div className="px-3 py-3 text-sm text-foreground truncate" title={typeof children === "string" ? children : undefined}>
@@ -378,7 +378,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_minmax(160px,1fr)_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -397,17 +397,19 @@ const Dashboard = () => {
                         <EnrichCell value={null} kind="creator" id={r.id} field="linkedin_url" name={r.name} row={r} />
                       )}
                       <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" name={r.name} row={r} />
-                      <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
-                      <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
+                      <EnrichCell value={r.ig_followers != null ? r.ig_followers.toLocaleString() : null} kind="creator" id={r.id} field="ig_followers" name={r.name} row={r} />
+                      <EnrichCell value={r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null} kind="creator" id={r.id} field="ig_engagement_rate" name={r.name} row={r} />
                       <EnrichCell value={r.category} kind="creator" id={r.id} field="category" name={r.name} row={r} />
-                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" name={r.name} row={r} />
-                      <Cell>
-                        {r.youtube_url ? (
+                      {r.youtube_url ? (
+                        <Cell>
                           <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
-                            {r.youtube_subscribers != null ? `${r.youtube_subscribers.toLocaleString()} subs` : "YouTube"}
+                            YouTube
                           </a>
-                        ) : null}
-                      </Cell>
+                        </Cell>
+                      ) : (
+                        <EnrichCell value={null} kind="creator" id={r.id} field="youtube_url" name={r.name} row={r} />
+                      )}
+                      <EnrichCell value={r.youtube_subscribers != null ? r.youtube_subscribers.toLocaleString() : null} kind="creator" id={r.id} field="youtube_subscribers" name={r.name} row={r} />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">

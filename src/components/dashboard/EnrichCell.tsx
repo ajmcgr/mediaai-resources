@@ -23,7 +23,18 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
   const effectiveName = name ?? row?.name ?? null;
   const nameLetters = (effectiveName ?? "").match(/\p{L}/gu)?.length ?? 0;
   const effectiveDomain = outletDomain ?? row?.domain ?? row?.outlet ?? null;
-  const canEnrich = field !== "email" || (nameLetters >= 2 && !!(effectiveDomain && String(effectiveDomain).length));
+  const emailNeedsDomain = field === "email";
+  const canEnrich = nameLetters >= 2 && (!emailNeedsDomain || !!(effectiveDomain && String(effectiveDomain).length));
+  const findLabel: Record<string, string> = {
+    email: "Find email",
+    linkedin_url: "Find LinkedIn",
+    ig_handle: "Find IG",
+    ig_followers: "Find followers",
+    ig_engagement_rate: "Find engagement",
+    youtube_url: "Find YouTube",
+    youtube_subscribers: "Find subs",
+    category: "Find category",
+  };
 
   const enrich = async () => {
     if (loading) return;
@@ -54,19 +65,19 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         body: basePayload,
       });
       if (error) throw error;
-      const updated = (data as { email?: string | null; linkedin_url?: string | null; found?: boolean; error?: string | null } | null) ?? {};
-      const v = field === "email" ? updated.email : field === "linkedin_url" ? updated.linkedin_url : null;
-      if (updated.found && v) {
-        setLocalValue(v);
-        toast.success(`Found ${field === "linkedin_url" ? "LinkedIn" : field}`);
-        if (field === "email" || field === "linkedin_url") {
-          await supabase.from(sourceTable as any).update({ [field]: v }).eq("id", id);
-        }
+      const updated = (data as Record<string, any> | null) ?? {};
+      const v = updated[field] ?? (field === "email" ? updated.email : field === "linkedin_url" ? updated.linkedin_url : null);
+      if ((updated.found || v != null) && v !== null && v !== "") {
+        let display: string | number = v;
+        if (field === "ig_engagement_rate" && typeof v === "number") display = `${(v * 100).toFixed(2)}%`;
+        else if ((field === "ig_followers" || field === "youtube_subscribers") && typeof v === "number") display = v.toLocaleString();
+        setLocalValue(display);
+        toast.success(`Found ${findLabel[field]?.replace(/^Find /, "") ?? field}`);
         qc.invalidateQueries({ queryKey: [kind === "journalist" ? "journalists-infinite" : "creators-infinite"] });
       } else if (updated.error === "insufficient_identity") {
-        toast.error("Insufficient identity: name + outlet/domain required");
+        toast.error("Insufficient identity: name required");
       } else {
-        toast.message(updated.error ?? (field === "email" ? "No email found" : "Nothing found"));
+        toast.message(updated.error ?? "Nothing found");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enrichment failed");
@@ -87,28 +98,28 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
             onClick={enrich}
             disabled={loading}
             className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground hover:text-primary transition-colors"
-            title={`Find ${field} with Hunter + Exa`}
+            title={emailNeedsDomain ? "Find email with Hunter + Exa" : "Discover with Exa + AI"}
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-            <span>{field === "email" ? "Find email" : field === "linkedin_url" ? "Find LinkedIn" : "—"}</span>
+            <span>{findLabel[field] ?? "Find"}</span>
           </button>
         ) : (
           <span
             className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground/60 cursor-not-allowed"
-            title="Need a person name + outlet domain to enrich email."
+            title={emailNeedsDomain ? "Need a person name + outlet domain to enrich email." : "Need a name to enrich."}
           >
             <Sparkles className="h-3 w-3" />
             <span>—</span>
           </span>
         )
-      ) : field === "linkedin_url" && typeof localValue === "string" && /linkedin\.com\/in\//i.test(localValue) ? (
+      ) : (field === "linkedin_url" || field === "youtube_url") && typeof localValue === "string" && /^https?:\/\//.test(localValue) ? (
         <a
           href={localValue}
           target="_blank"
           rel="noreferrer"
           className="block min-w-0 flex-1 whitespace-nowrap overflow-hidden text-ellipsis text-primary hover:underline"
         >
-          LinkedIn
+          {field === "linkedin_url" ? "LinkedIn" : "YouTube"}
         </a>
       ) : (
         <span className="block min-w-0 flex-1 whitespace-nowrap overflow-hidden text-ellipsis">

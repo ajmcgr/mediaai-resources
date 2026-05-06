@@ -8,11 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "linkedin-response-002" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-001" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
-const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type", "linkedin_url"] as const;
+const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "linkedin_url"] as const;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal|advertising|subscribe|newsletter|tips)@/i;
@@ -25,9 +25,11 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   outlet: "Name of the publication or outlet they write for.",
   country: "Country they are based in.",
   bio: "Short professional bio (1-2 sentences).",
-  ig_handle: "Instagram handle starting with @.",
-  youtube_url: "Full YouTube channel URL.",
-  type: "Creator type (e.g. Influencer, Educator, Vlogger).",
+  ig_handle: "Instagram handle without the @ symbol (just the username).",
+  ig_followers: "Instagram follower count as an integer (no commas).",
+  ig_engagement_rate: "Instagram engagement rate as a decimal between 0 and 1 (e.g. 0.034 for 3.4%).",
+  youtube_url: "Full YouTube channel URL (https://www.youtube.com/...).",
+  youtube_subscribers: "YouTube subscriber count as an integer (no commas).",
   linkedin_url: "Full LinkedIn profile URL of the person (must contain linkedin.com/in/).",
 };
 
@@ -294,7 +296,7 @@ async function extractFields(
   context: string,
   snippets: Array<{ url: string; text: string }>,
   fields: string[],
-): Promise<Record<string, string>> {
+): Promise<Record<string, any>> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key || !snippets.length) return {};
 
@@ -326,12 +328,22 @@ ${corpus}`;
     const m = txt.match(/\{[\s\S]*\}/);
     if (!m) return {};
     const parsed = JSON.parse(m[0]);
-    const out: Record<string, string> = {};
+    const out: Record<string, unknown> = {};
+    const numericFields = new Set(["ig_followers", "youtube_subscribers", "ig_engagement_rate"]);
     for (const f of fields) {
       const v = parsed[f];
-      if (typeof v === "string" && v.trim()) out[f] = v.trim();
+      if (v === null || v === undefined || v === "") continue;
+      if (numericFields.has(f)) {
+        const n = typeof v === "number" ? v : Number(String(v).replace(/[, ]+/g, ""));
+        if (Number.isFinite(n) && n > 0) {
+          // Normalize engagement rate: if it came as a percent (>1), convert
+          out[f] = f === "ig_engagement_rate" && n > 1 ? n / 100 : n;
+        }
+      } else if (typeof v === "string" && v.trim()) {
+        out[f] = v.trim();
+      }
     }
-    return out;
+    return out as Record<string, string>;
   } catch {
     return {};
   }
@@ -472,13 +484,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    const existingIg = clean(row.ig_handle);
+    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : ""].filter(Boolean).join(" ");
+    const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
+      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
+    );
     const queries = [
-      `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact`,
-      `"${name}" ${outlet} email`,
-      `"${name}" email`,
+      fieldsToExtract.includes("email") ? `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact` : "",
+      fieldsToExtract.includes("email") ? `"${name}" ${outlet} email` : "",
+      fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
-      table === "creators" ? `"${name}" creator instagram youtube profile email` : "",
+      wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
+      wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
+      wantsCreatorSocial && existingIg ? `site:instagram.com "${existingIg.replace(/^@/, "")}"` : "",
+      wantsCreatorSocial ? `"${name}" creator influencer profile bio` : "",
+      wantsCreatorSocial ? `"${name}" socialblade ${existingIg ? existingIg.replace(/^@/, "") : ""}` : "",
     ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
@@ -492,7 +513,7 @@ Deno.serve(async (req) => {
         const linkedinUrl = String(debug.linkedin_url);
         return json({ email: null, linkedin_url: linkedinUrl, found: true, source: "exa-linkedin", confidence: 0.7, error: null, debug });
       }
-      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", provider_error: providerErrors[0] ?? null, debug });
+      return json({ email: null, found: false, source: "none", confidence: null, error: "no_data_found", reason: outletDomain ? "no_results" : "no_domain", provider_error: providerErrors[0] ?? null, debug });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
@@ -517,8 +538,10 @@ Deno.serve(async (req) => {
 
     const email = extracted.email ?? null;
     const linkedinUrl = extracted.linkedin_url ?? debug.linkedin_url ?? null;
+    const otherKeys = Object.keys(extracted).filter((k) => !["email", "linkedin_url"].includes(k));
+    const found = Boolean(email || linkedinUrl || otherKeys.length);
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
+      return json({ ...extracted, email, linkedin_url: linkedinUrl, found, source: email ? "exa" : linkedinUrl ? "exa-linkedin" : otherKeys.length ? "exa" : "none", confidence: found ? 0.7 : null, error: found ? null : "no_data_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -528,7 +551,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
+    return json({ ...extracted, email, linkedin_url: linkedinUrl, found, source: email ? "exa" : linkedinUrl ? "exa-linkedin" : otherKeys.length ? "exa" : "none", confidence: found ? 0.7 : null, error: found ? null : "no_data_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
