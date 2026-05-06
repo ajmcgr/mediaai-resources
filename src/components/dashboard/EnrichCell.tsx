@@ -23,7 +23,18 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
   const effectiveName = name ?? row?.name ?? null;
   const nameLetters = (effectiveName ?? "").match(/\p{L}/gu)?.length ?? 0;
   const effectiveDomain = outletDomain ?? row?.domain ?? row?.outlet ?? null;
-  const canEnrich = field !== "email" || (nameLetters >= 2 && !!(effectiveDomain && String(effectiveDomain).length));
+  const emailNeedsDomain = field === "email";
+  const canEnrich = nameLetters >= 2 && (!emailNeedsDomain || !!(effectiveDomain && String(effectiveDomain).length));
+  const findLabel: Record<string, string> = {
+    email: "Find email",
+    linkedin_url: "Find LinkedIn",
+    ig_handle: "Find IG",
+    ig_followers: "Find followers",
+    ig_engagement_rate: "Find engagement",
+    youtube_url: "Find YouTube",
+    youtube_subscribers: "Find subs",
+    category: "Find category",
+  };
 
   const enrich = async () => {
     if (loading) return;
