@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     console.log("ENRICH_CONTACT_BODY", body);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, required: REQUIRED_CONTACT_FIELDS }, 400);
+      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, providerPayload: null, providerResponse: null, required: REQUIRED_CONTACT_FIELDS }, 400);
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -222,12 +222,12 @@ Deno.serve(async (req) => {
     const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
     const name = clean(contact.name ?? row.name);
-    if (!name) return json({ error: "Missing contact name", email: null, found: false, source: "none", confidence: null }, 400);
+    if (!name) return json({ error: "missing_name", received: body }, 400);
     const outlet = clean(contact.outlet ?? row.outlet);
     const title = clean(contact.title ?? row.title ?? row.titles);
     const country = clean(contact.country ?? row.country);
     const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
-    const outletDomain = deriveDomain(outlet, sourceUrl);
+    const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     const providerPayloadRaw = {
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
       title: title,
     };
     const providerPayload = Object.fromEntries(
-      Object.entries(providerPayloadRaw).filter(([_, v]) => v !== null && v !== undefined && v !== "")
+      Object.entries(providerPayloadRaw).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
     );
     console.log("ENRICH_PROVIDER_PAYLOAD", providerPayload);
 
