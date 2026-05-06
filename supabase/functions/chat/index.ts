@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-filters-004 2026-05-06
+// redeploy trigger: chat edge function strict-filters-005 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-filters-004";
+const CHAT_VERSION = "strict-filters-005";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,7 +64,7 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   ai: ["ai", "artificial intelligence", "ml", "machine learning", "technology", "tech"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
   crypto: ["crypto", "cryptocurrency", "blockchain", "web3", "bitcoin"],
-  finance: ["finance", "financial", "fintech", "banking", "investing"],
+  finance: ["finance", "financial", "fintech", "banking", "investing", "business", "economy", "economic", "markets", "market", "crypto", "cryptocurrency"],
   health: ["health", "wellness", "fitness", "medical", "healthcare"],
   beauty: ["beauty", "makeup", "skincare", "cosmetics"],
   fashion: ["fashion", "style", "apparel"],
@@ -91,7 +91,7 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
   canada: { canonical: "Canada", variants: ["canada", "canadian"] },
   australia: { canonical: "Australia", variants: ["australia", "australian"] },
-  germany: { canonical: "Germany", variants: ["germany", "german", "deutschland"] },
+  germany: { canonical: "Germany", variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg"] },
   france: { canonical: "France", variants: ["france", "french"] },
   india: { canonical: "India", variants: ["india", "indian"] },
   singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
@@ -151,7 +151,9 @@ const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }>
 type Intent = {
   raw: string;
   kind: "journalists" | "creators" | "both";
+  topic: string | null;
   topics: string[];
+  location: string | null;
   countries: string[];
   countryCanonical: string | null;
   locationTerms: string[];
