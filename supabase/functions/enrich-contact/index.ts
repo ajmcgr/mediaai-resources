@@ -260,6 +260,7 @@ Deno.serve(async (req) => {
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
     const providerErrors = settled.map((s) => s.error).filter(Boolean) as string[];
+    const providerResponseText = settled.find((s) => s.providerResponseText)?.providerResponseText ?? null;
     const allSnippets = settled.flatMap((s) => s.results)
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
@@ -267,9 +268,12 @@ Deno.serve(async (req) => {
     if (!allSnippets.length) {
       const providerError = providerErrors[0] ?? null;
       if (providerError && /invalid_input/i.test(providerError)) {
-        return json({ found: false, email: null, source: "none", confidence: null, error: providerError, providerPayload });
+        return json({ found: false, email: null, source: "none", confidence: null, error: providerError, received: body, providerPayload, providerResponse: providerResponseText }, 400);
       }
-      return json({ email: null, found: false, source: "none", confidence: null, error: providerError });
+      if (providerError) {
+        return json({ email: null, found: false, source: "none", confidence: null, error: providerError, received: body, providerPayload, providerResponse: providerResponseText }, 400);
+      }
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
