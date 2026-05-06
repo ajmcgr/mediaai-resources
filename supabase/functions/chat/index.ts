@@ -300,10 +300,59 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 500;
+  // free=50, starter=100, growth/pro/enterprise=unlimited (large sentinel for in-memory ranking)
+  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 100_000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
+
+// ---------- Inferred location: outlet/domain -> country ----------
+// Used when a row has blank country/city/region but its outlet/domain implies a country.
+const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
+  "United States": [
+    "techcrunch", "wired.com", "bloomberg", "cnbc", "wsj.com", "wall street journal",
+    "nytimes", "new york times", "business insider", "the verge", "theverge",
+    "venturebeat", "ars technica", "arstechnica", "forbes", "axios", "fast company",
+    "fastcompany", "cnet", "zdnet", "gizmodo", "mashable", "engadget", "recode",
+    "the information", "protocol.com", "buzzfeed", "vox.com", "washingtonpost",
+    "usatoday", "latimes", "nbcnews", "abcnews", "cbsnews", "npr.org", "politico",
+    "huffpost", "time.com", "newsweek", "atlantic", "wired",
+  ],
+  "United Kingdom": [
+    "bbc.co.uk", "bbc.com", "theguardian", "guardian.co.uk", "ft.com", "financial times",
+    "telegraph.co.uk", "thetimes.co.uk", "independent.co.uk", "dailymail",
+    "wired.co.uk", "techcrunch.co.uk", "metro.co.uk", "sky.com", "skynews",
+    "press gazette", "pressgazette", "the sun", "the mirror",
+  ],
+  "Japan": [
+    "nikkei", "coinpost", "bitcoinmagazine.jp", "coindesk.jp", "asahi.com",
+    "japantimes", "mainichi.jp", "yomiuri", "kyodonews", "nhk.or.jp",
+  ],
+  "India": [
+    "indianexpress", "timesofindia", "business standard", "business-standard",
+    "ndtv.com", "moneycontrol", "thehindu", "hindustantimes", "livemint",
+    "economictimes", "firstpost", "scroll.in", "thewire.in", "yourstory",
+    "inc42", "entrackr",
+  ],
+  "Germany": [
+    "spiegel.de", "zeit.de", "faz.net", "handelsblatt", "sueddeutsche",
+    "welt.de", "bild.de", "t-online.de", "heise.de", "golem.de", "wired.de",
+  ],
+  "France": [
+    "lemonde.fr", "lefigaro.fr", "liberation.fr", "lesechos.fr", "leparisien",
+    "france24", "rfi.fr", "challenges.fr", "lexpress.fr",
+  ],
+  "Singapore": ["straitstimes", "channelnewsasia", "cna", "businesstimes.com.sg", "techinasia"],
+  "Australia": ["smh.com.au", "theaustralian", "news.com.au", "abc.net.au", "afr.com"],
+  "Canada": ["cbc.ca", "theglobeandmail", "nationalpost", "thestar.com", "ctvnews"],
+};
+
+// All known country canonicals — used to detect "explicit wrong country" rejections.
+const KNOWN_COUNTRY_CANONICALS = new Set<string>([
+  ...Object.values(COUNTRY_SYNONYMS).map((c) => c.canonical.toLowerCase()),
+  ...Object.values(EXTRA_LOCATIONS).map((c) => c.canonical.toLowerCase()),
+]);
+
 
 // ---------- Unified row ----------
 
