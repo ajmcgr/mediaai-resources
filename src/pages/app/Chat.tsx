@@ -994,7 +994,7 @@ const Chat = () => {
                                         type="button"
                                         onClick={() => enrichEmail(i)}
                                         className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
-                                        title="Use Hunter + Exa to find this email"
+                                        title="Find email"
                                       >
                                         <Sparkles className="h-3 w-3" />Find email
                                       </button>
