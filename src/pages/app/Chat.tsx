@@ -981,6 +981,14 @@ const Chat = () => {
               <table className="w-full min-w-[1100px] text-sm table-fixed">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
+                    <th className="w-10 px-2">
+                      <Checkbox
+                        checked={allRowsSelected ? true : someRowsSelected ? "indeterminate" : false}
+                        onCheckedChange={toggleAllRows}
+                        aria-label="Select all"
+                        disabled={selectableIndices.length === 0}
+                      />
+                    </th>
                     <th className="w-8" />
                     {cols.map((c) => (
                       <th
