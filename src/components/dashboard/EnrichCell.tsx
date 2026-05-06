@@ -22,18 +22,20 @@ export const EnrichCell = ({ value, kind, id, field }: Props) => {
     if (loading) return;
     setLoading(true);
     try {
+      const payload = { source_id: id, source_table: kind === "journalist" ? "journalist" : "creators", fields: [field] };
+      console.log("ENRICH_CONTACT_PAYLOAD", payload);
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
-        body: { kind, id, fields: [field] },
+        body: payload,
       });
       if (error) throw error;
-      const updated = (data as { ok?: boolean; updated?: Record<string, string>; message?: string } | null) ?? {};
-      const v = updated.updated?.[field];
-      if (updated.ok && v) {
+      const updated = (data as { email?: string | null; found?: boolean; error?: string | null } | null) ?? {};
+      const v = field === "email" ? updated.email : null;
+      if (updated.found && v) {
         setLocalValue(v);
         toast.success(`Found ${field}`);
         qc.invalidateQueries({ queryKey: [kind === "journalist" ? "journalists-infinite" : "creators-infinite"] });
       } else {
-        toast.message(updated.message ?? "Nothing found");
+        toast.message(updated.error ?? (field === "email" ? "No email found" : "Nothing found"));
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enrichment failed");

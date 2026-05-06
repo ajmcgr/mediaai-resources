@@ -61,6 +61,31 @@ function pickEmail(snippets: Array<{ url: string; text: string }>, name: string)
   return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
 }
 
+const REQUIRED_CONTACT_FIELDS = ["name", "outlet", "title", "source", "source_id", "source_table", "url", "country"];
+
+function json(payload: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(payload), { status, headers: jsonHeaders });
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function clean(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
+function numericId(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function sourceTable(value: unknown): "journalist" | "creators" | null {
+  if (value === "journalist" || value === "journalists") return "journalist";
+  if (value === "creator" || value === "creators") return "creators";
+  return null;
+}
+
 async function extractFields(
   name: string,
   context: string,
@@ -117,46 +142,56 @@ Deno.serve(async (req) => {
   }
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: jsonHeaders });
+    if (!authHeader) return json({ email: null, found: false, source: "none", confidence: null, error: "auth" }, 401);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: jsonHeaders });
+    if (!user) return json({ email: null, found: false, source: "none", confidence: null, error: "auth" }, 401);
 
-    const { kind, id, fields: requestedFields, contact } = await req.json();
-    if (!["journalist", "creator"].includes(kind) || !Number.isFinite(Number(id))) {
-      return new Response(JSON.stringify({ error: "invalid_input" }), { status: 400, headers: jsonHeaders });
+    const body = await req.json().catch(() => ({}));
+    console.log("ENRICH_CONTACT_BODY", body);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, required: REQUIRED_CONTACT_FIELDS }, 400);
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const table = kind === "journalist" ? "journalist" : "creators";
-    const { data: row, error: rowErr } = await admin.from(table).select("*").eq("id", id).maybeSingle();
-    if (rowErr || !row) return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers: jsonHeaders });
+    const root = record(body);
+    const contact = { ...record(root.contact), ...root };
+    const table = sourceTable(contact.source_table) ?? (root.kind === "creator" ? "creators" : "journalist");
+    const allFields = (table === "journalist" ? JOURNALIST_FIELDS : CREATOR_FIELDS) as readonly string[];
+    const requestedFields = root.fields;
+    const sourceId = numericId(contact.source_id ?? root.id);
+    const shouldUpdateDb = sourceId !== null && sourceTable(contact.source_table ?? root.kind) !== null;
 
-    const allFields = (kind === "journalist" ? JOURNALIST_FIELDS : CREATOR_FIELDS) as readonly string[];
+    let row: Record<string, unknown> = {};
+    if (shouldUpdateDb) {
+      const { data: dbRow, error: rowErr } = await admin.from(table).select("*").eq("id", sourceId).maybeSingle();
+      if (rowErr || !dbRow) return json({ error: "not_found", email: null, found: false, source: "none", confidence: null }, 404);
+      row = dbRow;
+    }
+
     const targetFields = (Array.isArray(requestedFields) && requestedFields.length
       ? requestedFields.filter((f: string) => allFields.includes(f))
       : allFields.filter((f) => row[f] === null || row[f] === undefined || row[f] === ""));
+    const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
-    if (!targetFields.length) {
-      return new Response(JSON.stringify({ ok: true, updated: {}, source_urls: [], message: "Nothing to enrich." }), { headers: jsonHeaders });
-    }
-
-    const name = String(row.name ?? "").trim();
-    if (!name) return new Response(JSON.stringify({ error: "no_name" }), { status: 400, headers: jsonHeaders });
-    const outlet = String(row.outlet ?? contact?.outlet ?? "").trim();
-    const sourceUrl = String(contact?.source_url ?? row.enrichment_source_url ?? "").trim();
+    const name = clean(contact.name ?? row.name);
+    if (!name) return json({ error: "Missing contact name", email: null, found: false, source: "none", confidence: null }, 400);
+    const outlet = clean(contact.outlet ?? row.outlet);
+    const title = clean(contact.title ?? row.title ?? row.titles);
+    const country = clean(contact.country ?? row.country);
+    const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
     const outletDomain = hostFrom(sourceUrl) ?? hostFrom(outlet) ?? "";
-    const context = [outlet, row.category, row.country].filter(Boolean).join(" · ");
+    const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     const queries = [
-      `"${name}" ${outlet} email contact`,
-      kind === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
-      kind === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
-      kind === "creator" ? `"${name}" creator instagram youtube profile` : null,
+      `"${name}" ${outlet} ${title} ${country} email contact`,
+      table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
+      table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
+      table === "creators" ? `"${name}" creator instagram youtube profile` : null,
       `"${name}" email address journalist`,
       `"${name}" author profile bio`,
     ].filter(Boolean) as string[];
@@ -165,17 +200,17 @@ Deno.serve(async (req) => {
     const allSnippets = settled.flat().filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i).slice(0, 30);
 
     if (!allSnippets.length) {
-      return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: jsonHeaders });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
     }
 
-    const extracted = await extractFields(name, context, allSnippets, targetFields);
+    const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
       if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
       else extracted.email = cleaned;
     }
     let emailSourceUrl = allSnippets[0]?.url ?? null;
-    if (targetFields.includes("email") && !extracted.email) {
+    if (fieldsToExtract.includes("email") && !extracted.email) {
       const directEmail = pickEmail(allSnippets, name);
       if (directEmail) {
         extracted.email = directEmail.email;
@@ -183,27 +218,29 @@ Deno.serve(async (req) => {
       }
     }
     if (!Object.keys(extracted).length) {
-      return new Response(JSON.stringify({ ok: false, message: targetFields.includes("email") ? "Email not publicly found" : "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: jsonHeaders });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
+    }
+
+    const email = extracted.email ?? null;
+    if (!shouldUpdateDb) {
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
     }
 
     const update: Record<string, unknown> = { ...extracted };
     update.enrichment_source_url = emailSourceUrl;
     update.enriched_at = new Date().toISOString();
 
-    let { error: upErr } = await admin.from(table).update(update).eq("id", id);
+    let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
     if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
-      const r = await admin.from(table).update(extracted).eq("id", id);
+      const r = await admin.from(table).update(extracted).eq("id", sourceId);
       upErr = r.error;
     }
     if (upErr) {
-      return new Response(JSON.stringify({ ok: false, message: `Found data but failed to save: ${upErr.message}`, updated: extracted }), { headers: jsonHeaders });
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: `Found data but failed to save: ${upErr.message}` });
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, updated: extracted, source_urls: allSnippets.slice(0, 3).map((s) => s.url) }),
-      { headers: jsonHeaders },
-    );
+    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: jsonHeaders });
+    return json({ email: null, found: false, source: "none", confidence: null, error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
