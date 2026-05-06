@@ -408,6 +408,12 @@ const Dashboard = () => {
           )}
         </main>
       </div>
+      <BulkAddToListBar
+        count={selectedIds.size}
+        journalistIds={tab === "journalists" ? Array.from(selectedIds) : undefined}
+        creatorIds={tab === "creators" ? Array.from(selectedIds) : undefined}
+        onClear={() => setSelectedIds(new Set())}
+      />
     </div>
   );
 };
