@@ -46,7 +46,7 @@ type Row = {
   youtube_url?: string | null;
   reason?: string;
 };
-type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean };
+type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
 type Results =
   | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
