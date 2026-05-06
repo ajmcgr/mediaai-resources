@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-001" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -235,6 +235,12 @@ function normalizeLinkedInUrl(value: string): string | null {
   return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
 }
 
+function normalizeYouTubeUrl(value: string): string | null {
+  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  if (!/(^|\.)youtube\.com\/(channel\/|c\/|user\/|@)/i.test(cleanUrl)) return null;
+  return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
+}
+
 function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
   const url = (hit.url || "").toLowerCase();
   const haystack = `${hit.title ?? ""} ${hit.text ?? ""} ${url}`.toLowerCase();
@@ -263,6 +269,34 @@ async function findLinkedInUrl(name: string, outlet: string, title: string, coun
       .map((item) => ({ ...item, score: scoreLinkedInHit(item.hit, name, context) }))
       .sort((a, b) => b.score - a.score);
     const best = hits.find((h) => h.score >= 5) ?? hits[0];
+    if (best) return { url: best.url, error: null };
+  }
+  return { url: null, error: firstError };
+}
+
+async function findYouTubeUrl(name: string, igHandle: string, context: string): Promise<{ url: string | null; error: string | null }> {
+  const cleanHandle = igHandle.replace(/^@/, "");
+  const queries = [
+    cleanHandle ? `site:youtube.com "${cleanHandle}" YouTube channel` : "",
+    `site:youtube.com "${name}" ${context} channel`,
+    `"${name}" ${cleanHandle} YouTube channel`,
+  ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
+
+  let firstError: string | null = null;
+  for (const query of queries) {
+    const res = await exaSearch(query, 10, ["youtube.com"]);
+    if (res.error && !firstError) firstError = res.error;
+    const tokens = [cleanHandle, ...name.toLowerCase().split(/\s+/)].filter((t) => t.length > 1);
+    const hits = res.results
+      .map((hit) => ({ hit, url: normalizeYouTubeUrl(hit.url) }))
+      .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
+      .map((item) => {
+        const haystack = `${item.hit.title} ${item.hit.text} ${item.hit.url}`.toLowerCase();
+        const score = tokens.reduce((sum, token) => sum + (haystack.includes(token.toLowerCase()) ? 2 : 0), 0) + (/youtube\.com\/@/i.test(item.url) ? 2 : 1);
+        return { ...item, score };
+      })
+      .sort((a, b) => b.score - a.score);
+    const best = hits.find((h) => h.score >= 3) ?? hits[0];
     if (best) return { url: best.url, error: null };
   }
   return { url: null, error: firstError };
