@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function intent-parser-003 2026-05-06
+// redeploy trigger: chat edge function strict-filters-004 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "intent-parser-003";
+const CHAT_VERSION = "strict-filters-004";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -221,6 +221,21 @@ function parseIntent(q: string): Intent {
       working = working.replace(new RegExp(re.source, "gi"), " ");
     }
   }
+
+  // Free-form city/state catch (e.g. "New York", "San Francisco", "Yorkshire", "Palm Beach").
+  // We only add to locationTerms if the user used "in <City>", "from <City>", "based in <City>".
+  const cityMatch = lower.match(/\b(?:in|from|based in|located in|near)\s+([a-z][a-z\s]{1,30}?)(?:\s+(?:with|who|that|covering|from|for|and|or)\b|[,.?!]|\s*$)/i);
+  if (cityMatch && cityMatch[1]) {
+    const city = cityMatch[1].trim().toLowerCase().replace(/\s+/g, " ");
+    if (city.length >= 2 && city.length <= 40 && !["the","a","an","email","emails","followers"].includes(city)) {
+      locationTerms.add(city);
+      // Common US state aliases to broaden
+      if (city === "new york") { locationTerms.add("ny"); locationTerms.add("new york city"); locationTerms.add("nyc"); }
+      if (city === "los angeles") { locationTerms.add("la"); locationTerms.add("california"); }
+      if (city === "san francisco") { locationTerms.add("sf"); locationTerms.add("california"); }
+    }
+  }
+
 
   // Topics
   const topics = new Set<string>();
@@ -509,11 +524,8 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     ? []
     : await runJournalistQuery(admin, allTerms, fields, limit);
 
-  let rows = dedupe([...primary, ...secondary]);
-  if (rows.length < Math.min(intent.count, 50)) {
-    rows = dedupe([...rows, ...(await fetchBroadJournalists(admin, limit))]);
-  }
-  return rows;
+  // No silent broad fallback — strict-filters-004 requires the table to be filtered, not flooded with random rows.
+  return dedupe([...primary, ...secondary]);
 }
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
@@ -537,11 +549,7 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
     ? []
     : await runCreatorQuery(admin, allTerms, fields, limit);
 
-  let rows = dedupe([...primary, ...secondary]);
-  if (rows.length < Math.min(intent.count, 50)) {
-    rows = dedupe([...rows, ...(await fetchBroadCreators(admin, limit))]);
-  }
-  return rows;
+  return dedupe([...primary, ...secondary]);
 }
 
 // ---------- Exa search ----------
@@ -616,33 +624,32 @@ async function exaSearchOnce(query: string, numResults: number): Promise<Array<{
 }
 
 function buildExaQueries(intent: Intent): string[] {
-  const topic = cleanTopicForQuery(intent);
+  const topic = intent.topics[0] ? cleanTopicForQuery(intent) : "";
   const loc = intent.countryCanonical ?? "";
   const outlet = intent.outlets[0] ?? "";
-  const queries: string[] = [];
-
-  if (intent.raw.trim()) queries.push(intent.raw.trim());
-
   const platform = intent.platforms[0] ?? "";
-  const followers = intent.minFollowers ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers` : "";
+  const followers = intent.minFollowers
+    ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers`
+    : "";
   const wantJ = intent.kind === "journalists" || intent.kind === "both";
   const wantC = intent.kind === "creators" || intent.kind === "both";
+  const queries: string[] = [];
 
+  // Strict: every query must include location if user asked for one.
   if (wantJ) {
-    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
-    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
-    if (outlet && topic) queries.push(`${topic} reporter ${outlet}`);
-    if (outlet && topic) queries.push(`site:${outlet.replace(/\s+/g, "")}.com ${topic} reporter`);
-    if (topic && !loc) queries.push(`${topic} journalist bylines`);
-    if (!topic && loc) queries.push(`${loc} journalist contact`);
+    const role = "journalist";
+    const parts = [topic, role, loc, outlet].filter(Boolean).join(" ").trim();
+    if (parts) queries.push(parts);
+    if (topic && loc) queries.push(`${topic} reporter ${loc}`.trim());
+    if (outlet && loc) queries.push(`${topic} ${outlet} ${loc}`.trim());
   }
   if (wantC) {
-    if (topic && loc) queries.push(`${topic} creator ${loc} ${platform} ${followers}`.trim().replace(/\s+/g, " "));
-    if (topic && platform) queries.push(`${topic} ${platform} creator ${loc}`.trim());
-    if (topic) queries.push(`${topic} influencer ${loc || ""} ${followers}`.trim().replace(/\s+/g, " "));
+    const parts = [topic, "creator", loc, platform, followers].filter(Boolean).join(" ").trim();
+    if (parts) queries.push(parts);
+    if (topic && loc) queries.push(`${topic} influencer ${loc} ${followers}`.trim().replace(/\s+/g, " "));
   }
-  if (!queries.length) queries.push(`${intent.raw}`.trim());
-  return [...new Set(queries)].slice(0, 8);
+  if (!queries.length) queries.push(intent.raw.trim());
+  return [...new Set(queries.filter(Boolean))].slice(0, 6);
 }
 
 async function searchExa(intent: Intent, target: number): Promise<Row[]> {
@@ -1036,37 +1043,30 @@ async function hybridSearch(
     wantJ ? searchJournalistsDb(admin, intent) : Promise.resolve([] as Row[]),
     wantC ? searchCreatorsDb(admin, intent) : Promise.resolve([] as Row[]),
   ]);
-  // Tag source_table for safety
   for (const r of jRows) r.source_table = "journalist";
   for (const r of cRows) r.source_table = "creators";
 
-  let exaRows: Row[] = [];
-  debug.search_order = "database_plus_web";
-  try {
-    exaRows = await searchExa(intent, exaLimit);
-    if (exaRows.length < 20) {
-      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, exaLimit))]).filter((r) => r.source === "exa");
-    }
-    exaRows = exaRows.slice(0, exaLimit);
-  } catch (error) {
-    console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
-    debug.exa_error = error instanceof Error ? error.message : String(error);
-    exaRows = [];
-  }
-  debug.db_count = jRows.length + cRows.length;
-  debug.exa_count = exaRows.length;
-  debug.web_count = exaRows.length;
-
-  // ----- Hard filters -----
+  // ----- Hard filters (strict) -----
   const norm = (s: string | null | undefined) => (s ?? "").toLowerCase();
-  const hayOf = (r: Row) =>
-    [r.name, r.category, r.title, r.outlet, r.country, r.reason, r.source_url, r.ig_handle, r.youtube_url]
-      .map(norm).join(" | ");
+  // Location applies to fields that actually represent geography. Excludes name/title/reason
+  // to avoid false matches like "wired.co.uk" passing for any UK query unrelated to location.
+  const locHayOf = (r: Row) =>
+    [r.country, r.outlet, r.source_url].map(norm).join(" | ");
+  const topicHayOf = (r: Row) =>
+    [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
 
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
-    const hay = hayOf(r);
-    return intent.locationTerms.some((t) => hay.includes(t));
+    const hay = locHayOf(r);
+    return intent.locationTerms.some((t) => {
+      const term = t.trim();
+      if (!term) return false;
+      // Word boundary for short / risky terms to avoid substring leaks (e.g. "ny" in "germany").
+      if (term.length <= 4) {
+        return new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay);
+      }
+      return hay.includes(term);
+    });
   };
   const matchOutlet = (r: Row) => {
     if (!intent.outlets.length) return true;
@@ -1080,10 +1080,10 @@ async function hybridSearch(
   };
   const matchPlatform = (r: Row) => {
     if (!intent.platforms.length) return true;
-    const hay = hayOf(r);
     return intent.platforms.some((p) => {
-      if (p === "youtube") return !!r.youtube_url || hay.includes("youtube");
-      if (p === "instagram") return !!r.ig_handle || hay.includes("instagram");
+      if (p === "youtube") return !!r.youtube_url;
+      if (p === "instagram") return !!r.ig_handle;
+      const hay = topicHayOf(r);
       return hay.includes(p);
     });
   };
@@ -1093,7 +1093,7 @@ async function hybridSearch(
   };
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
-    const hay = hayOf(r);
+    const hay = topicHayOf(r);
     return intent.topics.some((t) => hay.includes(t));
   };
 
@@ -1104,28 +1104,38 @@ async function hybridSearch(
 
   const jStrict = jRows.filter(filterJournalist);
   const cStrict = cRows.filter(filterCreator);
-  const exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+  const strictDbCount = jStrict.length + cStrict.length;
 
-  let fallbackUsed = false;
-  let jFinal = jStrict;
-  let cFinal = cStrict;
-  let exaFinal = exaStrict;
+  // ----- Exa only AFTER strict DB filter, only if strict DB < 50 -----
+  let exaRows: Row[] = [];
+  let exaStrict: Row[] = [];
+  debug.search_order = "strict_db_then_web_if_needed";
+  if (strictDbCount < 50) {
+    try {
+      exaRows = await searchExa(intent, exaLimit);
+      exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+    } catch (error) {
+      console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
+      debug.exa_error = error instanceof Error ? error.message : String(error);
+    }
+  } else {
+    debug.exa_skipped_reason = "strict_db_count_>=_50";
+  }
 
-  // Fallback only if hard filters returned nothing (per kind)
-  if (wantJ && jStrict.length === 0 && jRows.length > 0) {
-    jFinal = jRows.filter(matchEmail);
-    fallbackUsed = true;
-  }
-  if (wantC && cStrict.length === 0 && cRows.length > 0) {
-    cFinal = cRows.filter((r) => matchEmail(r) && matchFollowers(r) && matchPlatform(r));
-    fallbackUsed = true;
-  }
-  if (exaStrict.length === 0 && exaRows.length > 0 && (jFinal.length + cFinal.length) === 0) {
-    exaFinal = exaRows.filter(matchEmail);
-    fallbackUsed = true;
-  }
+  debug.db_count = jRows.length + cRows.length;
+  debug.exa_count = exaRows.length;
+  debug.web_count = exaRows.length;
+
+  // No silent broadening — strict only.
+  const jFinal = jStrict;
+  const cFinal = cStrict;
+  const exaFinal = exaStrict;
+  const fallbackUsed = false;
 
   debug.parsed_intent = intent;
+  debug.parsedIntent = intent;
+  debug.hardFiltersApplied = true;
+  debug.strictCount = jStrict.length + cStrict.length + exaStrict.length;
   debug.kind_used = intent.kind;
   debug.location_filter_applied = intent.locationTerms.length > 0;
   debug.strict_location_count = jStrict.length + cStrict.length;
@@ -1133,6 +1143,7 @@ async function hybridSearch(
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
   debug.fallback_used = fallbackUsed;
+  debug.fallbackUsed = fallbackUsed;
   debug.journalists_count = jFinal.length;
   debug.creators_count = cFinal.length;
 
@@ -1169,7 +1180,18 @@ async function hybridSearch(
   debug.db_returned = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
+  debug.finalCount = paged.length;
   debug.has_more = hasMore;
+  if (paged.length === 0) {
+    const filterParts: string[] = [];
+    if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
+    if (intent.topics.length) filterParts.push(intent.topics[0]);
+    if (intent.outlets.length) filterParts.push(intent.outlets[0]);
+    if (intent.emailRequired) filterParts.push("with email");
+    debug.empty_state_message = filterParts.length
+      ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
+      : `No exact matches found. Try broadening your query.`;
+  }
 
   try {
     if (intent.kind === "both") {
@@ -1288,7 +1310,9 @@ async function databaseOnlyResponse(
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
+      content: rows.length === 0
+        ? (typeof result.debug.empty_state_message === "string" ? result.debug.empty_state_message : "No exact matches found. Try removing location or topic.")
+        : `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
       results: {
         kind,
         rows,
