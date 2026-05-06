@@ -221,6 +221,10 @@ Deno.serve(async (req) => {
     );
     console.log("ENRICH_PROVIDER_PAYLOAD", providerPayload);
 
+    // TEMP DEBUG: return sanitized payload before calling provider to verify sanitization live.
+    return json({ success: false, providerPayload });
+
+
     const queryParts = [
       `"${providerPayload.full_name}"`,
       providerPayload.company ?? "",
