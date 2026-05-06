@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "cors-fix-003" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-debug-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -31,64 +31,43 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   type: "Creator type (e.g. Influencer, Educator, Vlogger).",
 };
 
-async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null }> {
+async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
-  if (!key) return { results: [], error: "EXA_API_KEY missing" };
-  if (!query || !query.trim()) return { results: [], error: "empty query" };
+  if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
+  if (!query || !query.trim()) return { results: [], error: "empty query", providerResponseText: null };
+  const exaPayload = {
+    query: query.trim(),
+    numResults,
+    type: "auto",
+    contents: { text: { maxCharacters: 4000 } },
+  };
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key },
-    body: JSON.stringify({
-      query: query.trim(), numResults, useAutoprompt: true, type: "neural",
-      contents: { text: { maxCharacters: 4000 } },
-    }),
+    body: JSON.stringify(exaPayload),
   });
   const text = await r.text();
+  console.log("ENRICH_PROVIDER_RESPONSE", text);
   if (!r.ok) {
-    console.log("ENRICH_PROVIDER_RESPONSE", r.status, text);
-    return { results: [], error: text || `status ${r.status}` };
+    return { results: [], error: text || `status ${r.status}`, providerResponseText: text };
   }
   try {
     const data = JSON.parse(text);
-    return { results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })), error: null };
+    return { results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })), error: null, providerResponseText: text };
   } catch {
-    return { results: [], error: "invalid provider JSON" };
+    return { results: [], error: "invalid provider JSON", providerResponseText: text };
   }
 }
 
-const OUTLET_DOMAINS: Record<string, string> = {
-  "bbc": "bbc.com", "bbc news": "bbc.com",
-  "the verge": "theverge.com", "verge": "theverge.com",
-  "wired": "wired.com",
-  "techcrunch": "techcrunch.com",
-  "the new york times": "nytimes.com", "nyt": "nytimes.com", "new york times": "nytimes.com",
-  "the guardian": "theguardian.com", "guardian": "theguardian.com",
-  "forbes": "forbes.com",
-  "bloomberg": "bloomberg.com",
-  "reuters": "reuters.com",
-  "cnn": "cnn.com",
-  "the washington post": "washingtonpost.com", "washington post": "washingtonpost.com",
-  "the wall street journal": "wsj.com", "wsj": "wsj.com", "wall street journal": "wsj.com",
-  "financial times": "ft.com", "ft": "ft.com",
-  "the economist": "economist.com", "economist": "economist.com",
-  "the times": "thetimes.co.uk",
-  "axios": "axios.com",
-  "vox": "vox.com",
-  "ars technica": "arstechnica.com",
-  "engadget": "engadget.com",
-  "the information": "theinformation.com",
-};
-
-function deriveDomain(outlet: string, sourceUrl: string): string {
+function deriveDomain(explicitDomain: string, outlet: string, sourceUrl: string): string {
+  const fromDomain = hostFrom(explicitDomain);
+  if (fromDomain) return fromDomain;
   const fromUrl = hostFrom(sourceUrl);
   if (fromUrl) return fromUrl;
   if (!outlet) return "";
-  const key = outlet.toLowerCase().trim();
-  if (OUTLET_DOMAINS[key]) return OUTLET_DOMAINS[key];
   const fromOutlet = hostFrom(outlet);
   if (fromOutlet && fromOutlet.includes(".")) return fromOutlet;
-  const slug = key.replace(/^the\s+/, "").replace(/[^a-z0-9]+/g, "");
-  return slug ? `${slug}.com` : "";
+  return "";
 }
 
 function hostFrom(value: string): string | null {
@@ -198,7 +177,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     console.log("ENRICH_CONTACT_BODY", body);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, required: REQUIRED_CONTACT_FIELDS }, 400);
+      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, providerPayload: null, providerResponse: null, required: REQUIRED_CONTACT_FIELDS }, 400);
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -222,13 +201,13 @@ Deno.serve(async (req) => {
       : allFields.filter((f) => row[f] === null || row[f] === undefined || row[f] === ""));
     const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
-    const name = clean(contact.name ?? row.name);
-    if (!name) return json({ error: "Missing contact name", email: null, found: false, source: "none", confidence: null }, 400);
-    const outlet = clean(contact.outlet ?? row.outlet);
-    const title = clean(contact.title ?? row.title ?? row.titles);
+    const name = clean(contact.name);
+    if (!name) return json({ error: "missing_name", received: body }, 400);
+    const outlet = clean(contact.outlet);
+    const title = clean(contact.title);
     const country = clean(contact.country ?? row.country);
-    const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
-    const outletDomain = deriveDomain(outlet, sourceUrl);
+    const sourceUrl = clean(contact.url ?? contact.source_url);
+    const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     const providerPayloadRaw = {
@@ -238,7 +217,7 @@ Deno.serve(async (req) => {
       title: title,
     };
     const providerPayload = Object.fromEntries(
-      Object.entries(providerPayloadRaw).filter(([_, v]) => v !== null && v !== undefined && v !== "")
+      Object.entries(providerPayloadRaw).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
     );
     console.log("ENRICH_PROVIDER_PAYLOAD", providerPayload);
 
@@ -261,6 +240,9 @@ Deno.serve(async (req) => {
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
     const providerErrors = settled.map((s) => s.error).filter(Boolean) as string[];
+    const providerResponseText = settled.find((s) => s.error && s.providerResponseText)?.providerResponseText
+      ?? settled.find((s) => s.providerResponseText)?.providerResponseText
+      ?? null;
     const allSnippets = settled.flatMap((s) => s.results)
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
@@ -268,9 +250,12 @@ Deno.serve(async (req) => {
     if (!allSnippets.length) {
       const providerError = providerErrors[0] ?? null;
       if (providerError && /invalid_input/i.test(providerError)) {
-        return json({ found: false, email: null, source: "none", confidence: null, error: providerError, providerPayload });
+        return json({ found: false, email: null, source: "none", confidence: null, error: providerError, received: body, providerPayload, providerResponse: providerResponseText }, 400);
       }
-      return json({ email: null, found: false, source: "none", confidence: null, error: providerError });
+      if (providerError) {
+        return json({ email: null, found: false, source: "none", confidence: null, error: providerError, received: body, providerPayload, providerResponse: providerResponseText }, 400);
+      }
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
