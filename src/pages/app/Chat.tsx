@@ -1163,9 +1163,31 @@ const Chat = () => {
         )}
       </div>
       <BulkAddToListBar
-        count={selectedDbIds.length}
+        count={selectedCount}
         journalistIds={results?.kind === "journalists" ? selectedDbIds : undefined}
         creatorIds={results?.kind === "creators" ? selectedDbIds : undefined}
+        resolveExtraIds={selectedWebRows.length === 0 ? undefined : async () => {
+          const kind = results?.kind;
+          if (!kind) return {};
+          const ids: number[] = [];
+          for (const row of selectedWebRows) {
+            try {
+              const { data, error } = await supabase.functions.invoke("save-contact", {
+                body: {
+                  kind,
+                  row: {
+                    name: row.name, outlet: row.outlet, title: row.title,
+                    category: row.category, country: row.country, email: row.email,
+                    ig_handle: row.ig_handle, youtube_url: row.youtube_url, source_url: row.source_url,
+                  },
+                },
+              });
+              if (error || !data?.ok) continue;
+              if (typeof data.id === "number") ids.push(data.id);
+            } catch { /* skip */ }
+          }
+          return kind === "journalists" ? { journalistIds: ids } : { creatorIds: ids };
+        }}
         onClear={() => setSelectedRows(new Set())}
       />
     </div>
