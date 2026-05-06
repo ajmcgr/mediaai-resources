@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-006" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-007" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -65,7 +65,7 @@ function scoreHunterEmail(entry: { value?: string; first_name?: string; last_nam
   return score;
 }
 
-async function hunterDomainSearch({ fullName, domain }: { fullName: string; domain: string }): Promise<string | null> {
+async function hunterDomainSearch({ fullName, domain }: { fullName: string; domain: string }): Promise<{ email: string; role: boolean } | null> {
   const key = Deno.env.get("HUNTER_API_KEY");
   if (!key || !domain || !fullName) return null;
   try {
@@ -73,15 +73,23 @@ async function hunterDomainSearch({ fullName, domain }: { fullName: string; doma
     const r = await fetch(`https://api.hunter.io/v2/domain-search?${params.toString()}`);
     if (!r.ok) return null;
     const j = await r.json();
-    const emails: Array<{ value?: string; first_name?: string; last_name?: string; position?: string }> = j?.data?.emails ?? [];
+    const emails: Array<{ value?: string; first_name?: string; last_name?: string; position?: string; type?: string }> = j?.data?.emails ?? [];
     if (!emails.length) return null;
     let best: { email: string; score: number } | null = null;
     for (const e of emails) {
       const s = scoreHunterEmail(e, fullName);
       if (s > 0 && (!best || s > best.score)) best = { email: (e.value ?? "").toLowerCase(), score: s };
     }
-    if (!best || best.score < 3) return null;
-    return best.email;
+    if (best && best.score >= 3) return { email: best.email, role: false };
+    // role-email fallback
+    const ROLE_RE = /^(newsroom|editorial|editor|tips|news|contact|press)@/i;
+    for (const e of emails) {
+      const v = (e.value ?? "").toLowerCase();
+      if (v && ROLE_RE.test(v) && v.endsWith(`@${domain.toLowerCase()}`)) {
+        return { email: v, role: true };
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -258,7 +266,11 @@ Deno.serve(async (req) => {
     const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
     const name = clean(contact.name);
-    if (!name) return json({ email: null, found: false, source: "none", confidence: null, error: "missing_name" });
+    const nameLetters = (name.match(/\p{L}/gu) ?? []).length;
+    const nameTokens = name.split(/\s+/).filter((t) => (t.match(/\p{L}/gu) ?? []).length >= 2);
+    if (!name || nameLetters < 2 || nameTokens.length < 1 || name === "—") {
+      return json({ email: null, found: false, source: "none", confidence: null, error: "insufficient_identity", reason: "insufficient_identity" });
+    }
 
     const outlet = clean(contact.outlet);
     const title = clean(contact.title);
@@ -283,16 +295,19 @@ Deno.serve(async (req) => {
 
       // Hunter domain-search fallback
       if (outletDomain) {
-        const domainEmail = await hunterDomainSearch({ fullName: name, domain: outletDomain });
-        if (domainEmail) {
+        const domainResult = await hunterDomainSearch({ fullName: name, domain: outletDomain });
+        if (domainResult) {
+          const { email: domainEmail, role } = domainResult;
+          const src = role ? "hunter-domain-role" : "hunter-domain";
+          const conf = role ? 0.45 : 0.78;
           if (shouldUpdateDb && sourceId !== null) {
-            const update: Record<string, unknown> = { email: domainEmail, enrichment_source_url: `hunter-domain:${outletDomain}`, enriched_at: new Date().toISOString() };
+            const update: Record<string, unknown> = { email: domainEmail, enrichment_source_url: `${src}:${outletDomain}`, enriched_at: new Date().toISOString() };
             let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
             if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
               await admin.from(table).update({ email: domainEmail }).eq("id", sourceId);
             }
           }
-          return json({ email: domainEmail, found: true, source: "hunter-domain", confidence: 0.78, error: null });
+          return json({ email: domainEmail, found: true, source: src, confidence: conf, error: null });
         }
       }
     }
@@ -312,9 +327,10 @@ Deno.serve(async (req) => {
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
 
+    const hunterReason = fieldsToExtract.includes("email") ? (outletDomain ? "no_hunter_match" : "no_domain") : null;
+
     if (!allSnippets.length) {
-      // Graceful no-result response to avoid UI hard failure on provider-side invalid_input.
-      return json({ email: null, found: false, source: "none", confidence: null, error: null, provider_error: providerErrors[0] ?? null });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email", provider_error: providerErrors[0] ?? null });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
@@ -334,7 +350,7 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email" });
     }
 
     const email = extracted.email ?? null;
