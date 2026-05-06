@@ -36,7 +36,7 @@ import {
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "xHandle", "Outlet", "Country"];
+const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "xHandle", "Outlet", "Country", "LinkedIn"];
 const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
