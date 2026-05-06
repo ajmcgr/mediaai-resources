@@ -1153,10 +1153,10 @@ async function hybridSearch(
   for (const r of cRows) r.source_table = "creators";
 
   // ----- Hard filters (strict) -----
-  const filterDb = strictFilterDiagnostics(dedupe([...jRows, ...cRows]), intent);
-  const matchKind = (r: Row) => !filterDb.rejectionReason(r) || filterDb.rejectionReason(r) !== "kind_mismatch";
+  const filterRules = strictFilterDiagnostics([], intent);
+  const matchKind = (r: Row) => !filterRules.rejectionReason(r) || filterRules.rejectionReason(r) !== "kind_mismatch";
   const matchLocation = (r: Row) => {
-    const reason = filterDb.rejectionReason(r);
+    const reason = filterRules.rejectionReason(r);
     return reason !== "location_mismatch" && reason !== "substring_false_positive";
   };
   const matchOutlet = (r: Row) => {
@@ -1182,7 +1182,7 @@ async function hybridSearch(
     if (intent.minFollowers == null) return true;
     return (r.ig_followers ?? 0) >= intent.minFollowers;
   };
-  const matchTopic = (r: Row) => filterDb.rejectionReason(r) !== "topic_mismatch";
+  const matchTopic = (r: Row) => filterRules.rejectionReason(r) !== "topic_mismatch";
   const matchSupplementalFilters = (r: Row) =>
     matchOutlet(r) && matchEmail(r) && matchPlatform(r) && matchFollowers(r);
 
@@ -1213,9 +1213,8 @@ async function hybridSearch(
   const strictRows = afterTopicFilterRows.filter(matchSupplementalFilters);
 
   const rejectionReason = (row: Row): string | null => {
-    if (!matchKind(row)) return "kind";
-    if (!matchLocation(row)) return "location";
-    if (!matchTopic(row)) return "topic";
+    const strictReason = filterRules.rejectionReason(row);
+    if (strictReason) return strictReason;
     if (!matchOutlet(row)) return "outlet";
     if (!matchEmail(row)) return "email";
     if (!matchPlatform(row)) return "platform";
