@@ -543,6 +543,7 @@ Deno.serve(async (req) => {
     const queries = [
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact` : "",
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} email` : "",
+      fieldsToExtract.includes("email") && table === "creators" && existingIg ? `"${name}" "${existingIg.replace(/^@/, "")}" email contact` : "",
       fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
