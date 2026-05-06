@@ -74,6 +74,31 @@ export const useAddToList = (userId: string | undefined) => {
       if (args.creatorId) row.connected_creator = args.creatorId;
       const { error } = await supabase.from("journalist_list_items").insert(row);
       if (error) throw error;
+
+      // Auto-trigger email enrichment if the journalist has no email yet.
+      if (args.journalistId) {
+        try {
+          const { data: j } = await supabase
+            .from("journalist")
+            .select("id,name,outlet,email")
+            .eq("id", args.journalistId)
+            .maybeSingle();
+          if (j && !j.email && j.name && j.outlet) {
+            // Fire and forget — don't block list-add UX on enrichment latency.
+            supabase.functions.invoke("enrich-contact", {
+              body: {
+                source_table: "journalist",
+                source_id: j.id,
+                name: j.name,
+                outlet: j.outlet,
+                fields: ["email"],
+              },
+            }).catch(() => {});
+          }
+        } catch {
+          // Non-fatal — list membership already succeeded.
+        }
+      }
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["list-items", vars.listId] });
