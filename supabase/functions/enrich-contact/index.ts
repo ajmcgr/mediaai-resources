@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "snov-fallback-001" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "linkedin-response-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -148,19 +148,20 @@ async function snovFindEmail({ fullName, domain, company }: { fullName: string; 
   }
 }
 
-async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
+async function exaSearch(query: string, numResults = 5, includeDomains: string[] = []): Promise<{ results: Array<{ url: string; title: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
 
   const sanitized = sanitizeQuery(query);
   if (!sanitized || sanitized.length < 3) return { results: [], error: "query_too_short", providerResponseText: null };
 
-  const exaPayload = {
+  const exaPayload: Record<string, unknown> = {
     query: sanitized,
     numResults,
     type: "auto",
     contents: { text: { maxCharacters: 4000 } },
   };
+  if (includeDomains.length) exaPayload.includeDomains = includeDomains;
 
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
@@ -174,7 +175,7 @@ async function exaSearch(query: string, numResults = 5): Promise<{ results: Arra
   try {
     const data = JSON.parse(text);
     return {
-      results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })),
+      results: (data.results ?? []).map((x: { url: string; title?: string; text?: string }) => ({ url: x.url, title: x.title ?? "", text: x.text ?? "" })),
       error: null,
       providerResponseText: text,
     };
