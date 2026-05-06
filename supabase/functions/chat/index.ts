@@ -135,7 +135,8 @@ function parseIntent(q: string): Intent {
   const lower = ` ${q.toLowerCase()} `;
   let working = lower;
 
-  let count = 50;
+  // 0 means "user did not specify a number" — caller will substitute the plan default.
+  let count = 0;
   const qMatch = lower.match(/\b(\d{1,4})\b/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
@@ -210,7 +211,7 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 1000;
+  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 500;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
@@ -928,17 +929,28 @@ async function hybridSearch(
   offset = 0,
 ): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
-  const maxTotal = capForPlan(plan);
-  const requestedLimit = limitOverride && limitOverride > 0 ? limitOverride : maxTotal;
-  const effectiveLimit = Math.min(requestedLimit, maxTotal);
+  const planLimit = capForPlan(plan);
+  const exaLimit = 50;
+  const userExplicit = intent.count > 0;
+  // If user did not explicitly request a count, use the plan's database cap as target.
+  // If they did, honor it but still cap to plan.
+  if (!userExplicit) intent.count = planLimit;
+  else intent.count = Math.min(intent.count, planLimit);
+
+  const maxTotal = planLimit + exaLimit;
+  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(limitOverride, maxTotal) : maxTotal;
   const safeOffset = Math.max(0, offset);
 
   const debug: Record<string, unknown> = {
     original: q,
     intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
+    cap: planLimit,
+    target: planLimit,
+    plan_limit: planLimit,
+    exa_limit: exaLimit,
     maxTotal,
-    requestedLimit: effectiveLimit,
+    requestedLimit,
     offset: safeOffset,
   };
 
@@ -946,14 +958,15 @@ async function hybridSearch(
   let exaRows: Row[] = [];
   debug.search_order = "database_plus_web";
   debug.exa_skipped = false;
+  debug.database_only = false;
 
-  // Always augment with Exa, capped at 50.
+  // Always augment with Exa.
   try {
-    exaRows = await searchExa(intent, 50);
+    exaRows = await searchExa(intent, exaLimit);
     if (exaRows.length < 20) {
-      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, 50))]).filter((r) => r.source === "exa");
+      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, exaLimit))]).filter((r) => r.source === "exa");
     }
-    exaRows = exaRows.slice(0, 50);
+    exaRows = exaRows.slice(0, exaLimit);
   } catch (error) {
     console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
     debug.exa_error = error instanceof Error ? error.message : String(error);
@@ -972,26 +985,28 @@ async function hybridSearch(
       return topicHit || countryHit;
     });
   }
-  if (dbStrict.length < Math.min(maxTotal, 25)) dbStrict = dbRows;
+  if (dbStrict.length < Math.min(planLimit, 25)) dbStrict = dbRows;
   debug.db_strict_count = dbStrict.length;
 
-  let combined = [...dbStrict, ...exaRows];
+  // Cap database results at planLimit, exa already capped at exaLimit.
+  const dbRanked = rankRows(dbStrict, intent).slice(0, planLimit);
+  const exaRanked = rankRows(exaRows, intent).slice(0, exaLimit);
+  let combined = dedupe([...dbRanked, ...exaRanked]);
   if (intent.emailRequired) {
     const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(maxTotal, 5)) combined = withEmail;
+    if (withEmail.length >= Math.min(planLimit, 5)) combined = withEmail;
   }
-  combined = dedupe(combined);
   debug.deduped_count = combined.length;
 
-  // Rank up to maxTotal candidates so pagination has something to slice.
-  const ranked = blendedResults(combined, intent, maxTotal);
-  const paged = ranked.slice(safeOffset, safeOffset + effectiveLimit);
+  const ranked = rankRows(combined, intent);
+  const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
-  const totalEstimated = Math.min(maxTotal, ranked.length);
-  const hasMore = (safeOffset + effectiveLimit) < totalEstimated;
+  const totalEstimated = ranked.length;
+  const hasMore = (safeOffset + requestedLimit) < totalEstimated;
 
   debug.db_returned = dbReturned;
+  debug.db_returned_count = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
   debug.has_more = hasMore;
@@ -1009,8 +1024,8 @@ async function hybridSearch(
     rows: paged,
     debug,
     intent,
-    cap: maxTotal,
-    pagination: { limit: effectiveLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
+    cap: planLimit,
+    pagination: { limit: requestedLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
     sources: { database: dbReturned, web: webReturned },
   };
 }
