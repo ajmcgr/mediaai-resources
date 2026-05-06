@@ -59,29 +59,6 @@ async function exaSearch(query: string, numResults = 5): Promise<{ results: Arra
   }
 }
 
-const OUTLET_DOMAINS: Record<string, string> = {
-  "bbc": "bbc.com", "bbc news": "bbc.com",
-  "the verge": "theverge.com", "verge": "theverge.com",
-  "wired": "wired.com",
-  "techcrunch": "techcrunch.com",
-  "the new york times": "nytimes.com", "nyt": "nytimes.com", "new york times": "nytimes.com",
-  "the guardian": "theguardian.com", "guardian": "theguardian.com",
-  "forbes": "forbes.com",
-  "bloomberg": "bloomberg.com",
-  "reuters": "reuters.com",
-  "cnn": "cnn.com",
-  "the washington post": "washingtonpost.com", "washington post": "washingtonpost.com",
-  "the wall street journal": "wsj.com", "wsj": "wsj.com", "wall street journal": "wsj.com",
-  "financial times": "ft.com", "ft": "ft.com",
-  "the economist": "economist.com", "economist": "economist.com",
-  "the times": "thetimes.co.uk",
-  "axios": "axios.com",
-  "vox": "vox.com",
-  "ars technica": "arstechnica.com",
-  "engadget": "engadget.com",
-  "the information": "theinformation.com",
-};
-
 function deriveDomain(explicitDomain: string, outlet: string, sourceUrl: string): string {
   const fromDomain = hostFrom(explicitDomain);
   if (fromDomain) return fromDomain;
