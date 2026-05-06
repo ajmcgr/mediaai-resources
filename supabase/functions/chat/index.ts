@@ -1115,7 +1115,11 @@ async function hybridSearch(
 ): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
-  const exaLimit = 50;
+  const planNorm = (plan ?? "").toLowerCase();
+  const isStarter = planNorm === "starter";
+  const isGrowthOrHigher = ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(planNorm);
+  // Exa cap: starter = 100, growth+ = unlimited (large sentinel), default = 50
+  const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
   const userExplicit = intent.count > 0;
   // If user did not explicitly request a count, use the plan's database cap as target.
   // If they did, honor it but still cap to plan.
