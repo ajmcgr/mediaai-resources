@@ -300,10 +300,16 @@ const Index = () => {
         </div>
 
         <div className="max-w-6xl mx-auto mt-16">
-          <img
-            src={heroProductMain}
-            alt="Media AI dashboard preview"
-            className="w-full h-auto"
+          <video
+            src="/video/chat-hero.mp4"
+            poster={heroProductMain}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
+            className="w-full h-auto rounded-xl"
             style={{ filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.1)) drop-shadow(-8px 0 10px rgba(0,0,0,0.06)) drop-shadow(8px 0 10px rgba(0,0,0,0.06))" }}
           />
         </div>
