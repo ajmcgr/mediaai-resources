@@ -1039,12 +1039,16 @@ export function isValidRow(row: Row, intent: Intent): boolean {
   if (row.source === "exa" && (!outletNorm || outletNorm === "—")) return false;
   if (row.source === "exa" && outletNorm && normalizeSearchText(outletNorm) === normalizeSearchText(name)) return false;
   if (intent.kind === "journalists" && !isPersonName(name)) return false;
-  // location requirement for exa rows
+  // location requirement for exa rows: explicit hay match OR inferred outlet/host match
   if (row.source === "exa" && intent.locationTerms.length) {
     const hayLoc = [row.country, row.location, row.city, row.region, row.bio, row.source_url, row.title, row.outlet]
       .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
     const ok = intent.locationTerms.some((t) => hayLoc.includes(String(t).toLowerCase()));
-    if (!ok) return false;
+    const inferredList = intent.countryCanonical ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []) : [];
+    const okInferred = inferredList.length
+      ? inferredList.some((o) => hayLoc.includes(o.toLowerCase()))
+      : false;
+    if (!ok && !okInferred) return false;
   }
   // topic requirement for exa rows
   if (row.source === "exa" && intent.topics.length) {
