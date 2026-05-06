@@ -973,16 +973,33 @@ const Chat = () => {
                                     <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
                                       <Loader2 className="h-3 w-3 animate-spin" />Finding…
                                     </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => enrichEmail(i)}
-                                      className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
-                                      title="Use Exa + AI to find this email"
-                                    >
-                                      <Sparkles className="h-3 w-3" />Find email
-                                    </button>
-                                  );
+                                  ) : (() => {
+                                    const nameLetters = ((r.name ?? "").match(/\p{L}/gu) ?? []).length;
+                                    let host = "";
+                                    try { host = r.source_url ? new URL(r.source_url).hostname : ""; } catch { host = ""; }
+                                    const hasDomain = !!host || !!r.outlet;
+                                    const canFind = nameLetters >= 2 && hasDomain;
+                                    if (!canFind) {
+                                      return (
+                                        <span
+                                          className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground/60 cursor-not-allowed"
+                                          title="Need a person name + outlet domain to enrich email."
+                                        >
+                                          <Sparkles className="h-3 w-3" />Find email
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => enrichEmail(i)}
+                                        className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
+                                        title="Use Hunter + Exa to find this email"
+                                      >
+                                        <Sparkles className="h-3 w-3" />Find email
+                                      </button>
+                                    );
+                                  })();
                                 })()
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
