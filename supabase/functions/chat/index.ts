@@ -1153,28 +1153,16 @@ async function hybridSearch(
   for (const r of cRows) r.source_table = "creators";
 
   // ----- Hard filters (strict) -----
-  const normalizeText = (s: unknown) => String(s ?? "").trim().toLowerCase();
-  const fieldHay = (values: unknown[]) => values.map(normalizeText).filter(Boolean).join(" | ");
-  const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
-  const locationHayOf = (r: Row) =>
-    fieldHay([r.country, r.location, r.city, r.region, r.bio, r.outlet, r.title]);
-  const topicHayOf = (r: Row) =>
-    fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
-  const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
-
-  const matchKind = (r: Row) => {
-    if (intent.kind === "journalists") return r.source_table === "journalist";
-    if (intent.kind === "creators") return r.source_table === "creators";
-    return true;
-  };
+  const filterDb = strictFilterDiagnostics(dedupe([...jRows, ...cRows]), intent);
+  const matchKind = (r: Row) => !filterDb.rejectionReason(r) || filterDb.rejectionReason(r) !== "kind_mismatch";
   const matchLocation = (r: Row) => {
-    if (!intent.locationTerms.length) return true;
-    return matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+    const reason = filterDb.rejectionReason(r);
+    return reason !== "location_mismatch" && reason !== "substring_false_positive";
   };
   const matchOutlet = (r: Row) => {
     if (!intent.outlets.length) return true;
-    const hay = fieldHay([r.outlet, r.source_url]);
-    return intent.outlets.some((o) => hay.includes(o.toLowerCase()));
+    const hay = normalizeSearchText([r.outlet, r.source_url].filter(Boolean).join(" | "));
+    return intent.outlets.some((o) => matchesAnyTerm(hay, [o]));
   };
   const matchEmail = (r: Row) => {
     if (!intent.emailRequired) return true;
@@ -1186,23 +1174,15 @@ async function hybridSearch(
     return intent.platforms.some((p) => {
       if (p === "youtube") return !!r.youtube_url;
       if (p === "instagram") return !!r.ig_handle;
-      const hay = topicHayOf(r);
-      return hay.includes(p);
+      const hay = normalizeSearchText([r.category, r.title, r.outlet, r.bio].filter(Boolean).join(" | "));
+      return matchesAnyTerm(hay, [p]);
     });
   };
   const matchFollowers = (r: Row) => {
     if (intent.minFollowers == null) return true;
     return (r.ig_followers ?? 0) >= intent.minFollowers;
   };
-  const matchTopic = (r: Row) => {
-    if (!intent.topics.length) return true;
-    const hay = topicHayOf(r);
-    if (intent.topic === "finance" || intent.topics.includes("finance")) {
-      if (matchesAnyTerm(categoryTopicHayOf(r), EXCLUDED_TOPIC_TERMS)) return false;
-      return matchesAnyTerm(hay, STRICT_FINANCE_TERMS);
-    }
-    return matchesAnyTerm(hay, intent.topics);
-  };
+  const matchTopic = (r: Row) => filterDb.rejectionReason(r) !== "topic_mismatch";
   const matchSupplementalFilters = (r: Row) =>
     matchOutlet(r) && matchEmail(r) && matchPlatform(r) && matchFollowers(r);
 
