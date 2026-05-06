@@ -482,7 +482,7 @@ function missingColumn(error: unknown, column: string): boolean {
 
 function missingFieldFromError(error: unknown, fields: string[]): string | null {
   const msg = String((error as { message?: string })?.message ?? error ?? "").toLowerCase();
-  return fields.find((field) => missingColumn(msg, field) || msg.includes(`.${field}`)) ?? null;
+  return fields.find((field) => missingColumn(msg, field)) ?? null;
 }
 
 async function runJournalistQuery(
