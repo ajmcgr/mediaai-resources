@@ -211,7 +211,7 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise"].includes(p)) return 1000;
+  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 500;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
