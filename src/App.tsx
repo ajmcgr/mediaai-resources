@@ -15,6 +15,7 @@ import ToolTemplate from "./pages/ToolTemplate";
 import Resources from "./pages/Resources";
 import ResourceArticle from "./pages/ResourceArticle";
 import About from "./pages/About";
+import MediaKit from "./pages/MediaKit";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Privacy from "./pages/Privacy";
@@ -93,6 +94,7 @@ const App = () => (
 
               {/* Marketing pages at root */}
               <Route path="/about" element={<About />} />
+              <Route path="/media-kit" element={<MediaKit />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/privacy" element={<Privacy />} />
