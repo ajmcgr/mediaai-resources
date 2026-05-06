@@ -200,14 +200,15 @@ const TIERS: Tier[] = [
 
 
 const FAQS = [
-  { q: "What is Media AI?", a: "Media AI is a database of journalists and creators powered by AI. We help PR and social media professionals find the right contacts to pitch their stories and campaigns." },
-  { q: "How many Journalists and Creators do you have in your database?", a: "We have tens of thousands of journalists and creators in our database, and we are constantly adding more. Our AI crawls the web to keep contact info fresh and accurate." },
-  { q: "Do you offer Journalist email addresses?", a: "Yes — every journalist and creator profile includes a verified email address along with relevant social handles and beat information." },
-  { q: "Do you offer full access to the contacts?", a: "Yes. Every paid plan includes 100% access to the database — no row limits, no paywalled rows, no hidden gates." },
-  { q: "How accurate is your journalist contact data?", a: "Our AI continuously verifies contact information against public sources. We re-check records frequently and remove outdated entries as soon as we detect changes." },
-  { q: "Can I pause/downgrade my plan?", a: "You can cancel or change your plan at any time from your account page. There are no contracts and no cancellation fees." },
-  { q: "Where do you find journalist and creators contacts?", a: "Our proprietary AI crawler aggregates publicly available information from outlets, social platforms, bylines, and creator profiles across the web." },
-  { q: "Can I review the databases before I purchase?", a: "Yes — every plan comes with a 1-month free trial so you can explore the full database before being charged." },
+  { q: "What is Media AI?", a: "Media AI is an AI-powered database of journalists and creators. PR and social media pros use our chat to find the right contacts, save searches, build lists, and monitor brand mentions — all in one place." },
+  { q: "How does the AI chat work?", a: "Just ask in plain English — e.g. 'I'm looking for a tech journalist in the United Kingdom'. The AI searches the database plus live web sources and returns a curated list of journalists or creators with verified emails, beats, outlets, and social handles. You can refine with follow-up questions." },
+  { q: "Can I find creators and influencers, not just journalists?", a: "Yes. The Creators view lets you filter by Instagram followers, engagement rate, YouTube subscribers, category, and country, and the chat works across both journalists and creators." },
+  { q: "How many journalists and creators are in the database?", a: "Hundreds of thousands of journalists and creators worldwide, with new contacts added continuously. Our AI crawler keeps contact info fresh and removes outdated records." },
+  { q: "Do you offer verified email addresses?", a: "Yes — every profile includes a verified email along with relevant social handles, outlet, country, topic, and beat info. Use 'Find email' on any row to enrich missing contacts on demand." },
+  { q: "Can I save lists, monitor coverage, and send pitches?", a: "Yes. Save any search, build custom lists, get brand mention alerts in Monitor, connect your inbox to send and track pitches, and export contacts to CSV any time." },
+  { q: "How accurate is the contact data?", a: "Our AI continuously verifies records against public sources, re-checks them frequently, and removes outdated entries as soon as we detect changes." },
+  { q: "Is there a free trial? Can I cancel anytime?", a: "Every paid plan includes a 1-month free trial with full access to the database. You can change or cancel your plan at any time from your account — no contracts, no cancellation fees." },
+  { q: "Where does the contact data come from?", a: "Our proprietary AI crawler aggregates publicly available information from outlets, bylines, social platforms, and creator profiles across the web." },
 ];
 
 const AUDIENCES = [
