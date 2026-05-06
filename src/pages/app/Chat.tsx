@@ -610,7 +610,6 @@ const Chat = () => {
     if (!row) return;
     setEnrichingIdx((s) => ({ ...s, [idx]: true }));
     try {
-      const dbId = typeof row.source_id === "number" ? row.source_id : null;
       const table: "journalist" | "creators" =
         row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
       const payload = {
