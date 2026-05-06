@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-mode-006 2026-05-06
+// redeploy trigger: chat edge function strict-mode-007 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-mode-006";
+const CHAT_VERSION = "strict-mode-007";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,7 +68,7 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   health: ["health", "wellness", "fitness", "medical", "healthcare"],
   beauty: ["beauty", "makeup", "skincare", "cosmetics"],
   fashion: ["fashion", "style", "apparel"],
-  food: ["food", "cooking", "culinary", "restaurant"],
+  food: ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"],
   travel: ["travel", "tourism", "destination"],
   gaming: ["gaming", "games", "esports"],
   sports: ["sports", "athletics"],
@@ -93,7 +93,7 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   australia: { canonical: "Australia", variants: ["australia", "australian"] },
   germany: { canonical: "Germany", variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg", "leipzig"] },
   france: { canonical: "France", variants: ["france", "french"] },
-  india: { canonical: "India", variants: ["india", "indian"] },
+  india: { canonical: "India", variants: ["india", "new delhi", "delhi", "mumbai", "bangalore", "bengaluru", "kolkata", "chennai", "hyderabad", "pune"] },
   singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
   japan: { canonical: "Japan", variants: ["japan", "japanese"] },
   china: { canonical: "China", variants: ["china", "chinese"] },
@@ -148,7 +148,7 @@ const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }>
   taiwan: { canonical: "Taiwan", variants: ["taiwan", "taipei"] },
 };
 
-type Intent = {
+export type Intent = {
   raw: string;
   kind: "journalists" | "creators" | "both";
   topic: string | null;
@@ -307,7 +307,7 @@ function capForPlan(plan: string | null | undefined): number {
 
 // ---------- Unified row ----------
 
-type Row = {
+export type Row = {
   source: "database" | "exa";
   source_id?: string | number;
   source_url?: string;
@@ -835,14 +835,69 @@ function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
 
 const EXCLUDED_TOPIC_TERMS = ["cars", "automotive", "auto", "tv", "television", "sports", "sport", "espn", "entertainment", "movies", "music", "gaming", "crypto", "cryptocurrency", "blockchain", "web3"];
 const STRICT_FINANCE_TERMS = ["finance", "financial", "business", "markets", "economy", "banking", "fintech", "investing", "stocks"];
+const STRICT_FOOD_TERMS = ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"];
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeSearchText(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9&]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripContactNoise(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, " ")
+    .replace(/https?:\/\/\S+|www\.\S+/gi, " ");
+}
 
 function matchesAnyTerm(hay: string, terms: string[]): boolean {
   return terms.some((term) => {
-    const cleaned = term.trim().toLowerCase();
+    const cleaned = normalizeSearchText(term);
     if (!cleaned) return false;
-    if (cleaned.length <= 4) return new RegExp(`\\b${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay);
-    return hay.includes(cleaned);
+    return new RegExp(`(?:^|[^a-z0-9])${escapeRegex(cleaned)}(?:$|[^a-z0-9])`, "i").test(normalizeSearchText(hay));
   });
+}
+
+export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
+  const fieldHay = (values: unknown[]) => values.map(normalizeSearchText).filter(Boolean).join(" | ");
+  const locationFieldHay = (values: unknown[]) => values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
+  const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
+  const locationHayOf = (r: Row) => locationFieldHay([r.country, r.location, r.city, r.region, r.bio]);
+  const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
+  const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
+  const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
+  const matchKind = (r: Row) => intent.kind === "journalists" ? r.source_table === "journalist" : intent.kind === "creators" ? r.source_table === "creators" : true;
+  const matchLocation = (r: Row) => !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+  const matchTopic = (r: Row) => {
+    if (!intent.topics.length) return true;
+    if (intent.topic === "finance" || intent.topics.includes("finance")) {
+      if (matchesAnyTerm(categoryTopicHayOf(r), EXCLUDED_TOPIC_TERMS)) return false;
+      return matchesAnyTerm(topicHayOf(r), STRICT_FINANCE_TERMS);
+    }
+    return matchesAnyTerm(topicHayOf(r), topicTerms);
+  };
+  const hasSubstringFalsePositive = (r: Row) => intent.locationTerms.some((term) => {
+    const cleaned = normalizeSearchText(term);
+    return cleaned && locationHayOf(r).includes(cleaned) && !matchesAnyTerm(locationHayOf(r), [cleaned]);
+  });
+  const afterKind = rows.filter(matchKind);
+  const afterLocation = afterKind.filter(matchLocation);
+  const afterTopic = afterLocation.filter(matchTopic);
+  const rejectionReason = (row: Row): string | null => {
+    if (!matchKind(row)) return "kind_mismatch";
+    if (!matchLocation(row)) return hasSubstringFalsePositive(row) ? "substring_false_positive" : "location_mismatch";
+    if (!matchTopic(row)) return "topic_mismatch";
+    return null;
+  };
+  return { topicTerms, afterKind, afterLocation, afterTopic, rejectionReason };
 }
 
 function norm(value: string | null | undefined): string {
@@ -1098,28 +1153,16 @@ async function hybridSearch(
   for (const r of cRows) r.source_table = "creators";
 
   // ----- Hard filters (strict) -----
-  const normalizeText = (s: unknown) => String(s ?? "").trim().toLowerCase();
-  const fieldHay = (values: unknown[]) => values.map(normalizeText).filter(Boolean).join(" | ");
-  const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
-  const locationHayOf = (r: Row) =>
-    fieldHay([r.country, r.location, r.city, r.region, r.bio, r.outlet, r.title]);
-  const topicHayOf = (r: Row) =>
-    fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
-  const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
-
-  const matchKind = (r: Row) => {
-    if (intent.kind === "journalists") return r.source_table === "journalist";
-    if (intent.kind === "creators") return r.source_table === "creators";
-    return true;
-  };
+  const filterRules = strictFilterDiagnostics([], intent);
+  const matchKind = (r: Row) => !filterRules.rejectionReason(r) || filterRules.rejectionReason(r) !== "kind_mismatch";
   const matchLocation = (r: Row) => {
-    if (!intent.locationTerms.length) return true;
-    return matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+    const reason = filterRules.rejectionReason(r);
+    return reason !== "location_mismatch" && reason !== "substring_false_positive";
   };
   const matchOutlet = (r: Row) => {
     if (!intent.outlets.length) return true;
-    const hay = fieldHay([r.outlet, r.source_url]);
-    return intent.outlets.some((o) => hay.includes(o.toLowerCase()));
+    const hay = normalizeSearchText([r.outlet, r.source_url].filter(Boolean).join(" | "));
+    return intent.outlets.some((o) => matchesAnyTerm(hay, [o]));
   };
   const matchEmail = (r: Row) => {
     if (!intent.emailRequired) return true;
@@ -1131,23 +1174,15 @@ async function hybridSearch(
     return intent.platforms.some((p) => {
       if (p === "youtube") return !!r.youtube_url;
       if (p === "instagram") return !!r.ig_handle;
-      const hay = topicHayOf(r);
-      return hay.includes(p);
+      const hay = normalizeSearchText([r.category, r.title, r.outlet, r.bio].filter(Boolean).join(" | "));
+      return matchesAnyTerm(hay, [p]);
     });
   };
   const matchFollowers = (r: Row) => {
     if (intent.minFollowers == null) return true;
     return (r.ig_followers ?? 0) >= intent.minFollowers;
   };
-  const matchTopic = (r: Row) => {
-    if (!intent.topics.length) return true;
-    const hay = topicHayOf(r);
-    if (intent.topic === "finance" || intent.topics.includes("finance")) {
-      if (matchesAnyTerm(categoryTopicHayOf(r), EXCLUDED_TOPIC_TERMS)) return false;
-      return matchesAnyTerm(hay, STRICT_FINANCE_TERMS);
-    }
-    return matchesAnyTerm(hay, intent.topics);
-  };
+  const matchTopic = (r: Row) => filterRules.rejectionReason(r) !== "topic_mismatch";
   const matchSupplementalFilters = (r: Row) =>
     matchOutlet(r) && matchEmail(r) && matchPlatform(r) && matchFollowers(r);
 
@@ -1178,9 +1213,8 @@ async function hybridSearch(
   const strictRows = afterTopicFilterRows.filter(matchSupplementalFilters);
 
   const rejectionReason = (row: Row): string | null => {
-    if (!matchKind(row)) return "kind";
-    if (!matchLocation(row)) return "location";
-    if (!matchTopic(row)) return "topic";
+    const strictReason = filterRules.rejectionReason(row);
+    if (strictReason) return strictReason;
     if (!matchOutlet(row)) return "outlet";
     if (!matchEmail(row)) return "email";
     if (!matchPlatform(row)) return "platform";
@@ -1204,6 +1238,8 @@ async function hybridSearch(
   debug.location_filter_applied = intent.locationTerms.length > 0;
   debug.topicFilterApplied = intent.topics.length > 0;
   debug.topic_filter_applied = intent.topics.length > 0;
+  debug.locationTerms = intent.locationTerms;
+  debug.topicTerms = filterRules.topicTerms;
   debug.email_filter_applied = intent.emailRequired;
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
@@ -1271,7 +1307,9 @@ async function hybridSearch(
       : `Found ${paged.length} finance journalists in Germany.`;
   }
   if (paged.length === 0) {
-    if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
+    if ((intent.topic === "food" || intent.topics.includes("food")) && intent.countryCanonical === "India" && intent.kind === "journalists") {
+      debug.empty_state_message = "No exact food journalists in India found.";
+    } else if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
       debug.empty_state_message = "No exact finance journalists in Germany found.";
     } else {
       const filterParts: string[] = [];
@@ -1431,7 +1469,7 @@ async function databaseOnlyResponse(
 
 // ---------- Handler ----------
 
-Deno.serve(async (req) => {
+if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
   console.log("CHAT_FN_REQUEST_START", {
     method: req.method,
     url: req.url,
