@@ -65,19 +65,19 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         body: basePayload,
       });
       if (error) throw error;
-      const updated = (data as { email?: string | null; linkedin_url?: string | null; found?: boolean; error?: string | null } | null) ?? {};
-      const v = field === "email" ? updated.email : field === "linkedin_url" ? updated.linkedin_url : null;
-      if (updated.found && v) {
-        setLocalValue(v);
-        toast.success(`Found ${field === "linkedin_url" ? "LinkedIn" : field}`);
-        if (field === "email" || field === "linkedin_url") {
-          await supabase.from(sourceTable as any).update({ [field]: v }).eq("id", id);
-        }
+      const updated = (data as Record<string, any> | null) ?? {};
+      const v = updated[field] ?? (field === "email" ? updated.email : field === "linkedin_url" ? updated.linkedin_url : null);
+      if ((updated.found || v != null) && v !== null && v !== "") {
+        let display: string | number = v;
+        if (field === "ig_engagement_rate" && typeof v === "number") display = `${(v * 100).toFixed(2)}%`;
+        else if ((field === "ig_followers" || field === "youtube_subscribers") && typeof v === "number") display = v.toLocaleString();
+        setLocalValue(display);
+        toast.success(`Found ${findLabel[field]?.replace(/^Find /, "") ?? field}`);
         qc.invalidateQueries({ queryKey: [kind === "journalist" ? "journalists-infinite" : "creators-infinite"] });
       } else if (updated.error === "insufficient_identity") {
-        toast.error("Insufficient identity: name + outlet/domain required");
+        toast.error("Insufficient identity: name required");
       } else {
-        toast.message(updated.error ?? (field === "email" ? "No email found" : "Nothing found"));
+        toast.message(updated.error ?? "Nothing found");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enrichment failed");
