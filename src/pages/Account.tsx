@@ -291,6 +291,7 @@ const Account = () => {
             Sign out
           </Button>
         </section>
+        </div>
       </main>
     </div>
   );
