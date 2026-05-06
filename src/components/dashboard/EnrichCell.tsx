@@ -101,6 +101,15 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
             <span>—</span>
           </span>
         )
+      ) : field === "linkedin_url" && typeof localValue === "string" && /linkedin\.com\/in\//i.test(localValue) ? (
+        <a
+          href={localValue}
+          target="_blank"
+          rel="noreferrer"
+          className="block min-w-0 flex-1 whitespace-nowrap overflow-hidden text-ellipsis text-primary hover:underline"
+        >
+          LinkedIn
+        </a>
       ) : (
         <span className="block min-w-0 flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
           {localValue}
