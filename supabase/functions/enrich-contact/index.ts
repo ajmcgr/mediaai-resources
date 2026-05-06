@@ -51,6 +51,42 @@ async function hunterFindEmail({ fullName, domain, company }: { fullName: string
   }
 }
 
+function scoreHunterEmail(entry: { value?: string; first_name?: string; last_name?: string; position?: string }, fullName: string): number {
+  const email = (entry?.value ?? "").toLowerCase();
+  if (!email || BAD_EMAIL_RE.test(email)) return -1;
+  const parts = fullName.toLowerCase().split(/\s+/).filter((p) => p.length > 1);
+  const first = (entry.first_name ?? "").toLowerCase();
+  const last = (entry.last_name ?? "").toLowerCase();
+  let score = 0;
+  if (first && parts.includes(first)) score += 3;
+  if (last && parts.includes(last)) score += 3;
+  for (const p of parts) if (email.includes(p)) score += 1;
+  if (entry.position) score += 0.5;
+  return score;
+}
+
+async function hunterDomainSearch({ fullName, domain }: { fullName: string; domain: string }): Promise<string | null> {
+  const key = Deno.env.get("HUNTER_API_KEY");
+  if (!key || !domain || !fullName) return null;
+  try {
+    const params = new URLSearchParams({ domain, api_key: key, limit: "100" });
+    const r = await fetch(`https://api.hunter.io/v2/domain-search?${params.toString()}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const emails: Array<{ value?: string; first_name?: string; last_name?: string; position?: string }> = j?.data?.emails ?? [];
+    if (!emails.length) return null;
+    let best: { email: string; score: number } | null = null;
+    for (const e of emails) {
+      const s = scoreHunterEmail(e, fullName);
+      if (s > 0 && (!best || s > best.score)) best = { email: (e.value ?? "").toLowerCase(), score: s };
+    }
+    if (!best || best.score < 3) return null;
+    return best.email;
+  } catch {
+    return null;
+  }
+}
+
 async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
