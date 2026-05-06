@@ -440,6 +440,7 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
+    xhandle: (r.xhandle as string) ?? null,
   }));
 }
 
