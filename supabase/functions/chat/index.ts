@@ -420,7 +420,7 @@ function buildSearchTerms(intent: Intent): string[] {
 
 async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise<Row[]> {
   const { data, error } = await admin.from("journalist")
-    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+    .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
   if (error) {
