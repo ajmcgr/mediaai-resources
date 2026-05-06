@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "cors-fix-003" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-debug-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -31,10 +31,10 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   type: "Creator type (e.g. Influencer, Educator, Vlogger).",
 };
 
-async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null }> {
+async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
-  if (!key) return { results: [], error: "EXA_API_KEY missing" };
-  if (!query || !query.trim()) return { results: [], error: "empty query" };
+  if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
+  if (!query || !query.trim()) return { results: [], error: "empty query", providerResponseText: null };
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key },
@@ -44,15 +44,15 @@ async function exaSearch(query: string, numResults = 5): Promise<{ results: Arra
     }),
   });
   const text = await r.text();
+  console.log("ENRICH_PROVIDER_RESPONSE", text);
   if (!r.ok) {
-    console.log("ENRICH_PROVIDER_RESPONSE", r.status, text);
-    return { results: [], error: text || `status ${r.status}` };
+    return { results: [], error: text || `status ${r.status}`, providerResponseText: text };
   }
   try {
     const data = JSON.parse(text);
-    return { results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })), error: null };
+    return { results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })), error: null, providerResponseText: text };
   } catch {
-    return { results: [], error: "invalid provider JSON" };
+    return { results: [], error: "invalid provider JSON", providerResponseText: text };
   }
 }
 
@@ -79,16 +79,15 @@ const OUTLET_DOMAINS: Record<string, string> = {
   "the information": "theinformation.com",
 };
 
-function deriveDomain(outlet: string, sourceUrl: string): string {
+function deriveDomain(explicitDomain: string, outlet: string, sourceUrl: string): string {
+  const fromDomain = hostFrom(explicitDomain);
+  if (fromDomain) return fromDomain;
   const fromUrl = hostFrom(sourceUrl);
   if (fromUrl) return fromUrl;
   if (!outlet) return "";
-  const key = outlet.toLowerCase().trim();
-  if (OUTLET_DOMAINS[key]) return OUTLET_DOMAINS[key];
   const fromOutlet = hostFrom(outlet);
   if (fromOutlet && fromOutlet.includes(".")) return fromOutlet;
-  const slug = key.replace(/^the\s+/, "").replace(/[^a-z0-9]+/g, "");
-  return slug ? `${slug}.com` : "";
+  return "";
 }
 
 function hostFrom(value: string): string | null {
