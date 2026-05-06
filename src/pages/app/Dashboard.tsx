@@ -291,12 +291,12 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
                       </div>
-                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" />
-                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" />
-                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" />
-                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" />
-                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" />
-                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" />
+                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
