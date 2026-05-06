@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-005" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-006" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
