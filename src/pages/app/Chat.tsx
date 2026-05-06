@@ -1055,10 +1055,14 @@ const Chat = () => {
               </div>
             )}
             {results.pagination?.has_more && results.rows.length > 0 && (
-              <div className="p-4 flex justify-center">
-                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
-                  {loadingMore ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading…</> : "Load more"}
-                </Button>
+              <div ref={loadMoreSentinelRef} className="p-4 flex justify-center">
+                {loadingMore ? (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading more…
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={loadMore}>Load more</Button>
+                )}
               </div>
             )}
           </section>
