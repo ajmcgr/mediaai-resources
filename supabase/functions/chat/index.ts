@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-filters-004 2026-05-06
+// redeploy trigger: chat edge function strict-filters-005 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-filters-004";
+const CHAT_VERSION = "strict-filters-005";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,7 +64,7 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   ai: ["ai", "artificial intelligence", "ml", "machine learning", "technology", "tech"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
   crypto: ["crypto", "cryptocurrency", "blockchain", "web3", "bitcoin"],
-  finance: ["finance", "financial", "fintech", "banking", "investing"],
+  finance: ["finance", "financial", "fintech", "banking", "investing", "business", "economy", "economic", "markets", "market", "crypto", "cryptocurrency"],
   health: ["health", "wellness", "fitness", "medical", "healthcare"],
   beauty: ["beauty", "makeup", "skincare", "cosmetics"],
   fashion: ["fashion", "style", "apparel"],
@@ -91,7 +91,7 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
   canada: { canonical: "Canada", variants: ["canada", "canadian"] },
   australia: { canonical: "Australia", variants: ["australia", "australian"] },
-  germany: { canonical: "Germany", variants: ["germany", "german", "deutschland"] },
+  germany: { canonical: "Germany", variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg"] },
   france: { canonical: "France", variants: ["france", "french"] },
   india: { canonical: "India", variants: ["india", "indian"] },
   singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
@@ -151,7 +151,9 @@ const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }>
 type Intent = {
   raw: string;
   kind: "journalists" | "creators" | "both";
+  topic: string | null;
   topics: string[];
+  location: string | null;
   countries: string[];
   countryCanonical: string | null;
   locationTerms: string[];
@@ -278,7 +280,9 @@ function parseIntent(q: string): Intent {
   return {
     raw: q,
     kind,
+    topic: topics.has("finance") ? "finance" : ([...topics][0] ?? null),
     topics: [...topics],
+    location: countryCanonical,
     countries: [...countries],
     countryCanonical,
     locationTerms: [...locationTerms],
@@ -794,6 +798,18 @@ function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
   return rankRows(picked, intent).slice(0, target);
 }
 
+const EXCLUDED_TOPIC_TERMS = ["cars", "automotive", "auto", "tv", "television", "sports", "sport", "espn", "entertainment", "movies", "music", "gaming"];
+const STRONG_FINANCE_TERMS = ["finance", "financial", "fintech", "banking", "bank", "investing", "investment", "business", "economy", "economic", "markets", "market", "crypto", "cryptocurrency", "blockchain", "stocks", "equities", "bloomberg", "reuters", "financial times", "ft.com", "wall street journal", "wsj", "forbes", "business insider"];
+
+function matchesAnyTerm(hay: string, terms: string[]): boolean {
+  return terms.some((term) => {
+    const cleaned = term.trim().toLowerCase();
+    if (!cleaned) return false;
+    if (cleaned.length <= 4) return new RegExp(`\\b${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay);
+    return hay.includes(cleaned);
+  });
+}
+
 function norm(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
@@ -1024,7 +1040,7 @@ async function hybridSearch(
   const debug: Record<string, unknown> = {
     version: CHAT_VERSION,
     original: q,
-    intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
+    intent: { kind: intent.kind, topic: intent.topic, topics: intent.topics, location: intent.location, countries: intent.countries, countryCanonical: intent.countryCanonical, locationTerms: intent.locationTerms, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
     cap: planLimit,
     target,
@@ -1051,9 +1067,12 @@ async function hybridSearch(
   // Location applies to fields that actually represent geography. Excludes name/title/reason
   // to avoid false matches like "wired.co.uk" passing for any UK query unrelated to location.
   const locHayOf = (r: Row) =>
-    [r.country, r.outlet, r.source_url].map(norm).join(" | ");
+    (r.source === "exa" ? [r.outlet, r.source_url, r.title, r.reason] : [r.country, r.outlet, r.source_url])
+      .map(norm).join(" | ");
   const topicHayOf = (r: Row) =>
     [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
+  const strongTopicHayOf = (r: Row) =>
+    [r.title, r.outlet].map(norm).join(" | ");
 
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
@@ -1094,26 +1113,37 @@ async function hybridSearch(
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
     const hay = topicHayOf(r);
-    return intent.topics.some((t) => hay.includes(t));
+    const strongHay = strongTopicHayOf(r);
+    if (intent.topic === "finance" || intent.topics.includes("finance")) {
+      const hasFinance = matchesAnyTerm(hay, STRONG_FINANCE_TERMS);
+      if (!hasFinance) return false;
+      const hasExcludedCategory = matchesAnyTerm(norm(r.category), EXCLUDED_TOPIC_TERMS);
+      return !hasExcludedCategory || matchesAnyTerm(strongHay, STRONG_FINANCE_TERMS);
+    }
+    return matchesAnyTerm(hay, intent.topics);
   };
 
-  const filterJournalist = (r: Row) =>
-    matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r);
-  const filterCreator = (r: Row) =>
-    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r) && matchTopic(r);
+  const filterJournalistLocation = (r: Row) =>
+    matchLocation(r) && matchOutlet(r) && matchEmail(r);
+  const filterCreatorLocation = (r: Row) =>
+    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r);
 
-  const jStrict = jRows.filter(filterJournalist);
-  const cStrict = cRows.filter(filterCreator);
+  const jLocationStrict = jRows.filter(filterJournalistLocation);
+  const cLocationStrict = cRows.filter(filterCreatorLocation);
+  const jStrict = jLocationStrict.filter(matchTopic);
+  const cStrict = cLocationStrict.filter(matchTopic);
   const strictDbCount = jStrict.length + cStrict.length;
 
   // ----- Exa only AFTER strict DB filter, only if strict DB < 50 -----
   let exaRows: Row[] = [];
+  let exaLocationStrict: Row[] = [];
   let exaStrict: Row[] = [];
   debug.search_order = "strict_db_then_web_if_needed";
   if (strictDbCount < 50) {
     try {
       exaRows = await searchExa(intent, exaLimit);
-      exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+      exaLocationStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r));
+      exaStrict = exaLocationStrict.filter(matchTopic);
     } catch (error) {
       console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
       debug.exa_error = error instanceof Error ? error.message : String(error);
@@ -1138,7 +1168,9 @@ async function hybridSearch(
   debug.strictCount = jStrict.length + cStrict.length + exaStrict.length;
   debug.kind_used = intent.kind;
   debug.location_filter_applied = intent.locationTerms.length > 0;
-  debug.strict_location_count = jStrict.length + cStrict.length;
+  debug.strict_location_count = jLocationStrict.length + cLocationStrict.length + exaLocationStrict.length;
+  debug.topic_filter_applied = intent.topics.length > 0;
+  debug.strict_topic_count = jStrict.length + cStrict.length + exaStrict.length;
   debug.email_filter_applied = intent.emailRequired;
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
@@ -1183,14 +1215,18 @@ async function hybridSearch(
   debug.finalCount = paged.length;
   debug.has_more = hasMore;
   if (paged.length === 0) {
-    const filterParts: string[] = [];
-    if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
-    if (intent.topics.length) filterParts.push(intent.topics[0]);
-    if (intent.outlets.length) filterParts.push(intent.outlets[0]);
-    if (intent.emailRequired) filterParts.push("with email");
-    debug.empty_state_message = filterParts.length
-      ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
-      : `No exact matches found. Try broadening your query.`;
+    if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
+      debug.empty_state_message = "No exact finance journalists in Germany found. Try broadening location or topic.";
+    } else {
+      const filterParts: string[] = [];
+      if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
+      if (intent.topics.length) filterParts.push(intent.topics[0]);
+      if (intent.outlets.length) filterParts.push(intent.outlets[0]);
+      if (intent.emailRequired) filterParts.push("with email");
+      debug.empty_state_message = filterParts.length
+        ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
+        : `No exact matches found. Try broadening your query.`;
+    }
   }
 
   try {
@@ -1455,7 +1491,7 @@ Deno.serve(async (req) => {
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    let lastKind: "journalists" | "creators" | null = null;
+    let lastKind: Intent["kind"] | null = null;
     let lastRows: Row[] = [];
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
@@ -1488,7 +1524,7 @@ Deno.serve(async (req) => {
         for (const tc of msg.tool_calls) {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
-          const q = String(parsed.q ?? "");
+          const q = userQuery || String(parsed.q ?? "");
           const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
           lastKind = result.intent.kind;
           lastRows = result.rows;
@@ -1518,10 +1554,14 @@ Deno.serve(async (req) => {
         remainingAfter = await recordUsage(admin, user.id, totalTokens, remainingAfter);
       } catch (_) { /* handled in recordUsage */ }
 
+      const responseContent = lastRows.length === 0 && typeof lastDebug.empty_state_message === "string"
+        ? lastDebug.empty_state_message
+        : (msg.content ?? "");
+
       return new Response(
         JSON.stringify({
           warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-          content: msg.content ?? "",
+          content: responseContent,
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
           pagination: lastPagination,
           sources: lastSources,
