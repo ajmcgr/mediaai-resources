@@ -9,13 +9,13 @@ import { startCheckout } from "@/lib/billing";
 import { toast } from "sonner";
 
 import heroProductMain from "@/assets/home/hero-product-main.png";
-import heroProductDiscover from "@/assets/home/hero-product-discover-v2.png";
+import heroProductDiscover from "@/assets/home/feature-database.jpg";
 import featureAiChat from "@/assets/home/feature-ai-chat.jpg";
 import audiencesImg from "@/assets/home/audiences.png";
-import featureSearch from "@/assets/home/feature-search-new.png";
+import featureSearch from "@/assets/home/feature-search-v2.jpg";
 import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
 import featureContactInbox from "@/assets/home/feature-contact-inbox.jpg";
-import featureExport from "@/assets/home/feature-export.png";
+import featureExport from "@/assets/home/feature-export-v2.jpg";
 import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
 import logoCision from "@/assets/home/logo-cision-new.png";
 import logoMeltwater from "@/assets/home/logo-meltwater-new.png";
