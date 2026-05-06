@@ -65,7 +65,7 @@ function scoreHunterEmail(entry: { value?: string; first_name?: string; last_nam
   return score;
 }
 
-async function hunterDomainSearch({ fullName, domain }: { fullName: string; domain: string }): Promise<string | null> {
+async function hunterDomainSearch({ fullName, domain }: { fullName: string; domain: string }): Promise<{ email: string; role: boolean } | null> {
   const key = Deno.env.get("HUNTER_API_KEY");
   if (!key || !domain || !fullName) return null;
   try {
@@ -73,15 +73,23 @@ async function hunterDomainSearch({ fullName, domain }: { fullName: string; doma
     const r = await fetch(`https://api.hunter.io/v2/domain-search?${params.toString()}`);
     if (!r.ok) return null;
     const j = await r.json();
-    const emails: Array<{ value?: string; first_name?: string; last_name?: string; position?: string }> = j?.data?.emails ?? [];
+    const emails: Array<{ value?: string; first_name?: string; last_name?: string; position?: string; type?: string }> = j?.data?.emails ?? [];
     if (!emails.length) return null;
     let best: { email: string; score: number } | null = null;
     for (const e of emails) {
       const s = scoreHunterEmail(e, fullName);
       if (s > 0 && (!best || s > best.score)) best = { email: (e.value ?? "").toLowerCase(), score: s };
     }
-    if (!best || best.score < 3) return null;
-    return best.email;
+    if (best && best.score >= 3) return { email: best.email, role: false };
+    // role-email fallback
+    const ROLE_RE = /^(newsroom|editorial|editor|tips|news|contact|press)@/i;
+    for (const e of emails) {
+      const v = (e.value ?? "").toLowerCase();
+      if (v && ROLE_RE.test(v) && v.endsWith(`@${domain.toLowerCase()}`)) {
+        return { email: v, role: true };
+      }
+    }
+    return null;
   } catch {
     return null;
   }
