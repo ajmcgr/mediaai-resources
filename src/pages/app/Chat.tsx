@@ -627,7 +627,11 @@ const Chat = () => {
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
         body: payload,
       });
-      if (error) throw error;
+      if (error) {
+        const context = (error as { context?: Response }).context;
+        const errorPayload = context ? await context.clone().json().catch(() => null) as { error?: string } | null : null;
+        throw new Error(errorPayload?.error || error.message);
+      }
       if (data?.found && data?.email) {
         setResults((prev) => {
           if (!prev) return prev;
