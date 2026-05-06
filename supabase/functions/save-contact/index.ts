@@ -29,13 +29,25 @@ function clean(value: unknown): string | null {
   return trimmed ? trimmed : null;
 }
 
+function normalizeEmail(value: string | null): string | null {
+  if (!value) return null;
+  const lowered = value.trim().toLowerCase();
+  if (!lowered || ["null", "undefined", "-", "n/a"].includes(lowered)) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lowered)) return null;
+  return lowered;
+}
+
+function json(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 async function findExistingJournalist(admin: AdminClient, row: SaveRow): Promise<number | null> {
-  const email = clean(row.email);
+  const email = normalizeEmail(clean(row.email));
   if (email) {
     const { data } = await admin
       .from("journalist")
       .select("id")
-      .eq("email", email)
+      .ilike("email", email)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -47,8 +59,8 @@ async function findExistingJournalist(admin: AdminClient, row: SaveRow): Promise
     const { data } = await admin
       .from("journalist")
       .select("id")
-      .eq("name", name)
-      .eq("outlet", outlet)
+      .ilike("name", name)
+      .ilike("outlet", outlet)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -58,12 +70,12 @@ async function findExistingJournalist(admin: AdminClient, row: SaveRow): Promise
 }
 
 async function findExistingCreator(admin: AdminClient, row: SaveRow): Promise<number | null> {
-  const email = clean(row.email);
+  const email = normalizeEmail(clean(row.email));
   if (email) {
     const { data } = await admin
       .from("creators")
       .select("id")
-      .eq("email", email)
+      .ilike("email", email)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -74,7 +86,7 @@ async function findExistingCreator(admin: AdminClient, row: SaveRow): Promise<nu
     const { data } = await admin
       .from("creators")
       .select("id")
-      .eq("ig_handle", igHandle)
+      .ilike("ig_handle", igHandle)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -85,7 +97,7 @@ async function findExistingCreator(admin: AdminClient, row: SaveRow): Promise<nu
     const { data } = await admin
       .from("creators")
       .select("id")
-      .eq("youtube_url", youtubeUrl)
+      .ilike("youtube_url", youtubeUrl)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -97,8 +109,8 @@ async function findExistingCreator(admin: AdminClient, row: SaveRow): Promise<nu
     const { data } = await admin
       .from("creators")
       .select("id")
-      .eq("name", name)
-      .eq("type", type)
+      .ilike("name", name)
+      .ilike("type", type)
       .limit(1)
       .maybeSingle();
     if (typeof data?.id === "number") return data.id;
@@ -111,33 +123,27 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!authHeader) return json({ ok: false, error: "auth" }, 401);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!user) return json({ ok: false, error: "auth" }, 401);
 
     const body = await req.json();
     const kind: "journalists" | "creators" = body?.kind;
     const row: SaveRow = body?.row ?? {};
-    if (!["journalists", "creators"].includes(kind)) {
-      return new Response(JSON.stringify({ error: "invalid_kind" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (!clean(row.name)) {
-      return new Response(JSON.stringify({ error: "name_required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (!["journalists", "creators"].includes(kind)) return json({ ok: false, error: "invalid_kind" }, 400);
+    if (!clean(row.name)) return json({ ok: false, error: "name_required" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const now = new Date().toISOString();
 
     if (kind === "journalists") {
       const existingId = await findExistingJournalist(admin, row);
-      if (existingId !== null) {
-        return new Response(JSON.stringify({ ok: true, id: existingId, existing: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
+      if (existingId !== null) return json({ ok: true, id: existingId, existing: true });
 
       const insert: Record<string, unknown> = {
         name: clean(row.name),
@@ -145,47 +151,63 @@ Deno.serve(async (req) => {
         category: clean(row.category),
         titles: clean(row.title),
         country: clean(row.country),
-        email: clean(row.email),
+        email: normalizeEmail(clean(row.email)),
       };
+
       let { data, error } = await admin.from("journalist").insert({
         ...insert,
         enrichment_source_url: clean(row.source_url),
         enriched_at: now,
       }).select("id").maybeSingle();
+
       if (error && /enrichment|enriched_at/.test(error.message)) {
         const r = await admin.from("journalist").insert(insert).select("id").maybeSingle();
-        data = r.data; error = r.error;
+        data = r.data;
+        error = r.error;
       }
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ ok: true, id: data?.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      if (error) {
+        const recoveredId = await findExistingJournalist(admin, row);
+        if (recoveredId !== null) return json({ ok: true, id: recoveredId, existing: true });
+        return json({ ok: false, error: error.message });
+      }
+
+      return json({ ok: true, id: data?.id });
     }
 
     const existingId = await findExistingCreator(admin, row);
-    if (existingId !== null) {
-      return new Response(JSON.stringify({ ok: true, id: existingId, existing: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (existingId !== null) return json({ ok: true, id: existingId, existing: true });
 
     const insert: Record<string, unknown> = {
       name: clean(row.name),
       category: clean(row.category),
-      email: clean(row.email),
+      email: normalizeEmail(clean(row.email)),
       ig_handle: clean(row.ig_handle),
       youtube_url: clean(row.youtube_url),
       type: clean(row.outlet),
       bio: clean(row.title),
     };
+
     let { data, error } = await admin.from("creators").insert({
       ...insert,
       enrichment_source_url: clean(row.source_url),
       enriched_at: now,
     }).select("id").maybeSingle();
+
     if (error && /enrichment|enriched_at/.test(error.message)) {
       const r = await admin.from("creators").insert(insert).select("id").maybeSingle();
-      data = r.data; error = r.error;
+      data = r.data;
+      error = r.error;
     }
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    return new Response(JSON.stringify({ ok: true, id: data?.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    if (error) {
+      const recoveredId = await findExistingCreator(admin, row);
+      if (recoveredId !== null) return json({ ok: true, id: recoveredId, existing: true });
+      return json({ ok: false, error: error.message });
+    }
+
+    return json({ ok: true, id: data?.id });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
   }
 });
