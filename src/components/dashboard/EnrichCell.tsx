@@ -101,7 +101,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
             title={`Find ${field} with Hunter + Exa`}
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-            <span>{field === "email" ? "Find email" : field === "linkedin_url" ? "Find LinkedIn" : "—"}</span>
+            <span>{findLabel[field] ?? "Find"}</span>
           </button>
         ) : (
           <span
