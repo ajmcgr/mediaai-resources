@@ -28,6 +28,7 @@ export type Creator = {
   youtube_subscribers: number | null;
   youtube_views_per_video: number | null;
   type: string | null;
+  linkedin_url: string | null;
 };
 
 export type DirectoryFilters = {
