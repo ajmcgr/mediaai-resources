@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { Check, Plus, Minus, ArrowRight, Star, X as XIcon, CornerDownRight, Twitter, Linkedin } from "lucide-react";
