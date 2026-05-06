@@ -1029,36 +1029,21 @@ async function hybridSearch(
     wantJ ? searchJournalistsDb(admin, intent) : Promise.resolve([] as Row[]),
     wantC ? searchCreatorsDb(admin, intent) : Promise.resolve([] as Row[]),
   ]);
-  // Tag source_table for safety
   for (const r of jRows) r.source_table = "journalist";
   for (const r of cRows) r.source_table = "creators";
 
-  let exaRows: Row[] = [];
-  debug.search_order = "database_plus_web";
-  try {
-    exaRows = await searchExa(intent, exaLimit);
-    if (exaRows.length < 20) {
-      exaRows = dedupe([...exaRows, ...(await searchExaBroadened(intent, exaLimit))]).filter((r) => r.source === "exa");
-    }
-    exaRows = exaRows.slice(0, exaLimit);
-  } catch (error) {
-    console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
-    debug.exa_error = error instanceof Error ? error.message : String(error);
-    exaRows = [];
-  }
-  debug.db_count = jRows.length + cRows.length;
-  debug.exa_count = exaRows.length;
-  debug.web_count = exaRows.length;
-
-  // ----- Hard filters -----
+  // ----- Hard filters (strict) -----
   const norm = (s: string | null | undefined) => (s ?? "").toLowerCase();
-  const hayOf = (r: Row) =>
-    [r.name, r.category, r.title, r.outlet, r.country, r.reason, r.source_url, r.ig_handle, r.youtube_url]
-      .map(norm).join(" | ");
+  // Location applies to fields that actually represent geography. Excludes name/title/reason
+  // to avoid false matches like "wired.co.uk" passing for any UK query unrelated to location.
+  const locHayOf = (r: Row) =>
+    [r.country, r.outlet, r.source_url].map(norm).join(" | ");
+  const topicHayOf = (r: Row) =>
+    [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
 
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
-    const hay = hayOf(r);
+    const hay = locHayOf(r);
     return intent.locationTerms.some((t) => hay.includes(t));
   };
   const matchOutlet = (r: Row) => {
@@ -1073,10 +1058,10 @@ async function hybridSearch(
   };
   const matchPlatform = (r: Row) => {
     if (!intent.platforms.length) return true;
-    const hay = hayOf(r);
     return intent.platforms.some((p) => {
-      if (p === "youtube") return !!r.youtube_url || hay.includes("youtube");
-      if (p === "instagram") return !!r.ig_handle || hay.includes("instagram");
+      if (p === "youtube") return !!r.youtube_url;
+      if (p === "instagram") return !!r.ig_handle;
+      const hay = topicHayOf(r);
       return hay.includes(p);
     });
   };
@@ -1086,7 +1071,7 @@ async function hybridSearch(
   };
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
-    const hay = hayOf(r);
+    const hay = topicHayOf(r);
     return intent.topics.some((t) => hay.includes(t));
   };
 
@@ -1097,28 +1082,38 @@ async function hybridSearch(
 
   const jStrict = jRows.filter(filterJournalist);
   const cStrict = cRows.filter(filterCreator);
-  const exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+  const strictDbCount = jStrict.length + cStrict.length;
 
-  let fallbackUsed = false;
-  let jFinal = jStrict;
-  let cFinal = cStrict;
-  let exaFinal = exaStrict;
+  // ----- Exa only AFTER strict DB filter, only if strict DB < 50 -----
+  let exaRows: Row[] = [];
+  let exaStrict: Row[] = [];
+  debug.search_order = "strict_db_then_web_if_needed";
+  if (strictDbCount < 50) {
+    try {
+      exaRows = await searchExa(intent, exaLimit);
+      exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+    } catch (error) {
+      console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
+      debug.exa_error = error instanceof Error ? error.message : String(error);
+    }
+  } else {
+    debug.exa_skipped_reason = "strict_db_count_>=_50";
+  }
 
-  // Fallback only if hard filters returned nothing (per kind)
-  if (wantJ && jStrict.length === 0 && jRows.length > 0) {
-    jFinal = jRows.filter(matchEmail);
-    fallbackUsed = true;
-  }
-  if (wantC && cStrict.length === 0 && cRows.length > 0) {
-    cFinal = cRows.filter((r) => matchEmail(r) && matchFollowers(r) && matchPlatform(r));
-    fallbackUsed = true;
-  }
-  if (exaStrict.length === 0 && exaRows.length > 0 && (jFinal.length + cFinal.length) === 0) {
-    exaFinal = exaRows.filter(matchEmail);
-    fallbackUsed = true;
-  }
+  debug.db_count = jRows.length + cRows.length;
+  debug.exa_count = exaRows.length;
+  debug.web_count = exaRows.length;
+
+  // No silent broadening — strict only.
+  const jFinal = jStrict;
+  const cFinal = cStrict;
+  const exaFinal = exaStrict;
+  const fallbackUsed = false;
 
   debug.parsed_intent = intent;
+  debug.parsedIntent = intent;
+  debug.hardFiltersApplied = true;
+  debug.strictCount = jStrict.length + cStrict.length + exaStrict.length;
   debug.kind_used = intent.kind;
   debug.location_filter_applied = intent.locationTerms.length > 0;
   debug.strict_location_count = jStrict.length + cStrict.length;
@@ -1126,6 +1121,7 @@ async function hybridSearch(
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
   debug.fallback_used = fallbackUsed;
+  debug.fallbackUsed = fallbackUsed;
   debug.journalists_count = jFinal.length;
   debug.creators_count = cFinal.length;
 
