@@ -266,7 +266,11 @@ Deno.serve(async (req) => {
     const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
     const name = clean(contact.name);
-    if (!name) return json({ email: null, found: false, source: "none", confidence: null, error: "missing_name" });
+    const nameLetters = (name.match(/\p{L}/gu) ?? []).length;
+    const nameTokens = name.split(/\s+/).filter((t) => (t.match(/\p{L}/gu) ?? []).length >= 2);
+    if (!name || nameLetters < 2 || nameTokens.length < 1 || name === "—") {
+      return json({ email: null, found: false, source: "none", confidence: null, error: "insufficient_identity", reason: "insufficient_identity" });
+    }
 
     const outlet = clean(contact.outlet);
     const title = clean(contact.title);
@@ -291,16 +295,19 @@ Deno.serve(async (req) => {
 
       // Hunter domain-search fallback
       if (outletDomain) {
-        const domainEmail = await hunterDomainSearch({ fullName: name, domain: outletDomain });
-        if (domainEmail) {
+        const domainResult = await hunterDomainSearch({ fullName: name, domain: outletDomain });
+        if (domainResult) {
+          const { email: domainEmail, role } = domainResult;
+          const src = role ? "hunter-domain-role" : "hunter-domain";
+          const conf = role ? 0.45 : 0.78;
           if (shouldUpdateDb && sourceId !== null) {
-            const update: Record<string, unknown> = { email: domainEmail, enrichment_source_url: `hunter-domain:${outletDomain}`, enriched_at: new Date().toISOString() };
+            const update: Record<string, unknown> = { email: domainEmail, enrichment_source_url: `${src}:${outletDomain}`, enriched_at: new Date().toISOString() };
             let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
             if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
               await admin.from(table).update({ email: domainEmail }).eq("id", sourceId);
             }
           }
-          return json({ email: domainEmail, found: true, source: "hunter-domain", confidence: 0.78, error: null });
+          return json({ email: domainEmail, found: true, source: src, confidence: conf, error: null });
         }
       }
     }
