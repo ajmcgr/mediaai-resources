@@ -907,8 +907,10 @@ function norm(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown)/i;
+const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown|there is no specific outlet)/i;
 const BAD_HOST_RE = /(test55\.|\.cach3\.com)/i;
+const BAD_EXA_HOST_RE = /(linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com|tiktok\.com|youtube\.com|wikipedia\.org|medium\.com|substack\.com|reddit\.com|pinterest\.com)/i;
+const NON_PERSON_NAME_RE = /\b(news|media|sport|sports|team|official|developers?|press|staff|desk|editorial|channel|podcast|youtube|blog|magazine|times|daily|group)\b/i;
 
 function hostOf(u: string | null | undefined): string {
   try { return u ? new URL(u).hostname.toLowerCase() : ""; } catch { return ""; }
@@ -922,8 +924,10 @@ function isPersonName(name: string | null | undefined): boolean {
   const n = (name ?? "").trim();
   if (!n || n === "—") return false;
   if (letterCount(n) < 2) return false;
+  if (NON_PERSON_NAME_RE.test(n)) return false;
+  if (/\d{2,}/.test(n)) return false;
   const tokens = n.split(/\s+/).filter((t) => letterCount(t) >= 2);
-  if (!tokens.length) return false;
+  if (tokens.length < 2 || tokens.length > 5) return false;
   return true;
 }
 
@@ -934,6 +938,9 @@ export function isValidRow(row: Row, intent: Intent): boolean {
   if (outletNorm && INVALID_OUTLET_RE.test(outletNorm)) return false;
   const host = hostOf(row.source_url);
   if (host && BAD_HOST_RE.test(host)) return false;
+  if (row.source === "exa" && host && BAD_EXA_HOST_RE.test(host)) return false;
+  if (row.source === "exa" && (!outletNorm || outletNorm === "—")) return false;
+  if (row.source === "exa" && outletNorm && normalizeSearchText(outletNorm) === normalizeSearchText(name)) return false;
   if (intent.kind === "journalists" && !isPersonName(name)) return false;
   // location requirement for exa rows
   if (row.source === "exa" && intent.locationTerms.length) {
