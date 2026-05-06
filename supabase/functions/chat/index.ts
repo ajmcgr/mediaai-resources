@@ -135,7 +135,8 @@ function parseIntent(q: string): Intent {
   const lower = ` ${q.toLowerCase()} `;
   let working = lower;
 
-  let count = 50;
+  // 0 means "user did not specify a number" — caller will substitute the plan default.
+  let count = 0;
   const qMatch = lower.match(/\b(\d{1,4})\b/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
