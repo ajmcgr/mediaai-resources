@@ -12,7 +12,7 @@ const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fiel
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
-const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "linkedin_url"] as const;
+const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "linkedin_url", "country"] as const;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal|advertising|subscribe|newsletter|tips)@/i;
