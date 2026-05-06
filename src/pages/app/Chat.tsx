@@ -1153,7 +1153,20 @@ const Chat = () => {
                                 typeof v === "string" && /linkedin\.com\/in\//i.test(v) ? (
                                   <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">LinkedIn</a>
                                 ) : (
-                                  <span className="text-muted-foreground">—</span>
+                                  enriching ? (
+                                    <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
+                                      <Loader2 className="h-3 w-3 animate-spin" />Finding…
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => enrichLinkedIn(i)}
+                                      className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
+                                      title="Find LinkedIn"
+                                    >
+                                      <Sparkles className="h-3 w-3" />Find LinkedIn
+                                    </button>
+                                  )
                                 )
                               ) : c.key === "xhandle" ? (
                                 typeof v === "string" && v.trim() ? (() => {
