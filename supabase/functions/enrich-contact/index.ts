@@ -294,7 +294,11 @@ Deno.serve(async (req) => {
     const title = clean(contact.title);
     const country = clean(contact.country ?? row.country);
     const sourceUrl = clean(contact.url ?? contact.source_url);
-    const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
+    let outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
+    if (!outletDomain && fieldsToExtract.includes("email")) {
+      const resolved = await resolveOutletDomain(outlet);
+      if (resolved) outletDomain = resolved;
+    }
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     // Hunter first pass (only when email is among target fields)
