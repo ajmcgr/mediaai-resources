@@ -34,6 +34,23 @@ function sanitizeQuery(query: string): string {
   return query.replace(/[\n\r\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 350);
 }
 
+async function hunterFindEmail({ fullName, domain, company }: { fullName: string; domain?: string; company?: string }): Promise<string | null> {
+  const key = Deno.env.get("HUNTER_API_KEY");
+  if (!key || !fullName || (!domain && !company)) return null;
+  try {
+    const params = new URLSearchParams({ full_name: fullName, api_key: key });
+    if (domain) params.set("domain", domain);
+    if (company) params.set("company", company);
+    const r = await fetch(`https://api.hunter.io/v2/email-finder?${params.toString()}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const email = j?.data?.email;
+    return typeof email === "string" && email.includes("@") && !BAD_EMAIL_RE.test(email) ? email : null;
+  } catch {
+    return null;
+  }
+}
+
 async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
