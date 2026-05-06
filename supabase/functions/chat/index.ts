@@ -317,6 +317,8 @@ const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
     "the information", "protocol.com", "buzzfeed", "vox.com", "washingtonpost",
     "usatoday", "latimes", "nbcnews", "abcnews", "cbsnews", "npr.org", "politico",
     "huffpost", "time.com", "newsweek", "atlantic", "wired",
+    "mit technology review", "technologyreview.com", "the org", "theorg",
+    "muck rack", "muckrack", "help a reporter", "helpareporter", "presscontact",
   ],
   "United Kingdom": [
     "bbc.co.uk", "bbc.com", "theguardian", "guardian.co.uk", "ft.com", "financial times",
@@ -1463,22 +1465,46 @@ async function hybridSearch(
 
   let rankedStrictRows = rankRows(strictRows, intent);
 
+  // Compute DB explicit/inferred US counts (and equivalents for any country) for debug.
+  {
+    const diag = strictFilterDiagnostics(rawCandidates, intent);
+    const dbRowsAll = rawCandidates.filter((r) => r.source === "database");
+    debug.db_explicit_us_count = dbRowsAll.filter((r) => diag.matchExplicitLocation(r)).length;
+    debug.db_inferred_us_count = dbRowsAll.filter((r) => !diag.matchExplicitLocation(r) && diag.matchInferredLocation(r)).length;
+  }
+
   // ----- Fallback expansion: if strict rows < 100, run broader Exa queries -----
   let broadAddedCount = 0;
+  let exaQueriesRun: string[] = [];
+  let exaResultsCount = 0;
   if (rankedStrictRows.length < 100) {
     const country = intent.countryCanonical ?? "";
     const rawQ = intent.raw || "";
+    const isTech = intent.topics.some((t) => ["tech", "technology", "ai", "software", "saas"].includes(String(t).toLowerCase()))
+      || /tech|technology|software|ai|startup|cyber|gadget/i.test(rawQ);
+    const isUS = intent.countryCanonical === "United States";
+
     const broadQueries = [
       `${rawQ} journalist ${country}`.trim(),
       ...(intent.topics.includes("food") ? [`${rawQ} food writer ${country}`.trim()] : []),
       ...(intent.topic ? [`${rawQ} ${intent.topic} writer ${country}`.trim()] : []),
       `${rawQ} reporter ${country}`.trim(),
+      ...(isTech && isUS ? [
+        "technology journalist United States email",
+        "tech reporter United States",
+        "AI reporter United States",
+        "startup journalist United States",
+        "cybersecurity journalist United States",
+        "technology editor United States",
+      ] : []),
     ].filter((q, i, arr) => q && arr.indexOf(q) === i);
+    exaQueriesRun = broadQueries;
 
     const broadRows: Row[] = [];
     try {
-      const settled = await Promise.all(broadQueries.map((q) => exaSearchOnce(q, 100)));
+      const settled = await Promise.all(broadQueries.map((q) => exaSearchOnce(q, 50)));
       settled.forEach((items, qi) => {
+        exaResultsCount += items.length;
         for (const it of items) {
           const url = it.url;
           if (!url) continue;
@@ -1511,8 +1537,15 @@ async function hybridSearch(
       debug.broad_exa_error = error instanceof Error ? error.message : String(error);
     }
 
-    const broadDeduped = dedupe(broadRows);
-    const broadFiltered = broadDeduped
+    // Dedupe broad rows by name + outlet/domain
+    const seenND = new Set<string>();
+    const broadDedupedND = broadRows.filter((r) => {
+      const k = `${(r.name ?? "").toLowerCase()}|${(r.outlet ?? "").toLowerCase()}`;
+      if (seenND.has(k)) return false;
+      seenND.add(k);
+      return true;
+    });
+    const broadFiltered = dedupe(broadDedupedND)
       .filter(matchKind)
       .filter(matchLocation)
       .filter(matchTopic)
@@ -1530,6 +1563,8 @@ async function hybridSearch(
     rankedStrictRows = [...rankedStrictRows, ...rankedBroad].slice(0, 1200);
   }
   debug.broad_fallback_added = broadAddedCount;
+  debug.exa_queries_run = exaQueriesRun;
+  debug.exa_results_count = exaResultsCount;
   debug.ranked_pool_size = rankedStrictRows.length;
 
   const dbRanked = rankedStrictRows.filter((r) => r.source === "database").slice(0, target);
