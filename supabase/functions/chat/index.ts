@@ -1070,6 +1070,8 @@ async function hybridSearch(
     [r.country, r.outlet, r.source_url].map(norm).join(" | ");
   const topicHayOf = (r: Row) =>
     [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
+  const strongTopicHayOf = (r: Row) =>
+    [r.title, r.outlet, r.reason].map(norm).join(" | ");
 
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
@@ -1110,7 +1112,14 @@ async function hybridSearch(
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
     const hay = topicHayOf(r);
-    return intent.topics.some((t) => hay.includes(t));
+    const strongHay = strongTopicHayOf(r);
+    if (intent.topic === "finance" || intent.topics.includes("finance")) {
+      const hasFinance = matchesAnyTerm(hay, STRONG_FINANCE_TERMS);
+      if (!hasFinance) return false;
+      const hasExcludedCategory = matchesAnyTerm(norm(r.category), EXCLUDED_TOPIC_TERMS);
+      return !hasExcludedCategory || matchesAnyTerm(strongHay, STRONG_FINANCE_TERMS);
+    }
+    return matchesAnyTerm(hay, intent.topics);
   };
 
   const filterJournalist = (r: Row) =>
