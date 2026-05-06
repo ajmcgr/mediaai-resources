@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-005" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-006" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -32,6 +32,23 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
 
 function sanitizeQuery(query: string): string {
   return query.replace(/[\n\r\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 350);
+}
+
+async function hunterFindEmail({ fullName, domain, company }: { fullName: string; domain?: string; company?: string }): Promise<string | null> {
+  const key = Deno.env.get("HUNTER_API_KEY");
+  if (!key || !fullName || (!domain && !company)) return null;
+  try {
+    const params = new URLSearchParams({ full_name: fullName, api_key: key });
+    if (domain) params.set("domain", domain);
+    if (company) params.set("company", company);
+    const r = await fetch(`https://api.hunter.io/v2/email-finder?${params.toString()}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const email = j?.data?.email;
+    return typeof email === "string" && email.includes("@") && !BAD_EMAIL_RE.test(email) ? email : null;
+  } catch {
+    return null;
+  }
 }
 
 async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
@@ -213,6 +230,21 @@ Deno.serve(async (req) => {
     const sourceUrl = clean(contact.url ?? contact.source_url);
     const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
+
+    // Hunter first pass (only when email is among target fields)
+    if (fieldsToExtract.includes("email") && (outletDomain || outlet)) {
+      const hunterEmail = await hunterFindEmail({ fullName: name, domain: outletDomain || undefined, company: outlet || undefined });
+      if (hunterEmail) {
+        if (shouldUpdateDb && sourceId !== null) {
+          const update: Record<string, unknown> = { email: hunterEmail, enrichment_source_url: `hunter:${outletDomain || outlet}`, enriched_at: new Date().toISOString() };
+          let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
+          if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
+            await admin.from(table).update({ email: hunterEmail }).eq("id", sourceId);
+          }
+        }
+        return json({ email: hunterEmail, found: true, source: "hunter", confidence: 0.88, error: null });
+      }
+    }
 
     const queries = [
       `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact`,
