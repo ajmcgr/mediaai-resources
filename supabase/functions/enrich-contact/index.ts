@@ -597,6 +597,10 @@ Deno.serve(async (req) => {
       if (yt) extracted.youtube_url = yt;
       else delete extracted.youtube_url;
     }
+    if (fieldsToExtract.includes("youtube_subscribers") && !extracted.youtube_subscribers) {
+      const subs = findYouTubeSubscriberCount(allSnippets);
+      if (subs) extracted.youtube_subscribers = subs;
+    }
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
       if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
