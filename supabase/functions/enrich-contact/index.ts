@@ -280,6 +280,21 @@ Deno.serve(async (req) => {
         }
         return json({ email: hunterEmail, found: true, source: "hunter", confidence: 0.88, error: null });
       }
+
+      // Hunter domain-search fallback
+      if (outletDomain) {
+        const domainEmail = await hunterDomainSearch({ fullName: name, domain: outletDomain });
+        if (domainEmail) {
+          if (shouldUpdateDb && sourceId !== null) {
+            const update: Record<string, unknown> = { email: domainEmail, enrichment_source_url: `hunter-domain:${outletDomain}`, enriched_at: new Date().toISOString() };
+            let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
+            if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
+              await admin.from(table).update({ email: domainEmail }).eq("id", sourceId);
+            }
+          }
+          return json({ email: domainEmail, found: true, source: "hunter-domain", confidence: 0.78, error: null });
+        }
+      }
     }
 
     const queries = [
