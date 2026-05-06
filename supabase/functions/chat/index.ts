@@ -1283,7 +1283,7 @@ async function hybridSearch(
 
     const broadRows: Row[] = [];
     try {
-      const settled = await Promise.all(broadQueries.map((q) => exaSearchOnce(q, 20)));
+      const settled = await Promise.all(broadQueries.map((q) => exaSearchOnce(q, 100)));
       settled.forEach((items, qi) => {
         for (const it of items) {
           const url = it.url;
