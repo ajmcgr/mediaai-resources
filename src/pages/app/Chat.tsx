@@ -608,6 +608,8 @@ const Chat = () => {
     }
   }, [results, loadingMore, lastQuery, applyServerUsage]);
 
+  useEffect(() => { loadMoreRef.current = loadMore; }, [loadMore]);
+
   const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
     try {
