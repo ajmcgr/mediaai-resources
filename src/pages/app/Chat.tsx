@@ -965,22 +965,29 @@ const Chat = () => {
                               className={`px-4 py-2.5 ${c.key === "email" ? "w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
                             >
                               {c.key === "email" ? (
-                                v ? (
-                                  <span className="block truncate" title={String(v)}>{String(v)}</span>
-                                ) : enriching ? (
-                                  <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
-                                    <Loader2 className="h-3 w-3 animate-spin" />Finding…
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => enrichEmail(i)}
-                                    className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
-                                    title="Use Exa + AI to find this email"
-                                  >
-                                    <Sparkles className="h-3 w-3" />Find email
-                                  </button>
-                                )
+                                (() => {
+                                  const raw = typeof v === "string" ? v.trim().toLowerCase() : "";
+                                  const valid = !!raw && !["null", "undefined", "-", "n/a"].includes(raw) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+                                  if (valid) {
+                                    return (
+                                      <a href={`mailto:${raw}`} className="block truncate text-primary hover:underline" title={raw}>{raw}</a>
+                                    );
+                                  }
+                                  return enriching ? (
+                                    <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
+                                      <Loader2 className="h-3 w-3 animate-spin" />Finding…
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => enrichEmail(i)}
+                                      className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
+                                      title="Use Exa + AI to find this email"
+                                    >
+                                      <Sparkles className="h-3 w-3" />Find email
+                                    </button>
+                                  );
+                                })()
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
