@@ -369,6 +369,7 @@ const Chat = () => {
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
 
   const savedSearches = useSavedSearches(!!user);
