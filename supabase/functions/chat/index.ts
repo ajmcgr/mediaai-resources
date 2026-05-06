@@ -803,12 +803,15 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (hay.includes(t)) s += 1;
     }
     if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
-    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 5;
+    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 8;
     if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
     if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
     if (r.email) s += intent.emailRequired ? 12 : 4;
     if (r.source === "database") s += 20;
-    if (!r.name && r.source === "exa") s -= 8;
+    if (!r.name && r.source === "exa") s -= 15;
+    if (r.source === "exa" && (!r.name || !isPersonName(r.name))) s -= 45;
+    if (r.source === "exa" && (!r.outlet || INVALID_OUTLET_RE.test(r.outlet))) s -= 30;
+    if (r.source_url && BAD_EXA_HOST_RE.test(r.source_url.toLowerCase())) s -= 25;
     if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
     return s;
   };
@@ -904,8 +907,10 @@ function norm(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown)/i;
+const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown|there is no specific outlet)/i;
 const BAD_HOST_RE = /(test55\.|\.cach3\.com)/i;
+const BAD_EXA_HOST_RE = /(linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com|tiktok\.com|youtube\.com|wikipedia\.org|medium\.com|substack\.com|reddit\.com|pinterest\.com)/i;
+const NON_PERSON_NAME_RE = /\b(news|media|sport|sports|team|official|developers?|press|staff|desk|editorial|channel|podcast|youtube|blog|magazine|times|daily|group)\b/i;
 
 function hostOf(u: string | null | undefined): string {
   try { return u ? new URL(u).hostname.toLowerCase() : ""; } catch { return ""; }
@@ -919,8 +924,10 @@ function isPersonName(name: string | null | undefined): boolean {
   const n = (name ?? "").trim();
   if (!n || n === "—") return false;
   if (letterCount(n) < 2) return false;
+  if (NON_PERSON_NAME_RE.test(n)) return false;
+  if (/\d{2,}/.test(n)) return false;
   const tokens = n.split(/\s+/).filter((t) => letterCount(t) >= 2);
-  if (!tokens.length) return false;
+  if (tokens.length < 2 || tokens.length > 5) return false;
   return true;
 }
 
@@ -931,6 +938,9 @@ export function isValidRow(row: Row, intent: Intent): boolean {
   if (outletNorm && INVALID_OUTLET_RE.test(outletNorm)) return false;
   const host = hostOf(row.source_url);
   if (host && BAD_HOST_RE.test(host)) return false;
+  if (row.source === "exa" && host && BAD_EXA_HOST_RE.test(host)) return false;
+  if (row.source === "exa" && (!outletNorm || outletNorm === "—")) return false;
+  if (row.source === "exa" && outletNorm && normalizeSearchText(outletNorm) === normalizeSearchText(name)) return false;
   if (intent.kind === "journalists" && !isPersonName(name)) return false;
   // location requirement for exa rows
   if (row.source === "exa" && intent.locationTerms.length) {

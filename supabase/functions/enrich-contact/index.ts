@@ -141,6 +141,24 @@ function deriveDomain(explicitDomain: string, outlet: string, sourceUrl: string)
   return "";
 }
 
+async function resolveOutletDomain(outlet: string): Promise<string | null> {
+  const cleanOutlet = clean(outlet);
+  if (!cleanOutlet || cleanOutlet.length < 3) return null;
+  const direct = hostFrom(cleanOutlet);
+  if (direct && direct.includes(".")) return direct;
+  const q = sanitizeQuery(`official website ${cleanOutlet}`);
+  if (!q) return null;
+  const exa = await exaSearch(q, 3);
+  if (!exa.results.length) return null;
+  for (const result of exa.results) {
+    const host = hostFrom(result.url);
+    if (!host) continue;
+    if (/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com|youtube\.com|wikipedia\.org/.test(host)) continue;
+    return host.replace(/^www\./, "");
+  }
+  return null;
+}
+
 function hostFrom(value: string): string | null {
   try { return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.replace(/^www\./, ""); } catch { return null; }
 }
@@ -276,7 +294,11 @@ Deno.serve(async (req) => {
     const title = clean(contact.title);
     const country = clean(contact.country ?? row.country);
     const sourceUrl = clean(contact.url ?? contact.source_url);
-    const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
+    let outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
+    if (!outletDomain && fieldsToExtract.includes("email")) {
+      const resolved = await resolveOutletDomain(outlet);
+      if (resolved) outletDomain = resolved;
+    }
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     // Hunter first pass (only when email is among target fields)
