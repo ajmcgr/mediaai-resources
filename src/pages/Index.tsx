@@ -84,12 +84,8 @@ function HeroVideo({ src, poster }: { src: string; poster: string }) {
           <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
-        <div className="flex-1 flex justify-center">
-          <div className="px-3 py-1 rounded-md bg-white/90 ring-1 ring-black/5 text-[11px] md:text-xs text-muted-foreground font-mono truncate max-w-[260px] md:max-w-sm">
-            app.trymedia.ai/chat
-          </div>
-        </div>
-        <div className="w-12" />
+        <div className="flex-1" />
+
       </div>
 
       <div
