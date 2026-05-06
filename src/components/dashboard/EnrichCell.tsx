@@ -11,25 +11,47 @@ type Props = {
   field: string;
   name?: string | null;
   outletDomain?: string | null;
+  row?: Record<string, any> | null;
 };
 
-export const EnrichCell = ({ value, kind, id, field, name, outletDomain }: Props) => {
+export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: Props) => {
   const [loading, setLoading] = useState(false);
   const [localValue, setLocalValue] = useState<string | number | null | undefined>(value);
   const qc = useQueryClient();
 
   const isEmpty = localValue === null || localValue === undefined || localValue === "";
-  const nameLetters = (name ?? "").match(/\p{L}/gu)?.length ?? 0;
-  const canEnrich = field !== "email" || (nameLetters >= 2 && !!(outletDomain && outletDomain.length));
+  const effectiveName = name ?? row?.name ?? null;
+  const nameLetters = (effectiveName ?? "").match(/\p{L}/gu)?.length ?? 0;
+  const effectiveDomain = outletDomain ?? row?.domain ?? row?.outlet ?? null;
+  const canEnrich = field !== "email" || (nameLetters >= 2 && !!(effectiveDomain && String(effectiveDomain).length));
 
   const enrich = async () => {
     if (loading) return;
     setLoading(true);
     try {
-      const payload = { source_id: id, source_table: kind === "journalist" ? "journalist" : "creators", fields: [field] };
-      console.log("ENRICH_CONTACT_PAYLOAD", payload);
+      const sourceTable = kind === "journalist" ? "journalist" : "creators";
+      const r = row ?? {};
+      const basePayload: Record<string, any> = {
+        source: "database",
+        source_id: id,
+        source_table: sourceTable,
+        name: effectiveName,
+        outlet: r.outlet ?? null,
+        title: r.title ?? r.titles ?? null,
+        url: r.url ?? r.website ?? null,
+        domain: r.domain ?? null,
+        country: r.country ?? null,
+        email: r.email ?? null,
+        fields: [field],
+      };
+      if (kind === "creator") {
+        basePayload.platform = r.platform ?? null;
+        basePayload.handle = r.handle ?? r.xHandle ?? r.xhandle ?? r.ig_handle ?? r.username ?? null;
+        basePayload.followers = r.followers ?? r.ig_followers ?? r.youtube_subscribers ?? null;
+      }
+      console.log("DATABASE_ENRICH_CONTACT_PAYLOAD", basePayload);
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
-        body: payload,
+        body: basePayload,
       });
       if (error) throw error;
       const updated = (data as { email?: string | null; found?: boolean; error?: string | null } | null) ?? {};
@@ -37,7 +59,12 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain }: Props
       if (updated.found && v) {
         setLocalValue(v);
         toast.success(`Found ${field}`);
+        if (field === "email") {
+          await supabase.from(sourceTable as any).update({ email: v }).eq("id", id);
+        }
         qc.invalidateQueries({ queryKey: [kind === "journalist" ? "journalists-infinite" : "creators-infinite"] });
+      } else if (updated.error === "insufficient_identity") {
+        toast.error("Insufficient identity: name + outlet/domain required");
       } else {
         toast.message(updated.error ?? (field === "email" ? "No email found" : "Nothing found"));
       }
