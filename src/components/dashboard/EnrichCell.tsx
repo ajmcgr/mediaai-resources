@@ -13,7 +13,7 @@ type Props = {
   outletDomain?: string | null;
 };
 
-export const EnrichCell = ({ value, kind, id, field }: Props) => {
+export const EnrichCell = ({ value, kind, id, field, name, outletDomain }: Props) => {
   const [loading, setLoading] = useState(false);
   const [localValue, setLocalValue] = useState<string | number | null | undefined>(value);
   const qc = useQueryClient();
