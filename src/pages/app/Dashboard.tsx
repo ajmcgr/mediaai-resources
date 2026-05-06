@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Search, Users, Database, Download, Pin, PinOff, Trash2,
+  Search, Users, Database, Download,
   User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
   ChevronDown, ChevronRight, X, Bell,
 } from "lucide-react";
@@ -27,12 +27,7 @@ import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  useSavedSearches,
-  useUpsertSavedSearch,
-  useTogglePinSavedSearch,
-  useDeleteSavedSearch,
-} from "@/hooks/useSavedSearches";
+import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 
 type Tab = "journalists" | "creators";
 
@@ -234,9 +229,6 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <SavedSearchesList
-            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setFilterValues({}); }}
-          />
 
           <div className="px-3 pt-2 pb-3 border-t border-border">
             <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Filters</div>
@@ -431,62 +423,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-function SavedSearchesList({
-  onApply,
-}: {
-  onApply: (s: { tab: Tab; query: { q?: string } }) => void;
-}) {
-  const { data: items = [], isLoading } = useSavedSearches();
-  const remove = useDeleteSavedSearch();
-  const togglePin = useTogglePinSavedSearch();
-
-  return (
-    <div className="px-3 pt-2 pb-3 border-t border-border">
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="text-xs font-medium text-muted-foreground">Saved searches</div>
-      </div>
-      <div className="space-y-0.5">
-        {isLoading ? (
-          <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
-        ) : items.length === 0 ? (
-          <div className="px-3 py-2 text-xs text-muted-foreground">
-            Searches you run will appear here. Pin the ones you want to keep.
-          </div>
-        ) : (
-          items.map((s) => (
-            <div key={s.id} className="group flex items-center rounded-lg hover:bg-secondary">
-              <button type="button" onClick={() => onApply({ tab: s.tab as Tab, query: s.query })}
-                className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-foreground min-w-0 text-left">
-                {s.pinned ? (
-                  <Pin className="h-3.5 w-3.5 text-primary flex-shrink-0 fill-primary" />
-                ) : (
-                  <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                )}
-                <span className="truncate">{s.name}</span>
-                <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">
-                  {s.tab === "journalists" ? "J" : "C"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => togglePin.mutate({ id: s.id, pinned: !s.pinned })}
-                title={s.pinned ? "Unpin" : "Pin"}
-                className={`px-1.5 text-muted-foreground hover:text-foreground ${s.pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-              >
-                {s.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-              </button>
-              <button type="button" onClick={() => remove.mutate(s.id)}
-                title="Delete"
-                className="opacity-0 group-hover:opacity-100 pr-2 text-muted-foreground hover:text-destructive">
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default Dashboard;
