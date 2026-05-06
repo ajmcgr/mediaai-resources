@@ -107,94 +107,158 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   dubai: { canonical: "United Arab Emirates", variants: ["dubai", "uae", "united arab emirates"] },
 };
 
-const ROLE_WORDS = new Set([
+const JOURNALIST_WORDS = [
   "journalist", "journalists", "reporter", "reporters", "editor", "editors",
-  "writer", "writers", "correspondent", "correspondents", "columnist", "contributor",
+  "writer", "writers", "correspondent", "correspondents", "columnist", "columnists",
+  "contributor", "contributors", "media contact", "press contact",
+];
+const CREATOR_WORDS = [
   "creator", "creators", "influencer", "influencers", "youtuber", "youtubers",
-  "tiktoker", "instagrammer", "blogger",
-]);
+  "tiktoker", "tiktokers", "instagrammer", "instagrammers", "blogger", "bloggers",
+  "podcaster", "podcasters", "streamer", "streamers", "kol", "kols",
+];
+
+const PLATFORM_MAP: Record<string, string[]> = {
+  youtube: ["youtube", "yt"],
+  tiktok: ["tiktok", "tik tok"],
+  instagram: ["instagram", "ig"],
+  twitter: ["twitter", " x "],
+  linkedin: ["linkedin"],
+  podcast: ["podcast", "podcaster"],
+};
 
 const STOPWORDS = new Set([
   "a", "an", "the", "in", "at", "on", "of", "for", "to", "with", "from", "by",
   "and", "or", "is", "are", "be", "who", "that", "find", "me", "show", "list",
   "any", "all", "some", "please", "best", "top", "based", "located", "near",
-  "get", "give", "need", "want", "looking", "search",
+  "get", "give", "need", "want", "looking", "search", "covering", "about",
 ]);
+
+// Extra location keywords with cities
+const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }> = {
+  "hong kong": { canonical: "Hong Kong", variants: ["hong kong", "hk", "hong kong sar", "香港"] },
+  hk: { canonical: "Hong Kong", variants: ["hong kong", "hk"] },
+  thailand: { canonical: "Thailand", variants: ["thailand", "bangkok", "thai"] },
+  bangkok: { canonical: "Thailand", variants: ["thailand", "bangkok"] },
+  philippines: { canonical: "Philippines", variants: ["philippines", "manila", "filipino"] },
+  vietnam: { canonical: "Vietnam", variants: ["vietnam", "hanoi", "ho chi minh"] },
+  indonesia: { canonical: "Indonesia", variants: ["indonesia", "jakarta"] },
+  malaysia: { canonical: "Malaysia", variants: ["malaysia", "kuala lumpur", "kl"] },
+  korea: { canonical: "South Korea", variants: ["korea", "south korea", "seoul"] },
+  taiwan: { canonical: "Taiwan", variants: ["taiwan", "taipei"] },
+};
 
 type Intent = {
   raw: string;
-  kind: "journalists" | "creators";
+  kind: "journalists" | "creators" | "both";
   topics: string[];
   countries: string[];
   countryCanonical: string | null;
+  locationTerms: string[];
   outlets: string[];
+  platforms: string[];
+  minFollowers: number | null;
+  emailRequired: boolean;
+  titles: string[];
   freeTerms: string[];
   count: number;
-  emailRequired: boolean;
 };
+
+function parseFollowers(lower: string): number | null {
+  // 100k+, 1m+, "over 100k", "more than 100,000", "1 million followers"
+  let m = lower.match(/(\d+(?:[.,]\d+)?)\s*([km])\s*\+?/);
+  if (m) {
+    const n = parseFloat(m[1].replace(",", "."));
+    const mult = m[2] === "m" ? 1_000_000 : 1_000;
+    return Math.floor(n * mult);
+  }
+  m = lower.match(/(?:over|more than|at least|min(?:imum)?|>=?)\s*([\d,]+)/);
+  if (m) return parseInt(m[1].replace(/,/g, ""), 10);
+  m = lower.match(/(\d+(?:[.,]\d+)?)\s*million/);
+  if (m) return Math.floor(parseFloat(m[1].replace(",", ".")) * 1_000_000);
+  return null;
+}
+
+export function parseSearchIntent(q: string): Intent {
+  return parseIntent(q);
+}
 
 function parseIntent(q: string): Intent {
   const lower = ` ${q.toLowerCase()} `;
   let working = lower;
 
-  // 0 means "user did not specify a number" — caller will substitute the plan default.
   let count = 0;
-  const qMatch = lower.match(/\b(\d{1,4})\b/);
+  const qMatch = lower.match(/\b(\d{1,4})\b(?!\s*[km])/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
     if (n >= 5 && n <= 1000) count = n;
   }
 
-  const emailRequired = /\bwith (an? )?email|verified email|emails?\b/i.test(lower) || /\bcontactable\b/i.test(lower);
+  const emailRequired =
+    /\bwith (an? )?email\b|\bhas email\b|\bemail only\b|\bcontactable\b|\bverified email\b|\bwith emails?\b/i.test(lower);
 
+  // Kind detection
+  const hasJournalist = JOURNALIST_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower));
+  const hasCreator = CREATOR_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower));
+  let kind: Intent["kind"];
+  if (hasJournalist && hasCreator) kind = "both";
+  else if (hasJournalist) kind = "journalists";
+  else if (hasCreator) kind = "creators";
+  else kind = "both";
+
+  // Locations - merge country synonyms + extras
+  const allLocs: Record<string, { canonical: string; variants: string[] }> = { ...COUNTRY_SYNONYMS, ...EXTRA_LOCATIONS };
   const countries = new Set<string>();
+  const locationTerms = new Set<string>();
   let countryCanonical: string | null = null;
-  const countryKeys = Object.keys(COUNTRY_SYNONYMS).sort((a, b) => b.length - a.length);
-  for (const key of countryKeys) {
-    const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+  const locKeys = Object.keys(allLocs).sort((a, b) => b.length - a.length);
+  for (const key of locKeys) {
+    const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
     if (re.test(working)) {
-      const entry = COUNTRY_SYNONYMS[key];
-      for (const v of entry.variants) countries.add(v);
+      const entry = allLocs[key];
+      for (const v of entry.variants) { countries.add(v); locationTerms.add(v); }
       if (!countryCanonical) countryCanonical = entry.canonical;
-      working = working.replace(re, " ");
+      working = working.replace(new RegExp(re.source, "gi"), " ");
     }
   }
 
+  // Topics
   const topics = new Set<string>();
   for (const [key, vals] of Object.entries(TOPIC_SYNONYMS)) {
-    const re = new RegExp(`\\b${key}\\b`, "gi");
+    const re = new RegExp(`\\b${key}\\b`, "i");
     if (re.test(working)) {
       for (const v of vals) topics.add(v);
-      working = working.replace(re, " ");
+      working = working.replace(new RegExp(re.source, "gi"), " ");
     }
   }
 
+  // Outlets
   const outlets: string[] = [];
-  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc"];
+  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc", "business insider", "fast company", "axios"];
   for (const o of knownOutlets) {
     if (new RegExp(`\\b${o}\\b`, "i").test(lower)) outlets.push(o);
   }
 
+  // Platforms (creators)
+  const platforms: string[] = [];
+  for (const [p, variants] of Object.entries(PLATFORM_MAP)) {
+    if (variants.some((v) => new RegExp(`\\b${v.trim()}\\b`, "i").test(lower))) platforms.push(p);
+  }
+
+  const minFollowers = parseFollowers(lower);
+
+  // Free terms
   const tokens = working.split(/[^a-z0-9]+/i).map((t) => t.trim()).filter(Boolean);
   const freeTerms: string[] = [];
-  let kind: "journalists" | "creators" = "journalists";
-  let creatorVotes = 0;
-  let journalistVotes = 0;
-
+  const allRoleWords = new Set([...JOURNALIST_WORDS, ...CREATOR_WORDS]);
   for (const t of tokens) {
-    if (ROLE_WORDS.has(t)) {
-      if (["creator", "creators", "influencer", "influencers", "youtuber", "youtubers", "tiktoker", "instagrammer", "blogger"].includes(t)) creatorVotes++;
-      else journalistVotes++;
-      continue;
-    }
+    if (allRoleWords.has(t)) continue;
     if (/^\d+$/.test(t)) continue;
     if (STOPWORDS.has(t)) continue;
     if (t.length < 2) continue;
-    if (t === "email" || t === "emails") continue;
+    if (t === "email" || t === "emails" || t === "followers") continue;
     freeTerms.push(t);
   }
-  if (creatorVotes > journalistVotes) kind = "creators";
-  if (/\b(youtube|instagram|tiktok)\b/i.test(lower)) kind = "creators";
 
   return {
     raw: q,
@@ -202,10 +266,14 @@ function parseIntent(q: string): Intent {
     topics: [...topics],
     countries: [...countries],
     countryCanonical,
+    locationTerms: [...locationTerms],
     outlets,
+    platforms,
+    minFollowers,
+    emailRequired,
+    titles: [],
     freeTerms,
     count,
-    emailRequired,
   };
 }
 
