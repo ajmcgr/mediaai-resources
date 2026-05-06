@@ -329,22 +329,34 @@ function numericId(value: unknown): number | null {
 }
 
 function parseCompactNumber(raw: string): number | null {
-  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb])?/i);
+  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb]|thousand|million|billion)?/i);
   if (!match) return null;
   const value = Number(match[1]);
   if (!Number.isFinite(value) || value <= 0) return null;
   const unit = (match[2] ?? "").toLowerCase();
-  return Math.round(value * (unit === "b" ? 1_000_000_000 : unit === "m" ? 1_000_000 : unit === "k" ? 1_000 : 1));
+  return Math.round(value * (/^b|billion/.test(unit) ? 1_000_000_000 : /^m|million/.test(unit) ? 1_000_000 : /^k|thousand/.test(unit) ? 1_000 : 1));
 }
 
 function findYouTubeSubscriberCount(snippets: Array<{ url: string; text: string; title?: string }>): number | null {
   for (const snippet of snippets) {
     const haystack = `${snippet.title ?? ""} ${snippet.text}`;
-    const match = haystack.match(/(\d[\d,.]*\s*[kmb]?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
+    const match = haystack.match(/(\d[\d,.]*(?:\.\d+)?\s*(?:k|m|b|thousand|million|billion)?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
     const parsed = match ? parseCompactNumber(match[1]) : null;
     if (parsed) return parsed;
   }
   return null;
+}
+
+function deriveCountryFromText(snippets: Array<{ url: string; text: string; title?: string }>, countryContext: string): string | null {
+  const knownCountries = ["United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Italy", "Spain", "Netherlands", "Sweden", "Norway", "Denmark", "Finland", "Ireland", "Portugal", "Brazil", "Mexico", "India", "Japan", "South Korea", "Singapore", "United Arab Emirates", "South Africa", "New Zealand"];
+  const haystack = `${countryContext}\n${snippets.map((s) => `${s.title ?? ""} ${s.text}`).join("\n")}`;
+  const based = haystack.match(/(?:based|located|lives|from)\s+in\s+([A-Z][A-Za-z .'-]{2,40})/);
+  if (based) {
+    const phrase = based[1].replace(/\s+(?:and|with|who|where|as|for|\|).*$/i, "").trim();
+    const known = knownCountries.find((c) => new RegExp(`\\b${c.replace(/ /g, "\\s+")}\\b`, "i").test(phrase));
+    if (known) return known;
+  }
+  return knownCountries.find((c) => new RegExp(`\\b${c.replace(/ /g, "\\s+")}\\b`, "i").test(haystack)) ?? null;
 }
 
 function sourceTable(value: unknown): "journalist" | "creators" | null {
