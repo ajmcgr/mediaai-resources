@@ -904,6 +904,52 @@ function norm(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown)/i;
+const BAD_HOST_RE = /(test55\.|\.cach3\.com)/i;
+
+function hostOf(u: string | null | undefined): string {
+  try { return u ? new URL(u).hostname.toLowerCase() : ""; } catch { return ""; }
+}
+
+function letterCount(s: string): number {
+  return (s.match(/\p{L}/gu) ?? []).length;
+}
+
+function isPersonName(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim();
+  if (!n || n === "—") return false;
+  if (letterCount(n) < 2) return false;
+  const tokens = n.split(/\s+/).filter((t) => letterCount(t) >= 2);
+  if (!tokens.length) return false;
+  return true;
+}
+
+export function isValidRow(row: Row, intent: Intent): boolean {
+  const name = (row.name ?? "").trim();
+  if (!name || name === "—") return false;
+  const outletNorm = (row.outlet ?? "").trim();
+  if (outletNorm && INVALID_OUTLET_RE.test(outletNorm)) return false;
+  const host = hostOf(row.source_url);
+  if (host && BAD_HOST_RE.test(host)) return false;
+  if (intent.kind === "journalists" && !isPersonName(name)) return false;
+  // location requirement for exa rows
+  if (row.source === "exa" && intent.locationTerms.length) {
+    const hayLoc = [row.country, row.location, row.city, row.region, row.bio, row.source_url, row.title, row.outlet]
+      .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
+    const ok = intent.locationTerms.some((t) => hayLoc.includes(String(t).toLowerCase()));
+    if (!ok) return false;
+  }
+  // topic requirement for exa rows
+  if (row.source === "exa" && intent.topics.length) {
+    const topicsArr = Array.isArray(row.topics) ? row.topics.join(" ") : (row.topics ?? "");
+    const hayTop = [row.category, row.title, row.outlet, row.bio, topicsArr]
+      .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
+    const ok = intent.topics.some((t) => hayTop.includes(String(t).toLowerCase()));
+    if (!ok) return false;
+  }
+  return true;
+}
+
 function journalistKeys(row: Row): string[] {
   const keys: string[] = [];
   if (row.email) keys.push(`email:${norm(row.email)}`);
