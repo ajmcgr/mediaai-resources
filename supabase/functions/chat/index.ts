@@ -495,6 +495,7 @@ function journalistRow(r: Record<string, unknown>): Row {
     topics: stringifyTopics(r.topics),
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
+    xhandle: (r.xhandle as string) ?? null,
     reason: bio ?? undefined,
   };
 }
