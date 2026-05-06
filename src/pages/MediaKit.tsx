@@ -14,41 +14,41 @@ const LOGOS: Asset[] = [
   {
     title: "Color logo — no background",
     description: "Primary logo. Use on white or light backgrounds.",
-    preview: "/media-kit/png/Color logo - no background.png",
+    preview: "/media-kit/png/Color-logo---no-background.png",
     bg: "bg-[#fafafa]",
     files: [
-      { label: "SVG", href: "/media-kit/svg/Color logo - no background.svg" },
-      { label: "PNG", href: "/media-kit/png/Color logo - no background.png" },
+      { label: "SVG", href: "/media-kit/svg/Color-logo---no-background.svg" },
+      { label: "PNG", href: "/media-kit/png/Color-logo---no-background.png" },
     ],
   },
   {
     title: "Color logo with background",
     description: "Logo locked to its branded background — for social posts and avatars.",
-    preview: "/media-kit/png/Color logo with background.png",
+    preview: "/media-kit/png/Color-logo-with-background.png",
     bg: "bg-[#fafafa]",
     files: [
-      { label: "SVG", href: "/media-kit/svg/Color logo with background.svg" },
-      { label: "PNG", href: "/media-kit/png/Color logo with background.png" },
+      { label: "SVG", href: "/media-kit/svg/Color-logo-with-background.svg" },
+      { label: "PNG", href: "/media-kit/png/Color-logo-with-background.png" },
     ],
   },
   {
     title: "Black logo — no background",
     description: "Monochrome variant. Use where color isn't appropriate.",
-    preview: "/media-kit/png/Black logo - no background.png",
+    preview: "/media-kit/png/Black-logo---no-background.png",
     bg: "bg-[#fafafa]",
     files: [
-      { label: "SVG", href: "/media-kit/svg/Black logo - no background.svg" },
-      { label: "PNG", href: "/media-kit/png/Black logo - no background.png" },
+      { label: "SVG", href: "/media-kit/svg/Black-logo---no-background.svg" },
+      { label: "PNG", href: "/media-kit/png/Black-logo---no-background.png" },
     ],
   },
   {
     title: "White logo — no background",
     description: "For dark backgrounds and high-contrast placements.",
-    preview: "/media-kit/png/White logo - no background.png",
+    preview: "/media-kit/png/White-logo---no-background.png",
     bg: "bg-neutral-900",
     files: [
-      { label: "SVG", href: "/media-kit/svg/White logo - no background.svg" },
-      { label: "PNG", href: "/media-kit/png/White logo - no background.png" },
+      { label: "SVG", href: "/media-kit/svg/White-logo---no-background.svg" },
+      { label: "PNG", href: "/media-kit/png/White-logo---no-background.png" },
     ],
   },
 ];
