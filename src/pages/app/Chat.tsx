@@ -1110,6 +1110,15 @@ const Chat = () => {
                                 ) : (
                                   <span className="text-muted-foreground">—</span>
                                 )
+                              ) : c.key === "xhandle" ? (
+                                typeof v === "string" && v.trim() ? (() => {
+                                  const handle = v.trim().replace(/^@/, "");
+                                  return (
+                                    <a href={`https://x.com/${handle}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">@{handle}</a>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
