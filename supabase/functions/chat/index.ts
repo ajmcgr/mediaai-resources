@@ -1310,7 +1310,9 @@ async function databaseOnlyResponse(
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
+      content: rows.length === 0
+        ? (typeof result.debug.empty_state_message === "string" ? result.debug.empty_state_message : "No exact matches found. Try removing location or topic.")
+        : `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
       results: {
         kind,
         rows,
