@@ -28,6 +28,7 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   ig_handle: "Instagram handle starting with @.",
   youtube_url: "Full YouTube channel URL.",
   type: "Creator type (e.g. Influencer, Educator, Vlogger).",
+  linkedin_url: "Full LinkedIn profile URL of the person (must contain linkedin.com/in/).",
 };
 
 function sanitizeQuery(query: string): string {
