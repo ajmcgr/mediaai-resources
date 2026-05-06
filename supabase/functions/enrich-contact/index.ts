@@ -236,8 +236,9 @@ function normalizeLinkedInUrl(value: string): string | null {
 }
 
 function normalizeYouTubeUrl(value: string): string | null {
-  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  let cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
   if (!/(^|\.)youtube\.com\/(channel\/|c\/|user\/|@)/i.test(cleanUrl)) return null;
+  cleanUrl = cleanUrl.replace(/(youtube\.com\/@[^/]+)\/.+$/i, "$1");
   return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
 }
 
@@ -469,16 +470,19 @@ Deno.serve(async (req) => {
       return json({ email: null, found: false, source: "none", confidence: null, error: "insufficient_identity", reason: "insufficient_identity" });
     }
 
-    const outlet = clean(contact.outlet);
-    const title = clean(contact.title);
+    const outlet = clean(contact.outlet ?? row.outlet);
+    const title = clean(contact.title ?? contact.titles ?? row.title ?? row.titles);
     const country = clean(contact.country ?? row.country);
-    const sourceUrl = clean(contact.url ?? contact.source_url);
+    const categoryContext = clean(contact.category ?? row.category);
+    const bioContext = clean(contact.bio ?? row.bio).slice(0, 180);
+    const platformContext = clean(contact.platform ?? row.platform);
+    const sourceUrl = clean(contact.url ?? contact.source_url ?? row.url ?? row.website);
     let outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     if (!outletDomain && fieldsToExtract.includes("email")) {
       const resolved = await resolveOutletDomain(outlet);
       if (resolved) outletDomain = resolved;
     }
-    const context = [outlet, title, country].filter(Boolean).join(" · ");
+    const context = [outlet, title, country, categoryContext].filter(Boolean).join(" · ");
 
     const debug: Record<string, unknown> = { providersTried: [] as string[] };
     const tried = debug.providersTried as string[];
@@ -560,7 +564,7 @@ Deno.serve(async (req) => {
 
     const existingIg = clean(contact.ig_handle ?? contact.handle ?? row.ig_handle);
     const existingYoutubeUrl = normalizeYouTubeUrl(clean(contact.youtube_url ?? row.youtube_url)) ?? "";
-    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
+    const creatorContext = [outlet, title, country, categoryContext, platformContext, bioContext, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
     const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
       ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio", "country"].includes(f),
     );
