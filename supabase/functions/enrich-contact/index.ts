@@ -35,13 +35,16 @@ async function exaSearch(query: string, numResults = 5): Promise<{ results: Arra
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
   if (!query || !query.trim()) return { results: [], error: "empty query", providerResponseText: null };
+  const exaPayload = {
+    query: query.trim(),
+    numResults,
+    type: "auto",
+    contents: { text: { maxCharacters: 4000 } },
+  };
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key },
-    body: JSON.stringify({
-      query: query.trim(), numResults, useAutoprompt: true, type: "neural",
-      contents: { text: { maxCharacters: 4000 } },
-    }),
+    body: JSON.stringify(exaPayload),
   });
   const text = await r.text();
   console.log("ENRICH_PROVIDER_RESPONSE", text);
