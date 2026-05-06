@@ -835,6 +835,7 @@ function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
 
 const EXCLUDED_TOPIC_TERMS = ["cars", "automotive", "auto", "tv", "television", "sports", "sport", "espn", "entertainment", "movies", "music", "gaming", "crypto", "cryptocurrency", "blockchain", "web3"];
 const STRICT_FINANCE_TERMS = ["finance", "financial", "business", "markets", "economy", "banking", "fintech", "investing", "stocks"];
+const STRICT_FOOD_TERMS = ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"];
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -857,6 +858,39 @@ function matchesAnyTerm(hay: string, terms: string[]): boolean {
     if (!cleaned) return false;
     return new RegExp(`(?:^|[^a-z0-9])${escapeRegex(cleaned)}(?:$|[^a-z0-9])`, "i").test(normalizeSearchText(hay));
   });
+}
+
+export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
+  const fieldHay = (values: unknown[]) => values.map(normalizeSearchText).filter(Boolean).join(" | ");
+  const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
+  const locationHayOf = (r: Row) => fieldHay([r.country, r.location, r.city, r.region, r.bio]);
+  const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
+  const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
+  const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
+  const matchKind = (r: Row) => intent.kind === "journalists" ? r.source_table === "journalist" : intent.kind === "creators" ? r.source_table === "creators" : true;
+  const matchLocation = (r: Row) => !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+  const matchTopic = (r: Row) => {
+    if (!intent.topics.length) return true;
+    if (intent.topic === "finance" || intent.topics.includes("finance")) {
+      if (matchesAnyTerm(categoryTopicHayOf(r), EXCLUDED_TOPIC_TERMS)) return false;
+      return matchesAnyTerm(topicHayOf(r), STRICT_FINANCE_TERMS);
+    }
+    return matchesAnyTerm(topicHayOf(r), topicTerms);
+  };
+  const hasSubstringFalsePositive = (r: Row) => intent.locationTerms.some((term) => {
+    const cleaned = normalizeSearchText(term);
+    return cleaned && locationHayOf(r).includes(cleaned) && !matchesAnyTerm(locationHayOf(r), [cleaned]);
+  });
+  const afterKind = rows.filter(matchKind);
+  const afterLocation = afterKind.filter(matchLocation);
+  const afterTopic = afterLocation.filter(matchTopic);
+  const rejectionReason = (row: Row): string | null => {
+    if (!matchKind(row)) return "kind_mismatch";
+    if (!matchLocation(row)) return hasSubstringFalsePositive(row) ? "substring_false_positive" : "location_mismatch";
+    if (!matchTopic(row)) return "topic_mismatch";
+    return null;
+  };
+  return { topicTerms, afterKind, afterLocation, afterTopic, rejectionReason };
 }
 
 function norm(value: string | null | undefined): string {
