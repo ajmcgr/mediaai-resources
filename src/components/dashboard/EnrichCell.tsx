@@ -43,20 +43,25 @@ export const EnrichCell = ({ value, kind, id, field }: Props) => {
   };
 
   return (
-    <div className="px-3 py-3 text-sm text-foreground truncate flex items-center gap-1.5" title={typeof localValue === "string" ? localValue : undefined}>
+    <div
+      className="px-3 py-3 text-sm text-foreground flex items-center gap-1.5 min-w-0 overflow-hidden"
+      title={typeof localValue === "string" ? localValue : undefined}
+    >
       {isEmpty ? (
         <button
           type="button"
           onClick={enrich}
           disabled={loading}
-          className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground hover:text-primary transition-colors"
           title={`Find ${field} with Exa`}
         >
           {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          <span>—</span>
+          <span>{field === "email" ? "Find email" : "—"}</span>
         </button>
       ) : (
-        <span className="truncate">{localValue}</span>
+        <span className="block min-w-0 flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
+          {localValue}
+        </span>
       )}
     </div>
   );
