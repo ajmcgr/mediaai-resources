@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const table = kind === "journalist" ? "journalist" : "creators";
     const { data: row, error: rowErr } = await admin.from(table).select("*").eq("id", id).maybeSingle();
-    if (rowErr || !row) return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (rowErr || !row) return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers: jsonHeaders });
 
     const allFields = (kind === "journalist" ? JOURNALIST_FIELDS : CREATOR_FIELDS) as readonly string[];
     const targetFields = (Array.isArray(requestedFields) && requestedFields.length
@@ -142,11 +142,11 @@ Deno.serve(async (req) => {
       : allFields.filter((f) => row[f] === null || row[f] === undefined || row[f] === ""));
 
     if (!targetFields.length) {
-      return new Response(JSON.stringify({ ok: true, updated: {}, source_urls: [], message: "Nothing to enrich." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, updated: {}, source_urls: [], message: "Nothing to enrich." }), { headers: jsonHeaders });
     }
 
     const name = String(row.name ?? "").trim();
-    if (!name) return new Response(JSON.stringify({ error: "no_name" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!name) return new Response(JSON.stringify({ error: "no_name" }), { status: 400, headers: jsonHeaders });
     const outlet = String(row.outlet ?? contact?.outlet ?? "").trim();
     const sourceUrl = String(contact?.source_url ?? row.enrichment_source_url ?? "").trim();
     const outletDomain = hostFrom(sourceUrl) ?? hostFrom(outlet) ?? "";
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     const allSnippets = settled.flat().filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i).slice(0, 30);
 
     if (!allSnippets.length) {
-      return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: jsonHeaders });
     }
 
     const extracted = await extractFields(name, context, allSnippets, targetFields);
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       }
     }
     if (!Object.keys(extracted).length) {
-      return new Response(JSON.stringify({ ok: false, message: targetFields.includes("email") ? "Email not publicly found" : "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, message: targetFields.includes("email") ? "Email not publicly found" : "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: jsonHeaders });
     }
 
     const update: Record<string, unknown> = { ...extracted };
