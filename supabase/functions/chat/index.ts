@@ -442,7 +442,7 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
 
 async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Row[]> {
   const { data, error } = await admin.from("creators")
-    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
   if (error) {
