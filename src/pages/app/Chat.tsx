@@ -47,6 +47,7 @@ type Row = {
   ig_followers?: number | null;
   youtube_url?: string | null;
   linkedin_url?: string | null;
+  xhandle?: string | null;
   reason?: string;
 };
 type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
@@ -56,10 +57,12 @@ type Results =
 
 const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
+  { key: "title", label: "Title" },
   { key: "outlet", label: "Outlet" },
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
+  { key: "xhandle", label: "X" },
   { key: "linkedin_url", label: "LinkedIn" },
 ];
 const CREATOR_COLS: { key: keyof Row; label: string }[] = [
@@ -1002,7 +1005,7 @@ const Chat = () => {
               <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
             ) : (
               <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm table-fixed">
+              <table className="w-full min-w-[1400px] text-sm">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="w-10 px-2">
@@ -1105,6 +1108,15 @@ const Chat = () => {
                                 typeof v === "string" && /linkedin\.com\/in\//i.test(v) ? (
                                   <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">LinkedIn</a>
                                 ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
+                              ) : c.key === "xhandle" ? (
+                                typeof v === "string" && v.trim() ? (() => {
+                                  const handle = v.trim().replace(/^@/, "");
+                                  return (
+                                    <a href={`https://x.com/${handle}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">@{handle}</a>
+                                  );
+                                })() : (
                                   <span className="text-muted-foreground">—</span>
                                 )
                               ) : v == null || v === "" ? (

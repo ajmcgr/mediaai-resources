@@ -378,6 +378,7 @@ export type Row = {
   ig_followers?: number | null;
   youtube_url?: string | null;
   linkedin_url?: string | null;
+  xhandle?: string | null;
   reason?: string;
   score?: number;
 };
@@ -439,6 +440,7 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
+    xhandle: (r.xhandle as string) ?? null,
   }));
 }
 
@@ -493,6 +495,7 @@ function journalistRow(r: Record<string, unknown>): Row {
     topics: stringifyTopics(r.topics),
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
+    xhandle: (r.xhandle as string) ?? null,
     reason: bio ?? undefined,
   };
 }
