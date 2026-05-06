@@ -774,6 +774,7 @@ const Index = () => {
           <FooterCol title="Company" links={[
             ["About", "/about"],
             ["Blog", "/blog"],
+            ["Media Kit", "/media-kit"],
             ["Community", "https://chat.whatsapp.com/KKjLvfjPY2ND11cexE0Tae?mode=gi_t"],
           ]} />
           <FooterCol title="Support" links={[
