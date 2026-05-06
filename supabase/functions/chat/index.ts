@@ -1524,7 +1524,7 @@ Deno.serve(async (req) => {
         for (const tc of msg.tool_calls) {
           let parsed: Record<string, unknown> = {};
           try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
-          const q = String(parsed.q ?? "");
+          const q = userQuery || String(parsed.q ?? "");
           const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
           lastKind = result.intent.kind;
           lastRows = result.rows;
@@ -1554,10 +1554,14 @@ Deno.serve(async (req) => {
         remainingAfter = await recordUsage(admin, user.id, totalTokens, remainingAfter);
       } catch (_) { /* handled in recordUsage */ }
 
+      const responseContent = lastRows.length === 0 && typeof lastDebug.empty_state_message === "string"
+        ? lastDebug.empty_state_message
+        : (msg.content ?? "");
+
       return new Response(
         JSON.stringify({
           warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-          content: msg.content ?? "",
+          content: responseContent,
           results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
           pagination: lastPagination,
           sources: lastSources,
