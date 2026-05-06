@@ -480,6 +480,11 @@ function missingColumn(error: unknown, column: string): boolean {
   return msg.includes(column.toLowerCase()) && (msg.includes("column") || msg.includes("schema cache"));
 }
 
+function missingFieldFromError(error: unknown, fields: string[]): string | null {
+  const msg = String((error as { message?: string })?.message ?? error ?? "").toLowerCase();
+  return fields.find((field) => missingColumn(msg, field) || msg.includes(`.${field}`)) ?? null;
+}
+
 async function runJournalistQuery(
   admin: AdminClient,
   terms: string[],
@@ -495,8 +500,9 @@ async function runJournalistQuery(
     if (!expr) return [];
     const { data, error } = await admin.from("journalist").select("*").limit(limit).or(expr);
     if (!error) return (data ?? []).map((r) => journalistRow(r as Record<string, unknown>));
-    if (currentFields.includes("bio") && missingColumn(error, "bio")) {
-      currentFields = currentFields.filter((field) => field !== "bio");
+    const missingField = missingFieldFromError(error, currentFields);
+    if (missingField) {
+      currentFields = currentFields.filter((field) => field !== missingField);
       continue;
     }
     console.log("[db.journalist.query.error]", error.message, { terms: cleanedTerms, fields: currentFields });
@@ -520,8 +526,9 @@ async function runCreatorQuery(
     if (!expr) return [];
     const { data, error } = await admin.from("creators").select("*").limit(limit).or(expr);
     if (!error) return (data ?? []).map((r) => creatorRow(r as Record<string, unknown>));
-    if (currentFields.includes("bio") && missingColumn(error, "bio")) {
-      currentFields = currentFields.filter((field) => field !== "bio");
+    const missingField = missingFieldFromError(error, currentFields);
+    if (missingField) {
+      currentFields = currentFields.filter((field) => field !== missingField);
       continue;
     }
     console.log("[db.creators.query.error]", error.message, { terms: cleanedTerms, fields: currentFields });
