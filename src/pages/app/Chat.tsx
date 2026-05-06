@@ -386,20 +386,19 @@ const Chat = () => {
   }, [messages, loading]);
 
   // Infinite-scroll: when sentinel below the table enters viewport, fetch next page.
+  const loadMoreRef = useRef<() => void>(() => {});
   useEffect(() => {
     const el = loadMoreSentinelRef.current;
     if (!el) return;
     if (!results?.pagination?.has_more) return;
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        if (entry.isIntersecting) {
-          loadMore();
-        }
+        if (entry.isIntersecting) loadMoreRef.current();
       }
     }, { root: null, rootMargin: "200px", threshold: 0 });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [results?.pagination?.has_more, results?.rows.length, loadMore]);
+  }, [results?.pagination?.has_more, results?.rows.length]);
 
   // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
   useEffect(() => {
