@@ -25,9 +25,11 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   outlet: "Name of the publication or outlet they write for.",
   country: "Country they are based in.",
   bio: "Short professional bio (1-2 sentences).",
-  ig_handle: "Instagram handle starting with @.",
-  youtube_url: "Full YouTube channel URL.",
-  type: "Creator type (e.g. Influencer, Educator, Vlogger).",
+  ig_handle: "Instagram handle without the @ symbol (just the username).",
+  ig_followers: "Instagram follower count as an integer (no commas).",
+  ig_engagement_rate: "Instagram engagement rate as a decimal between 0 and 1 (e.g. 0.034 for 3.4%).",
+  youtube_url: "Full YouTube channel URL (https://www.youtube.com/...).",
+  youtube_subscribers: "YouTube subscriber count as an integer (no commas).",
   linkedin_url: "Full LinkedIn profile URL of the person (must contain linkedin.com/in/).",
 };
 
