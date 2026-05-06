@@ -285,7 +285,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
   if (expression) {
     const { data, error } = await supabase
       .from("creators")
-      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+      .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
       .or(expression)
       .limit(75);
 
@@ -304,6 +304,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
           ig_handle: row.ig_handle,
           ig_followers: row.ig_followers,
           youtube_url: row.youtube_url,
+          linkedin_url: row.linkedin_url,
         });
       }
     }
@@ -315,7 +316,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
       const pattern = `%${safeSearchFragment(term)}%`;
       const { data, error } = await supabase
         .from("creators")
-        .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+        .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
         .or(`name.ilike.${pattern},email.ilike.${pattern},category.ilike.${pattern},bio.ilike.${pattern},ig_handle.ilike.${pattern},youtube_url.ilike.${pattern},type.ilike.${pattern}`)
         .limit(25);
 
@@ -334,6 +335,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
           ig_handle: row.ig_handle,
           ig_followers: row.ig_followers,
           youtube_url: row.youtube_url,
+          linkedin_url: row.linkedin_url,
         });
       }
       if (collected.length >= 75) break;
