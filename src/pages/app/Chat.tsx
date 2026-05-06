@@ -1007,7 +1007,16 @@ const Chat = () => {
                     const enriching = !!enrichingIdx[i];
                     const saving = savingIdx[i] === "saving";
                     return (
-                      <tr key={i} className="group border-b border-border hover:bg-secondary/30 align-top">
+                      <tr key={i} className={`group border-b border-border hover:bg-secondary/30 align-top ${selectedRows.has(i) ? "bg-primary/5" : ""}`}>
+                        <td className="px-2 py-2.5">
+                          {dbId !== null && (
+                            <Checkbox
+                              checked={selectedRows.has(i)}
+                              onCheckedChange={() => toggleRow(i)}
+                              aria-label="Select row"
+                            />
+                          )}
+                        </td>
                         <td className="px-2 py-2.5">
                           {dbId !== null && (
                             <AddToListMenu
