@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function intent-parser-003 2026-05-06
+// redeploy trigger: chat edge function strict-filters-004 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "intent-parser-003";
+const CHAT_VERSION = "strict-filters-004";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
