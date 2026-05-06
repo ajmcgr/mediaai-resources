@@ -9,6 +9,8 @@ type Props = {
   kind: "journalist" | "creator";
   id: number;
   field: string;
+  name?: string | null;
+  outletDomain?: string | null;
 };
 
 export const EnrichCell = ({ value, kind, id, field }: Props) => {
