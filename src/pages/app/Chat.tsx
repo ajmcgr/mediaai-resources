@@ -1020,7 +1020,7 @@ const Chat = () => {
                         {c.label}
                       </th>
                     ))}
-                    <th className="w-24" />
+                    
                   </tr>
                 </thead>
                 <tbody>
