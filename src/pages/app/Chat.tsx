@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   useSavedSearches, useUpsertSavedSearch,
   useTogglePinSavedSearch, useDeleteSavedSearch,
@@ -371,6 +373,37 @@ const Chat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
+
+  // Bulk selection of database rows by row index
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  useEffect(() => { setSelectedRows(new Set()); }, [results?.kind, lastQuery]);
+  const toggleRow = (i: number) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+  const selectableIndices = (results?.rows ?? [])
+    .map((r, i) => (r.source === "database" && typeof r.source_id === "number" ? i : -1))
+    .filter((i) => i >= 0);
+  const allRowsSelected = selectableIndices.length > 0 && selectableIndices.every((i) => selectedRows.has(i));
+  const someRowsSelected = selectableIndices.some((i) => selectedRows.has(i));
+  const toggleAllRows = () => {
+    setSelectedRows((prev) => {
+      if (allRowsSelected) {
+        const next = new Set(prev);
+        for (const i of selectableIndices) next.delete(i);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const i of selectableIndices) next.add(i);
+      return next;
+    });
+  };
+  const selectedDbIds = (results?.rows ?? [])
+    .map((r, i) => (selectedRows.has(i) && r.source === "database" && typeof r.source_id === "number" ? (r.source_id as number) : null))
+    .filter((x): x is number => x !== null);
 
   const savedSearches = useSavedSearches(!!user);
   const upsertSearch = useUpsertSavedSearch();
@@ -948,6 +981,14 @@ const Chat = () => {
               <table className="w-full min-w-[1100px] text-sm table-fixed">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
+                    <th className="w-10 px-2">
+                      <Checkbox
+                        checked={allRowsSelected ? true : someRowsSelected ? "indeterminate" : false}
+                        onCheckedChange={toggleAllRows}
+                        aria-label="Select all"
+                        disabled={selectableIndices.length === 0}
+                      />
+                    </th>
                     <th className="w-8" />
                     {cols.map((c) => (
                       <th
@@ -966,7 +1007,16 @@ const Chat = () => {
                     const enriching = !!enrichingIdx[i];
                     const saving = savingIdx[i] === "saving";
                     return (
-                      <tr key={i} className="group border-b border-border hover:bg-secondary/30 align-top">
+                      <tr key={i} className={`group border-b border-border hover:bg-secondary/30 align-top ${selectedRows.has(i) ? "bg-primary/5" : ""}`}>
+                        <td className="px-2 py-2.5">
+                          {dbId !== null && (
+                            <Checkbox
+                              checked={selectedRows.has(i)}
+                              onCheckedChange={() => toggleRow(i)}
+                              aria-label="Select row"
+                            />
+                          )}
+                        </td>
                         <td className="px-2 py-2.5">
                           {dbId !== null && (
                             <AddToListMenu
@@ -1086,6 +1136,12 @@ const Chat = () => {
           </section>
         )}
       </div>
+      <BulkAddToListBar
+        count={selectedDbIds.length}
+        journalistIds={results?.kind === "journalists" ? selectedDbIds : undefined}
+        creatorIds={results?.kind === "creators" ? selectedDbIds : undefined}
+        onClear={() => setSelectedRows(new Set())}
+      />
     </div>
   );
 };

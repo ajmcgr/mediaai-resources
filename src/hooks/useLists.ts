@@ -107,6 +107,54 @@ export const useAddToList = (userId: string | undefined) => {
   });
 };
 
+export const useBulkAddToList = (userId: string | undefined) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { listId: string; journalistIds?: number[]; creatorIds?: number[] }) => {
+      const rows: Record<string, unknown>[] = [];
+      for (const jid of args.journalistIds ?? []) {
+        rows.push({ connected_journalist_list: args.listId, connected_journalist: jid });
+      }
+      for (const cid of args.creatorIds ?? []) {
+        rows.push({ connected_journalist_list: args.listId, connected_creator: cid });
+      }
+      if (!rows.length) return { added: 0 };
+      const { error } = await supabase.from("journalist_list_items").insert(rows);
+      if (error) throw error;
+
+      // Fire-and-forget enrichment for journalists missing emails.
+      if (args.journalistIds?.length) {
+        try {
+          const { data: js } = await supabase
+            .from("journalist")
+            .select("id,name,outlet,email")
+            .in("id", args.journalistIds);
+          for (const j of js ?? []) {
+            if (j && !j.email && j.name && j.outlet) {
+              supabase.functions.invoke("enrich-contact", {
+                body: {
+                  source_table: "journalist",
+                  source_id: j.id,
+                  name: j.name,
+                  outlet: j.outlet,
+                  fields: ["email"],
+                },
+              }).catch(() => {});
+            }
+          }
+        } catch {
+          // non-fatal
+        }
+      }
+      return { added: rows.length };
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["list-items", vars.listId] });
+      qc.invalidateQueries({ queryKey: ["lists", userId] });
+    },
+  });
+};
+
 export const useRemoveFromList = () => {
   const qc = useQueryClient();
   return useMutation({
