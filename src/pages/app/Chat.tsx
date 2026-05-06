@@ -705,6 +705,7 @@ const Chat = () => {
   };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
+  if (results) console.log("CHAT_RESULTS_TABLE_EMAIL_COLUMN_UPDATED_cors_fix_003");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -949,7 +950,12 @@ const Chat = () => {
                   <tr>
                     <th className="w-8" />
                     {cols.map((c) => (
-                      <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
+                      <th
+                        key={String(c.key)}
+                        className={`text-left font-medium px-4 py-2.5 ${c.key === "email" ? "min-w-[240px] max-w-[280px] w-[260px]" : ""}`}
+                      >
+                        {c.label}
+                      </th>
                     ))}
                     <th className="w-24" />
                   </tr>
