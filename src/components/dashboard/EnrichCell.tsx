@@ -98,7 +98,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
             onClick={enrich}
             disabled={loading}
             className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground hover:text-primary transition-colors"
-            title={`Find ${field} with Hunter + Exa`}
+            title={emailNeedsDomain ? "Find email with Hunter + Exa" : "Discover with Exa + AI"}
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
             <span>{findLabel[field] ?? "Find"}</span>
