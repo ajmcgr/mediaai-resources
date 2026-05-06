@@ -923,11 +923,50 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
   const locationFieldHay = (values: unknown[]) => values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
   const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
   const locationHayOf = (r: Row) => locationFieldHay([r.country, r.location, r.city, r.region, r.bio]);
+  const outletHayOf = (r: Row) => normalizeSearchText([r.outlet, r.source_url].filter(Boolean).join(" "));
   const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
   const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
   const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
   const matchKind = (r: Row) => intent.kind === "journalists" ? r.source_table === "journalist" : intent.kind === "creators" ? r.source_table === "creators" : true;
-  const matchLocation = (r: Row) => !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+
+  // Tier 2 inferred outlets for the user's target country.
+  const inferredOutlets = intent.countryCanonical
+    ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []).map(normalizeSearchText).filter(Boolean)
+    : [];
+
+  const matchExplicitLocation = (r: Row) =>
+    !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+  const matchInferredLocation = (r: Row) => {
+    if (!inferredOutlets.length) return false;
+    const hay = outletHayOf(r);
+    if (!hay) return false;
+    return inferredOutlets.some((o) => hay.includes(o));
+  };
+  // Reject only when the row has a *populated* country that clearly maps to a
+  // different known country canonical. Blank country = unknown, allowed through.
+  const isExplicitWrongCountry = (r: Row) => {
+    if (!intent.countryCanonical) return false;
+    const c = normalizeSearchText(r.country);
+    if (!c) return false;
+    if (matchesAnyTerm(c, intent.locationTerms)) return false;
+    const wanted = normalizeSearchText(intent.countryCanonical);
+    for (const known of KNOWN_COUNTRY_CANONICALS) {
+      if (known === wanted) continue;
+      if (c === known || c.includes(known) || known.includes(c)) return true;
+    }
+    return false;
+  };
+
+  const matchLocation = (r: Row) => {
+    if (!intent.locationTerms.length) return true;
+    if (matchExplicitLocation(r)) return true;
+    if (matchInferredLocation(r)) return true;
+    if (isExplicitWrongCountry(r)) return false;
+    // Blank/unknown location for DB rows — let them through; ranker deprioritizes.
+    // Exa rows still get the stricter check inside isValidRow().
+    return r.source === "database";
+  };
+
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
     if (intent.topic === "finance" || intent.topics.includes("finance")) {
@@ -949,7 +988,16 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
     if (!matchTopic(row)) return "topic_mismatch";
     return null;
   };
-  return { topicTerms, afterKind, afterLocation, afterTopic, rejectionReason };
+  return {
+    topicTerms,
+    afterKind,
+    afterLocation,
+    afterTopic,
+    rejectionReason,
+    matchExplicitLocation,
+    matchInferredLocation,
+    inferredOutlets,
+  };
 }
 
 function norm(value: string | null | undefined): string {
