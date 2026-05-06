@@ -113,6 +113,12 @@ export const useCreatorsInfinite = (filters: DirectoryFilters) =>
       if (filters.email) q = q.ilike("email", `%${filters.email}%`);
       if (filters.category) q = q.ilike("category", `%${filters.category}%`);
       if (filters.country) q = q.ilike("country", `%${filters.country}%`);
+      const igFollowersMin = Number(filters.ig_followers_min);
+      if (Number.isFinite(igFollowersMin) && igFollowersMin > 0) q = q.gte("ig_followers", igFollowersMin);
+      const igEngMin = Number(filters.ig_engagement_min);
+      if (Number.isFinite(igEngMin) && igEngMin > 0) q = q.gte("ig_engagement_rate", igEngMin / 100);
+      const ytSubsMin = Number(filters.youtube_subs_min);
+      if (Number.isFinite(ytSubsMin) && ytSubsMin > 0) q = q.gte("youtube_subscribers", ytSubsMin);
 
       const { data, count, error } = await q;
       if (error) throw error;
