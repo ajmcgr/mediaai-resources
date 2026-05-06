@@ -74,37 +74,56 @@ function HeroVideo({ src, poster }: { src: string; poster: string }) {
 
   return (
     <div
-      ref={containerRef}
-      className="group relative w-full rounded-xl overflow-hidden cursor-pointer"
-      style={{ filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.1)) drop-shadow(-8px 0 10px rgba(0,0,0,0.06)) drop-shadow(8px 0 10px rgba(0,0,0,0.06))" }}
-      onClick={toggle}
-      role="button"
-      aria-label={playing ? "Pause demo video" : "Play demo video"}
+      className="rounded-2xl overflow-hidden bg-white ring-1 ring-black/10"
+      style={{ boxShadow: "0 30px 60px -20px rgba(0,0,0,0.18), 0 10px 20px -10px rgba(0,0,0,0.08)" }}
     >
-      <img src={poster} alt="" aria-hidden="true" className="w-full h-auto block" />
-      <video
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        onCanPlay={() => setReady(true)}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
-        className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-out ${ready && playing ? "opacity-100" : "opacity-0"}`}
-      />
+      {/* Faux browser chrome */}
+      <div className="flex items-center gap-3 px-4 h-9 md:h-10 bg-[#f3f4f6] border-b border-black/5">
+        <div className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+        </div>
+        <div className="flex-1 flex justify-center">
+          <div className="px-3 py-1 rounded-md bg-white/90 ring-1 ring-black/5 text-[11px] md:text-xs text-muted-foreground font-mono truncate max-w-[260px] md:max-w-sm">
+            app.trymedia.ai/chat
+          </div>
+        </div>
+        <div className="w-12" />
+      </div>
+
       <div
-        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+        ref={containerRef}
+        className="group relative w-full cursor-pointer"
+        onClick={toggle}
+        role="button"
+        aria-label={playing ? "Pause demo video" : "Play demo video"}
       >
-        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center ring-1 ring-black/5">
-          {playing ? (
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
-          ) : (
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground translate-x-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          )}
+        <img src={poster} alt="" aria-hidden="true" className="w-full h-auto block" />
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          onCanPlay={() => setReady(true)}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
+          className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-out ${ready && playing ? "opacity-100" : "opacity-0"}`}
+        />
+        <div
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+        >
+          <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center ring-1 ring-black/5">
+            {playing ? (
+              <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-7 w-7 text-foreground translate-x-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            )}
+          </div>
         </div>
       </div>
     </div>
