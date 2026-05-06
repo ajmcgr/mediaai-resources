@@ -562,7 +562,7 @@ Deno.serve(async (req) => {
     const existingYoutubeUrl = normalizeYouTubeUrl(clean(contact.youtube_url ?? row.youtube_url)) ?? "";
     const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
     const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
-      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
+      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio", "country"].includes(f),
     );
 
     if (table === "creators" && fieldsToExtract.includes("youtube_url")) {
@@ -587,6 +587,8 @@ Deno.serve(async (req) => {
       fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
+      fieldsToExtract.includes("country") ? `"${name}" ${creatorContext} based in country location` : "",
+      fieldsToExtract.includes("country") ? `"${name}" ${creatorContext} creator profile country` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
       wantsCreatorSocial && (existingYoutubeUrl || debug.youtube_url) ? `"${existingYoutubeUrl || String(debug.youtube_url)}" subscribers` : "",
@@ -621,6 +623,10 @@ Deno.serve(async (req) => {
     if (fieldsToExtract.includes("youtube_subscribers") && !extracted.youtube_subscribers) {
       const subs = findYouTubeSubscriberCount(allSnippets);
       if (subs) extracted.youtube_subscribers = subs;
+    }
+    if (fieldsToExtract.includes("country") && !extracted.country) {
+      const derivedCountry = deriveCountryFromText(allSnippets, creatorContext);
+      if (derivedCountry) extracted.country = derivedCountry;
     }
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
