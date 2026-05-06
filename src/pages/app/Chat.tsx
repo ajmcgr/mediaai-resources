@@ -563,13 +563,14 @@ const Chat = () => {
     }
   };
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!results || !results.pagination?.has_more || loadingMore || !lastQuery) return;
     setLoadingMore(true);
     try {
-      const nextOffset = results.pagination.offset + results.pagination.limit;
+      const pag = results.pagination;
+      const nextOffset = (pag.next_offset ?? (pag.offset + pag.limit)) as number;
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: lastQuery }], limit: results.pagination.limit, offset: nextOffset },
+        body: { messages: [{ role: "user", content: lastQuery }], limit: 100, offset: nextOffset },
       });
       if (error) throw error;
       if (data?.usage) applyServerUsage(data.usage);
@@ -580,13 +581,16 @@ const Chat = () => {
           pagination: data.pagination ?? prev.pagination,
           sources: data.sources ?? prev.sources,
         } : prev);
+      } else if (data?.pagination) {
+        // No new rows but server still updates pagination (e.g. has_more flipped to false)
+        setResults((prev) => prev ? { ...prev, pagination: data.pagination } : prev);
       }
     } catch (e) {
       toast.error((e as Error).message || "Could not load more");
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [results, loadingMore, lastQuery, applyServerUsage]);
 
   const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
