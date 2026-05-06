@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function result-cap-exa-002 2026-05-06
+// redeploy trigger: chat edge function intent-parser-003 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "result-cap-exa-002";
+const CHAT_VERSION = "intent-parser-003";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,94 +107,158 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   dubai: { canonical: "United Arab Emirates", variants: ["dubai", "uae", "united arab emirates"] },
 };
 
-const ROLE_WORDS = new Set([
+const JOURNALIST_WORDS = [
   "journalist", "journalists", "reporter", "reporters", "editor", "editors",
-  "writer", "writers", "correspondent", "correspondents", "columnist", "contributor",
+  "writer", "writers", "correspondent", "correspondents", "columnist", "columnists",
+  "contributor", "contributors", "media contact", "press contact",
+];
+const CREATOR_WORDS = [
   "creator", "creators", "influencer", "influencers", "youtuber", "youtubers",
-  "tiktoker", "instagrammer", "blogger",
-]);
+  "tiktoker", "tiktokers", "instagrammer", "instagrammers", "blogger", "bloggers",
+  "podcaster", "podcasters", "streamer", "streamers", "kol", "kols",
+];
+
+const PLATFORM_MAP: Record<string, string[]> = {
+  youtube: ["youtube", "yt"],
+  tiktok: ["tiktok", "tik tok"],
+  instagram: ["instagram", "ig"],
+  twitter: ["twitter", " x "],
+  linkedin: ["linkedin"],
+  podcast: ["podcast", "podcaster"],
+};
 
 const STOPWORDS = new Set([
   "a", "an", "the", "in", "at", "on", "of", "for", "to", "with", "from", "by",
   "and", "or", "is", "are", "be", "who", "that", "find", "me", "show", "list",
   "any", "all", "some", "please", "best", "top", "based", "located", "near",
-  "get", "give", "need", "want", "looking", "search",
+  "get", "give", "need", "want", "looking", "search", "covering", "about",
 ]);
+
+// Extra location keywords with cities
+const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }> = {
+  "hong kong": { canonical: "Hong Kong", variants: ["hong kong", "hk", "hong kong sar", "香港"] },
+  hk: { canonical: "Hong Kong", variants: ["hong kong", "hk"] },
+  thailand: { canonical: "Thailand", variants: ["thailand", "bangkok", "thai"] },
+  bangkok: { canonical: "Thailand", variants: ["thailand", "bangkok"] },
+  philippines: { canonical: "Philippines", variants: ["philippines", "manila", "filipino"] },
+  vietnam: { canonical: "Vietnam", variants: ["vietnam", "hanoi", "ho chi minh"] },
+  indonesia: { canonical: "Indonesia", variants: ["indonesia", "jakarta"] },
+  malaysia: { canonical: "Malaysia", variants: ["malaysia", "kuala lumpur", "kl"] },
+  korea: { canonical: "South Korea", variants: ["korea", "south korea", "seoul"] },
+  taiwan: { canonical: "Taiwan", variants: ["taiwan", "taipei"] },
+};
 
 type Intent = {
   raw: string;
-  kind: "journalists" | "creators";
+  kind: "journalists" | "creators" | "both";
   topics: string[];
   countries: string[];
   countryCanonical: string | null;
+  locationTerms: string[];
   outlets: string[];
+  platforms: string[];
+  minFollowers: number | null;
+  emailRequired: boolean;
+  titles: string[];
   freeTerms: string[];
   count: number;
-  emailRequired: boolean;
 };
+
+function parseFollowers(lower: string): number | null {
+  // 100k+, 1m+, "over 100k", "more than 100,000", "1 million followers"
+  let m = lower.match(/(\d+(?:[.,]\d+)?)\s*([km])\s*\+?/);
+  if (m) {
+    const n = parseFloat(m[1].replace(",", "."));
+    const mult = m[2] === "m" ? 1_000_000 : 1_000;
+    return Math.floor(n * mult);
+  }
+  m = lower.match(/(?:over|more than|at least|min(?:imum)?|>=?)\s*([\d,]+)/);
+  if (m) return parseInt(m[1].replace(/,/g, ""), 10);
+  m = lower.match(/(\d+(?:[.,]\d+)?)\s*million/);
+  if (m) return Math.floor(parseFloat(m[1].replace(",", ".")) * 1_000_000);
+  return null;
+}
+
+export function parseSearchIntent(q: string): Intent {
+  return parseIntent(q);
+}
 
 function parseIntent(q: string): Intent {
   const lower = ` ${q.toLowerCase()} `;
   let working = lower;
 
-  // 0 means "user did not specify a number" — caller will substitute the plan default.
   let count = 0;
-  const qMatch = lower.match(/\b(\d{1,4})\b/);
+  const qMatch = lower.match(/\b(\d{1,4})\b(?!\s*[km])/);
   if (qMatch) {
     const n = parseInt(qMatch[1], 10);
     if (n >= 5 && n <= 1000) count = n;
   }
 
-  const emailRequired = /\bwith (an? )?email|verified email|emails?\b/i.test(lower) || /\bcontactable\b/i.test(lower);
+  const emailRequired =
+    /\bwith (an? )?email\b|\bhas email\b|\bemail only\b|\bcontactable\b|\bverified email\b|\bwith emails?\b/i.test(lower);
 
+  // Kind detection
+  const hasJournalist = JOURNALIST_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower));
+  const hasCreator = CREATOR_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower));
+  let kind: Intent["kind"];
+  if (hasJournalist && hasCreator) kind = "both";
+  else if (hasJournalist) kind = "journalists";
+  else if (hasCreator) kind = "creators";
+  else kind = "both";
+
+  // Locations - merge country synonyms + extras
+  const allLocs: Record<string, { canonical: string; variants: string[] }> = { ...COUNTRY_SYNONYMS, ...EXTRA_LOCATIONS };
   const countries = new Set<string>();
+  const locationTerms = new Set<string>();
   let countryCanonical: string | null = null;
-  const countryKeys = Object.keys(COUNTRY_SYNONYMS).sort((a, b) => b.length - a.length);
-  for (const key of countryKeys) {
-    const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+  const locKeys = Object.keys(allLocs).sort((a, b) => b.length - a.length);
+  for (const key of locKeys) {
+    const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
     if (re.test(working)) {
-      const entry = COUNTRY_SYNONYMS[key];
-      for (const v of entry.variants) countries.add(v);
+      const entry = allLocs[key];
+      for (const v of entry.variants) { countries.add(v); locationTerms.add(v); }
       if (!countryCanonical) countryCanonical = entry.canonical;
-      working = working.replace(re, " ");
+      working = working.replace(new RegExp(re.source, "gi"), " ");
     }
   }
 
+  // Topics
   const topics = new Set<string>();
   for (const [key, vals] of Object.entries(TOPIC_SYNONYMS)) {
-    const re = new RegExp(`\\b${key}\\b`, "gi");
+    const re = new RegExp(`\\b${key}\\b`, "i");
     if (re.test(working)) {
       for (const v of vals) topics.add(v);
-      working = working.replace(re, " ");
+      working = working.replace(new RegExp(re.source, "gi"), " ");
     }
   }
 
+  // Outlets
   const outlets: string[] = [];
-  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc"];
+  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc", "business insider", "fast company", "axios"];
   for (const o of knownOutlets) {
     if (new RegExp(`\\b${o}\\b`, "i").test(lower)) outlets.push(o);
   }
 
+  // Platforms (creators)
+  const platforms: string[] = [];
+  for (const [p, variants] of Object.entries(PLATFORM_MAP)) {
+    if (variants.some((v) => new RegExp(`\\b${v.trim()}\\b`, "i").test(lower))) platforms.push(p);
+  }
+
+  const minFollowers = parseFollowers(lower);
+
+  // Free terms
   const tokens = working.split(/[^a-z0-9]+/i).map((t) => t.trim()).filter(Boolean);
   const freeTerms: string[] = [];
-  let kind: "journalists" | "creators" = "journalists";
-  let creatorVotes = 0;
-  let journalistVotes = 0;
-
+  const allRoleWords = new Set([...JOURNALIST_WORDS, ...CREATOR_WORDS]);
   for (const t of tokens) {
-    if (ROLE_WORDS.has(t)) {
-      if (["creator", "creators", "influencer", "influencers", "youtuber", "youtubers", "tiktoker", "instagrammer", "blogger"].includes(t)) creatorVotes++;
-      else journalistVotes++;
-      continue;
-    }
+    if (allRoleWords.has(t)) continue;
     if (/^\d+$/.test(t)) continue;
     if (STOPWORDS.has(t)) continue;
     if (t.length < 2) continue;
-    if (t === "email" || t === "emails") continue;
+    if (t === "email" || t === "emails" || t === "followers") continue;
     freeTerms.push(t);
   }
-  if (creatorVotes > journalistVotes) kind = "creators";
-  if (/\b(youtube|instagram|tiktok)\b/i.test(lower)) kind = "creators";
 
   return {
     raw: q,
@@ -202,10 +266,14 @@ function parseIntent(q: string): Intent {
     topics: [...topics],
     countries: [...countries],
     countryCanonical,
+    locationTerms: [...locationTerms],
     outlets,
+    platforms,
+    minFollowers,
+    emailRequired,
+    titles: [],
     freeTerms,
     count,
-    emailRequired,
   };
 }
 
@@ -555,23 +623,25 @@ function buildExaQueries(intent: Intent): string[] {
 
   if (intent.raw.trim()) queries.push(intent.raw.trim());
 
-  if (intent.kind === "journalists") {
-    if (topic && loc) queries.push(`${topic} journalists ${loc}`);
-    if (topic && loc) queries.push(`${topic === "technology" ? "tech" : topic} reporters ${loc === "United Kingdom" ? "UK" : loc}`);
-    if ((topic === "technology" || topic === "ai") && loc) queries.push(`AI journalists ${loc === "United Kingdom" ? "London" : loc}`);
-    if (topic && loc) queries.push(`${topic} writers ${loc === "United Kingdom" ? "UK" : loc} publication`);
-    if (topic) queries.push(`${topic} journalist bylines`);
-    if (topic) queries.push(`${topic} reporter contact`);
-    if (outlet && topic) queries.push(`site:${outlet}.com ${topic} reporter`);
-    if (topic && outlet) queries.push(`${topic} writer ${outlet}`);
+  const platform = intent.platforms[0] ?? "";
+  const followers = intent.minFollowers ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers` : "";
+  const wantJ = intent.kind === "journalists" || intent.kind === "both";
+  const wantC = intent.kind === "creators" || intent.kind === "both";
+
+  if (wantJ) {
+    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
+    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
+    if (outlet && topic) queries.push(`${topic} reporter ${outlet}`);
+    if (outlet && topic) queries.push(`site:${outlet.replace(/\s+/g, "")}.com ${topic} reporter`);
+    if (topic && !loc) queries.push(`${topic} journalist bylines`);
     if (!topic && loc) queries.push(`${loc} journalist contact`);
-    if (!queries.length) queries.push(`${intent.raw} journalist`);
-  } else {
-    if (topic && loc) queries.push(`${topic} creator ${loc}`);
-    if (topic && loc) queries.push(`${topic} youtuber ${loc}`);
-    if (topic) queries.push(`${topic} influencer ${loc || ""}`.trim());
-    if (!queries.length) queries.push(`${intent.raw} creator`);
   }
+  if (wantC) {
+    if (topic && loc) queries.push(`${topic} creator ${loc} ${platform} ${followers}`.trim().replace(/\s+/g, " "));
+    if (topic && platform) queries.push(`${topic} ${platform} creator ${loc}`.trim());
+    if (topic) queries.push(`${topic} influencer ${loc || ""} ${followers}`.trim().replace(/\s+/g, " "));
+  }
+  if (!queries.length) queries.push(`${intent.raw}`.trim());
   return [...new Set(queries)].slice(0, 8);
 }
 
@@ -958,13 +1028,20 @@ async function hybridSearch(
     offset: safeOffset,
   };
 
-  const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
+  // ----- Fetch DB rows per kind -----
+  const wantJ = intent.kind === "journalists" || intent.kind === "both";
+  const wantC = intent.kind === "creators" || intent.kind === "both";
+
+  const [jRows, cRows] = await Promise.all([
+    wantJ ? searchJournalistsDb(admin, intent) : Promise.resolve([] as Row[]),
+    wantC ? searchCreatorsDb(admin, intent) : Promise.resolve([] as Row[]),
+  ]);
+  // Tag source_table for safety
+  for (const r of jRows) r.source_table = "journalist";
+  for (const r of cRows) r.source_table = "creators";
+
   let exaRows: Row[] = [];
   debug.search_order = "database_plus_web";
-  debug.exa_skipped = false;
-  debug.database_only = false;
-
-  // Always augment with Exa.
   try {
     exaRows = await searchExa(intent, exaLimit);
     if (exaRows.length < 20) {
@@ -976,31 +1053,111 @@ async function hybridSearch(
     debug.exa_error = error instanceof Error ? error.message : String(error);
     exaRows = [];
   }
-  debug.db_count = dbRows.length;
+  debug.db_count = jRows.length + cRows.length;
   debug.exa_count = exaRows.length;
   debug.web_count = exaRows.length;
 
-  let dbStrict = dbRows;
-  if (intent.topics.length || intent.countries.length) {
-    dbStrict = dbRows.filter((r) => {
-      const hay = [r.name, r.category, r.title, r.outlet, r.country, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
-      const topicHit = intent.topics.length === 0 || intent.topics.some((t) => hay.includes(t));
-      const countryHit = intent.countries.length === 0 || intent.countries.some((c) => hay.includes(c));
-      return topicHit || countryHit;
-    });
-  }
-  if (dbStrict.length < Math.min(planLimit, 25)) dbStrict = dbRows;
-  debug.db_strict_count = dbStrict.length;
+  // ----- Hard filters -----
+  const norm = (s: string | null | undefined) => (s ?? "").toLowerCase();
+  const hayOf = (r: Row) =>
+    [r.name, r.category, r.title, r.outlet, r.country, r.reason, r.source_url, r.ig_handle, r.youtube_url]
+      .map(norm).join(" | ");
 
-  // Cap database results at the plan target, exa already capped at exaLimit.
-  const dbRanked = rankRows(dbStrict, intent).slice(0, target);
-  const exaRanked = rankRows(exaRows, intent).slice(0, exaLimit);
-  let combined = dedupe([...dbRanked, ...exaRanked]);
-  if (intent.emailRequired) {
-    const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
+  const matchLocation = (r: Row) => {
+    if (!intent.locationTerms.length) return true;
+    const hay = hayOf(r);
+    return intent.locationTerms.some((t) => hay.includes(t));
+  };
+  const matchOutlet = (r: Row) => {
+    if (!intent.outlets.length) return true;
+    const hay = `${norm(r.outlet)} ${norm(r.source_url)}`;
+    return intent.outlets.some((o) => hay.includes(o.toLowerCase()));
+  };
+  const matchEmail = (r: Row) => {
+    if (!intent.emailRequired) return true;
+    const e = (r.email ?? "").trim().toLowerCase();
+    return !!e && !["null", "undefined", "-", "n/a"].includes(e);
+  };
+  const matchPlatform = (r: Row) => {
+    if (!intent.platforms.length) return true;
+    const hay = hayOf(r);
+    return intent.platforms.some((p) => {
+      if (p === "youtube") return !!r.youtube_url || hay.includes("youtube");
+      if (p === "instagram") return !!r.ig_handle || hay.includes("instagram");
+      return hay.includes(p);
+    });
+  };
+  const matchFollowers = (r: Row) => {
+    if (intent.minFollowers == null) return true;
+    return (r.ig_followers ?? 0) >= intent.minFollowers;
+  };
+  const matchTopic = (r: Row) => {
+    if (!intent.topics.length) return true;
+    const hay = hayOf(r);
+    return intent.topics.some((t) => hay.includes(t));
+  };
+
+  const filterJournalist = (r: Row) =>
+    matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r);
+  const filterCreator = (r: Row) =>
+    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r) && matchTopic(r);
+
+  const jStrict = jRows.filter(filterJournalist);
+  const cStrict = cRows.filter(filterCreator);
+  const exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+
+  let fallbackUsed = false;
+  let jFinal = jStrict;
+  let cFinal = cStrict;
+  let exaFinal = exaStrict;
+
+  // Fallback only if hard filters returned nothing (per kind)
+  if (wantJ && jStrict.length === 0 && jRows.length > 0) {
+    jFinal = jRows.filter(matchEmail);
+    fallbackUsed = true;
   }
+  if (wantC && cStrict.length === 0 && cRows.length > 0) {
+    cFinal = cRows.filter((r) => matchEmail(r) && matchFollowers(r) && matchPlatform(r));
+    fallbackUsed = true;
+  }
+  if (exaStrict.length === 0 && exaRows.length > 0 && (jFinal.length + cFinal.length) === 0) {
+    exaFinal = exaRows.filter(matchEmail);
+    fallbackUsed = true;
+  }
+
+  debug.parsed_intent = intent;
+  debug.kind_used = intent.kind;
+  debug.location_filter_applied = intent.locationTerms.length > 0;
+  debug.strict_location_count = jStrict.length + cStrict.length;
+  debug.email_filter_applied = intent.emailRequired;
+  debug.platform_filter_applied = intent.platforms.length > 0;
+  debug.follower_filter_applied = intent.minFollowers != null;
+  debug.fallback_used = fallbackUsed;
+  debug.journalists_count = jFinal.length;
+  debug.creators_count = cFinal.length;
+
+  const dbRanked = rankRows([...jFinal, ...cFinal], intent).slice(0, target);
+  const exaRanked = rankRows(exaFinal, intent).slice(0, exaLimit);
+
+  // Normalize emails before merge
+  const cleanEmail = (e: string | null | undefined): string | null => {
+    if (!e) return null;
+    const v = String(e).trim().toLowerCase();
+    if (!v || ["null", "undefined", "-", "n/a"].includes(v)) return null;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return null;
+    return v;
+  };
+  for (const r of [...dbRanked, ...exaRanked]) r.email = cleanEmail(r.email);
+
+  let combined = dedupe([...dbRanked, ...exaRanked]);
+  if (intent.emailRequired) combined = combined.filter((r) => !!r.email);
   debug.deduped_count = combined.length;
+
+  const dbEmailsFound = dbRanked.filter((r) => !!r.email).length;
+  const exaEmailsFound = exaRanked.filter((r) => !!r.email).length;
+  debug.db_emails_found = dbEmailsFound;
+  debug.exa_emails_found = exaEmailsFound;
+  debug.enriched_emails_found = 0;
 
   const ranked = rankRows(combined, intent);
   const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
@@ -1010,14 +1167,20 @@ async function hybridSearch(
   const hasMore = (safeOffset + requestedLimit) < totalEstimated;
 
   debug.db_returned = dbReturned;
-  debug.db_returned_count = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
   debug.has_more = hasMore;
 
   try {
-    const persisted = await persistWebRows(admin, intent.kind, paged);
-    debug.persisted = persisted;
+    if (intent.kind === "both") {
+      const jPaged = paged.filter((r) => r.source_table === "journalist" || (r.source === "exa" && wantJ));
+      const cPaged = paged.filter((r) => r.source_table === "creators");
+      const persistedJ = await persistWebRows(admin, "journalists", jPaged);
+      const persistedC = await persistWebRows(admin, "creators", cPaged);
+      debug.persisted = { journalists: persistedJ, creators: persistedC };
+    } else {
+      debug.persisted = await persistWebRows(admin, intent.kind, paged);
+    }
   } catch (error) {
     console.log("[chat.persist.error]", error instanceof Error ? error.message : String(error));
     debug.persisted = { considered: 0, saved: 0, error: error instanceof Error ? error.message : String(error) };
