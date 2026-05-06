@@ -618,8 +618,8 @@ const Chat = () => {
         outlet: row.outlet,
         title: row.title,
         source: row.source,
-        source_id: dbId,
-        source_table: row.source === "database" ? table : undefined,
+        source_id: row.source_id ?? null,
+        source_table: row.source_table ?? table,
         url: row.source_url,
         country: row.country,
       };
