@@ -1136,6 +1136,12 @@ const Chat = () => {
           </section>
         )}
       </div>
+      <BulkAddToListBar
+        count={selectedDbIds.length}
+        journalistIds={results?.kind === "journalists" ? selectedDbIds : undefined}
+        creatorIds={results?.kind === "creators" ? selectedDbIds : undefined}
+        onClear={() => setSelectedRows(new Set())}
+      />
     </div>
   );
 };
