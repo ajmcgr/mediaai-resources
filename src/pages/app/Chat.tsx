@@ -374,6 +374,37 @@ const Chat = () => {
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
 
+  // Bulk selection of database rows by row index
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  useEffect(() => { setSelectedRows(new Set()); }, [results?.kind, lastQuery]);
+  const toggleRow = (i: number) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+  const selectableIndices = (results?.rows ?? [])
+    .map((r, i) => (r.source === "database" && typeof r.source_id === "number" ? i : -1))
+    .filter((i) => i >= 0);
+  const allRowsSelected = selectableIndices.length > 0 && selectableIndices.every((i) => selectedRows.has(i));
+  const someRowsSelected = selectableIndices.some((i) => selectedRows.has(i));
+  const toggleAllRows = () => {
+    setSelectedRows((prev) => {
+      if (allRowsSelected) {
+        const next = new Set(prev);
+        for (const i of selectableIndices) next.delete(i);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const i of selectableIndices) next.add(i);
+      return next;
+    });
+  };
+  const selectedDbIds = (results?.rows ?? [])
+    .map((r, i) => (selectedRows.has(i) && r.source === "database" && typeof r.source_id === "number" ? (r.source_id as number) : null))
+    .filter((x): x is number => x !== null);
+
   const savedSearches = useSavedSearches(!!user);
   const upsertSearch = useUpsertSavedSearch();
   const togglePin = useTogglePinSavedSearch();
