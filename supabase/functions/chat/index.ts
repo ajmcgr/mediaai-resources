@@ -1158,7 +1158,18 @@ async function hybridSearch(
   debug.db_returned = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
+  debug.finalCount = paged.length;
   debug.has_more = hasMore;
+  if (paged.length === 0) {
+    const filterParts: string[] = [];
+    if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
+    if (intent.topics.length) filterParts.push(intent.topics[0]);
+    if (intent.outlets.length) filterParts.push(intent.outlets[0]);
+    if (intent.emailRequired) filterParts.push("with email");
+    debug.empty_state_message = filterParts.length
+      ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
+      : `No exact matches found. Try broadening your query.`;
+  }
 
   try {
     if (intent.kind === "both") {
