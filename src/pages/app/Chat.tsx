@@ -332,8 +332,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
 }
 
 async function expandChatResults(base: Exclude<Results, null>, query: string): Promise<Exclude<Results, null>> {
-  const dbRows = base.rows.filter((row) => row.source === "database").length;
-  if (base.rows.length >= MIN_CHAT_RESULTS && dbRows >= 8) return base;
+  if (base.rows.length >= MIN_CHAT_RESULTS) return base;
 
   const supplemental = base.kind === "journalists"
     ? await fetchJournalistFallback(query)
@@ -341,20 +340,17 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
 
   if (!supplemental.length) return base;
 
-  const merged = dedupeRows([
-    ...base.rows.filter((row) => row.source === "database"),
-    ...supplemental,
-    ...base.rows.filter((row) => row.source === "exa"),
-  ]);
+  const merged = dedupeRows([...base.rows, ...supplemental]);
+  const capped = merged.slice(0, Math.max(MIN_CHAT_RESULTS, base.rows.length + 20));
 
   return {
     ...base,
-    rows: merged,
+    rows: capped,
     debug: {
       ...(base.debug ?? {}),
       ui_fallback_query: query,
       ui_fallback_terms: buildFallbackTerms(query),
-      ui_fallback_added: Math.max(0, merged.length - base.rows.length),
+      ui_fallback_added: Math.max(0, capped.length - base.rows.length),
     },
   };
 }
