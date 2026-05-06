@@ -1168,7 +1168,9 @@ async function hybridSearch(
   debug.strictCount = jStrict.length + cStrict.length + exaStrict.length;
   debug.kind_used = intent.kind;
   debug.location_filter_applied = intent.locationTerms.length > 0;
-  debug.strict_location_count = jStrict.length + cStrict.length;
+  debug.strict_location_count = jLocationStrict.length + cLocationStrict.length + exaLocationStrict.length;
+  debug.topic_filter_applied = intent.topics.length > 0;
+  debug.strict_topic_count = jStrict.length + cStrict.length + exaStrict.length;
   debug.email_filter_applied = intent.emailRequired;
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
@@ -1213,14 +1215,18 @@ async function hybridSearch(
   debug.finalCount = paged.length;
   debug.has_more = hasMore;
   if (paged.length === 0) {
-    const filterParts: string[] = [];
-    if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
-    if (intent.topics.length) filterParts.push(intent.topics[0]);
-    if (intent.outlets.length) filterParts.push(intent.outlets[0]);
-    if (intent.emailRequired) filterParts.push("with email");
-    debug.empty_state_message = filterParts.length
-      ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
-      : `No exact matches found. Try broadening your query.`;
+    if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
+      debug.empty_state_message = "No exact finance journalists in Germany found. Try broadening location or topic.";
+    } else {
+      const filterParts: string[] = [];
+      if (intent.locationTerms.length) filterParts.push(intent.countryCanonical || intent.locationTerms[0]);
+      if (intent.topics.length) filterParts.push(intent.topics[0]);
+      if (intent.outlets.length) filterParts.push(intent.outlets[0]);
+      if (intent.emailRequired) filterParts.push("with email");
+      debug.empty_state_message = filterParts.length
+        ? `No exact matches found for ${filterParts.join(", ")}. Try removing location or topic.`
+        : `No exact matches found. Try broadening your query.`;
+    }
   }
 
   try {
