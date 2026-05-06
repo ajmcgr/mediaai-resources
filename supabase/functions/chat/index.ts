@@ -1299,24 +1299,31 @@ async function hybridSearch(
   plan: string | null,
   limitOverride: number | null = null,
   offset = 0,
-): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
+): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
   const planNorm = (plan ?? "").toLowerCase();
   const isStarter = planNorm === "starter";
   const isGrowthOrHigher = ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(planNorm);
-  // Exa cap: starter = 100, growth+ = unlimited (large sentinel), default = 50
+  // Plan caps: free=50 total, starter=100 total, growth+=unlimited (large sentinel)
+  const maxTotalForPlan = planLimit; // 50 / 100 / 100_000
   const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
   const userExplicit = intent.count > 0;
-  // If user did not explicitly request a count, use the plan's database cap as target.
-  // If they did, honor it but still cap to plan.
+  // Use plan cap as the in-memory target so ranking pool is large enough for paging.
   if (!userExplicit) intent.count = planLimit;
   else intent.count = Math.min(intent.count, planLimit);
   const target = intent.count;
 
-  const maxTotal = target + exaLimit;
-  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(Math.max(limitOverride, target), maxTotal) : maxTotal;
+  // Per-page request limit: default 100, cap at 100, never overshoot remaining plan budget.
+  const pageDefault = 100;
   const safeOffset = Math.max(0, offset);
+  const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
+  const requestedLimit = Math.max(1, Math.min(
+    limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+    100,
+    remainingBudget,
+  ));
+  const maxTotal = maxTotalForPlan;
 
   const debug: Record<string, unknown> = {
     version: CHAT_VERSION,
