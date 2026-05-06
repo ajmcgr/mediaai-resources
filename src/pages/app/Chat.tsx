@@ -1118,29 +1118,6 @@ const Chat = () => {
                             </td>
                           );
                         })}
-                        <td className="px-3 py-2.5 text-right">
-                          {r.source === "exa" ? (
-                            saving ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />Saving
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => saveExaRow(i)}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                                title="Save this web result to your database"
-                              >
-                                Save
-                              </button>
-                            )
-                          ) : savingIdx[i] === "saved" ? (
-                            <span className="text-[10px] text-emerald-700">Saved</span>
-                          ) : null}
-                          {r.source === "exa" && r.source_url && (
-                            <a href={r.source_url} target="_blank" rel="noreferrer" className="ml-2 text-[10px] text-muted-foreground hover:underline">source</a>
-                          )}
-                        </td>
                       </tr>
                     );
                   })}
