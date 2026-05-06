@@ -42,6 +42,9 @@ export type DirectoryFilters = {
   xhandle?: string;
   title?: string;
   topics?: string;
+  ig_followers_min?: string;
+  ig_engagement_min?: string;
+  youtube_subs_min?: string;
 };
 
 export const PAGE_SIZE = 50;
