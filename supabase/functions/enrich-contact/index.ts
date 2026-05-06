@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-001" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -235,6 +235,12 @@ function normalizeLinkedInUrl(value: string): string | null {
   return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
 }
 
+function normalizeYouTubeUrl(value: string): string | null {
+  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  if (!/(^|\.)youtube\.com\/(channel\/|c\/|user\/|@)/i.test(cleanUrl)) return null;
+  return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
+}
+
 function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
   const url = (hit.url || "").toLowerCase();
   const haystack = `${hit.title ?? ""} ${hit.text ?? ""} ${url}`.toLowerCase();
@@ -268,6 +274,34 @@ async function findLinkedInUrl(name: string, outlet: string, title: string, coun
   return { url: null, error: firstError };
 }
 
+async function findYouTubeUrl(name: string, igHandle: string, context: string): Promise<{ url: string | null; error: string | null }> {
+  const cleanHandle = igHandle.replace(/^@/, "");
+  const queries = [
+    cleanHandle ? `site:youtube.com "${cleanHandle}" YouTube channel` : "",
+    `site:youtube.com "${name}" ${context} channel`,
+    `"${name}" ${cleanHandle} YouTube channel`,
+  ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
+
+  let firstError: string | null = null;
+  for (const query of queries) {
+    const res = await exaSearch(query, 10, ["youtube.com"]);
+    if (res.error && !firstError) firstError = res.error;
+    const tokens = [cleanHandle, ...name.toLowerCase().split(/\s+/)].filter((t) => t.length > 1);
+    const hits = res.results
+      .map((hit) => ({ hit, url: normalizeYouTubeUrl(hit.url) }))
+      .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
+      .map((item) => {
+        const haystack = `${item.hit.title} ${item.hit.text} ${item.hit.url}`.toLowerCase();
+        const score = tokens.reduce((sum, token) => sum + (haystack.includes(token.toLowerCase()) ? 2 : 0), 0) + (/youtube\.com\/@/i.test(item.url) ? 2 : 1);
+        return { ...item, score };
+      })
+      .sort((a, b) => b.score - a.score);
+    const best = hits.find((h) => h.score >= 3) ?? hits[0];
+    if (best) return { url: best.url, error: null };
+  }
+  return { url: null, error: firstError };
+}
+
 function json(payload: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(payload), { status, headers: jsonHeaders });
 }
@@ -283,6 +317,25 @@ function clean(value: unknown): string {
 function numericId(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function parseCompactNumber(raw: string): number | null {
+  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb])?/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const unit = (match[2] ?? "").toLowerCase();
+  return Math.round(value * (unit === "b" ? 1_000_000_000 : unit === "m" ? 1_000_000 : unit === "k" ? 1_000 : 1));
+}
+
+function findYouTubeSubscriberCount(snippets: Array<{ url: string; text: string; title?: string }>): number | null {
+  for (const snippet of snippets) {
+    const haystack = `${snippet.title ?? ""} ${snippet.text}`;
+    const match = haystack.match(/(\d[\d,.]*\s*[kmb]?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
+    const parsed = match ? parseCompactNumber(match[1]) : null;
+    if (parsed) return parsed;
+  }
+  return null;
 }
 
 function sourceTable(value: unknown): "journalist" | "creators" | null {
@@ -484,19 +537,38 @@ Deno.serve(async (req) => {
       }
     }
 
-    const existingIg = clean(row.ig_handle);
-    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : ""].filter(Boolean).join(" ");
+    const existingIg = clean(contact.ig_handle ?? contact.handle ?? row.ig_handle);
+    const existingYoutubeUrl = normalizeYouTubeUrl(clean(contact.youtube_url ?? row.youtube_url)) ?? "";
+    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
     const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
       ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
     );
+
+    if (table === "creators" && fieldsToExtract.includes("youtube_url")) {
+      tried.push("youtube-exa");
+      const youtube = await findYouTubeUrl(name, existingIg, creatorContext);
+      if (youtube.error) debug.youtube_error = youtube.error;
+      if (youtube.url) {
+        if (shouldUpdateDb && sourceId !== null) {
+          await admin.from(table).update({ youtube_url: youtube.url }).eq("id", sourceId);
+        }
+        if (fieldsToExtract.length === 1) {
+          return json({ email: null, youtube_url: youtube.url, found: true, source: "exa-youtube", confidence: 0.7, error: null, debug });
+        }
+        debug.youtube_url = youtube.url;
+      }
+    }
+
     const queries = [
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact` : "",
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} email` : "",
+      fieldsToExtract.includes("email") && table === "creators" && existingIg ? `"${name}" "${existingIg.replace(/^@/, "")}" email contact` : "",
       fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
+      wantsCreatorSocial && (existingYoutubeUrl || debug.youtube_url) ? `"${existingYoutubeUrl || String(debug.youtube_url)}" subscribers` : "",
       wantsCreatorSocial && existingIg ? `site:instagram.com "${existingIg.replace(/^@/, "")}"` : "",
       wantsCreatorSocial ? `"${name}" creator influencer profile bio` : "",
       wantsCreatorSocial ? `"${name}" socialblade ${existingIg ? existingIg.replace(/^@/, "") : ""}` : "",
@@ -517,6 +589,18 @@ Deno.serve(async (req) => {
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
+    if (debug.youtube_url && fieldsToExtract.includes("youtube_url") && !extracted.youtube_url) {
+      extracted.youtube_url = String(debug.youtube_url);
+    }
+    if (extracted.youtube_url) {
+      const yt = normalizeYouTubeUrl(String(extracted.youtube_url));
+      if (yt) extracted.youtube_url = yt;
+      else delete extracted.youtube_url;
+    }
+    if (fieldsToExtract.includes("youtube_subscribers") && !extracted.youtube_subscribers) {
+      const subs = findYouTubeSubscriberCount(allSnippets);
+      if (subs) extracted.youtube_subscribers = subs;
+    }
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
       if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
@@ -533,7 +617,8 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length && !debug.linkedin_url) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
+      const error = fieldsToExtract.every((f) => f === "email") ? "no_email_found" : "no_data_found";
+      return json({ email: null, found: false, source: "none", confidence: null, error, reason: outletDomain ? "no_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
