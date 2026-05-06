@@ -934,14 +934,14 @@ async function hybridSearch(
   const planLimit = capForPlan(plan);
   const exaLimit = 50;
   const userExplicit = intent.count > 0;
-  const target = planLimit;
   // If user did not explicitly request a count, use the plan's database cap as target.
   // If they did, honor it but still cap to plan.
-  if (!userExplicit) intent.count = target;
-  else intent.count = Math.min(intent.count, target);
+  if (!userExplicit) intent.count = planLimit;
+  else intent.count = Math.min(intent.count, planLimit);
+  const target = intent.count;
 
   const maxTotal = target + exaLimit;
-  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(limitOverride, maxTotal) : maxTotal;
+  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(Math.max(limitOverride, target), maxTotal) : maxTotal;
   const safeOffset = Math.max(0, offset);
 
   const debug: Record<string, unknown> = {
