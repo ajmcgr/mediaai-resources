@@ -20,6 +20,8 @@ import {
 } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EnrichCell } from "@/components/dashboard/EnrichCell";
 import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
