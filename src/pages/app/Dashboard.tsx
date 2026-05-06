@@ -94,6 +94,35 @@ const Dashboard = () => {
   );
   const total = active.data?.pages[0]?.count ?? 0;
 
+  // Bulk selection — reset on tab change
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  useEffect(() => { setSelectedIds(new Set()); }, [tab]);
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const allVisibleIds = useMemo(
+    () => (allRows as Array<{ id: number }>).map((r) => r.id),
+    [allRows]
+  );
+  const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.has(id));
+  const someSelected = allVisibleIds.some((id) => selectedIds.has(id));
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const id of allVisibleIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of allVisibleIds) next.add(id);
+      return next;
+    });
+  };
+
   // Auto-save searches with debounce
   const upsertSearch = useUpsertSavedSearch();
   const debounceRef = useRef<number | null>(null);
