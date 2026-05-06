@@ -1058,7 +1058,15 @@ async function hybridSearch(
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
     const hay = locHayOf(r);
-    return intent.locationTerms.some((t) => hay.includes(t));
+    return intent.locationTerms.some((t) => {
+      const term = t.trim();
+      if (!term) return false;
+      // Word boundary for short / risky terms to avoid substring leaks (e.g. "ny" in "germany").
+      if (term.length <= 4) {
+        return new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay);
+      }
+      return hay.includes(term);
+    });
   };
   const matchOutlet = (r: Row) => {
     if (!intent.outlets.length) return true;
