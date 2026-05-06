@@ -239,7 +239,7 @@ const Account = () => {
                     onClick={() => handleTopup(key)}
                     disabled={topupLoading !== null}
                   >
-                    {topupLoading === key ? "Opening…" : `${pack.label} — $${pack.priceUsd}`}
+                    {topupLoading === key ? "Opening…" : `~${formatMessages(pack.tokens)} messages — $${pack.priceUsd}`}
                   </Button>
                 ))}
               </div>
