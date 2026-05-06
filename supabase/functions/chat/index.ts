@@ -222,6 +222,21 @@ function parseIntent(q: string): Intent {
     }
   }
 
+  // Free-form city/state catch (e.g. "New York", "San Francisco", "Yorkshire", "Palm Beach").
+  // We only add to locationTerms if the user used "in <City>", "from <City>", "based in <City>".
+  const cityMatch = lower.match(/\b(?:in|from|based in|located in|near)\s+([a-z][a-z\s]{1,30}?)(?:\s+(?:with|who|that|covering|from|for|and|or)\b|[,.?!]|\s*$)/i);
+  if (cityMatch && cityMatch[1]) {
+    const city = cityMatch[1].trim().toLowerCase().replace(/\s+/g, " ");
+    if (city.length >= 2 && city.length <= 40 && !["the","a","an","email","emails","followers"].includes(city)) {
+      locationTerms.add(city);
+      // Common US state aliases to broaden
+      if (city === "new york") { locationTerms.add("ny"); locationTerms.add("new york city"); locationTerms.add("nyc"); }
+      if (city === "los angeles") { locationTerms.add("la"); locationTerms.add("california"); }
+      if (city === "san francisco") { locationTerms.add("sf"); locationTerms.add("california"); }
+    }
+  }
+
+
   // Topics
   const topics = new Set<string>();
   for (const [key, vals] of Object.entries(TOPIC_SYNONYMS)) {
