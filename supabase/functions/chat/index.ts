@@ -534,11 +534,7 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
     ? []
     : await runCreatorQuery(admin, allTerms, fields, limit);
 
-  let rows = dedupe([...primary, ...secondary]);
-  if (rows.length < Math.min(intent.count, 50)) {
-    rows = dedupe([...rows, ...(await fetchBroadCreators(admin, limit))]);
-  }
-  return rows;
+  return dedupe([...primary, ...secondary]);
 }
 
 // ---------- Exa search ----------
