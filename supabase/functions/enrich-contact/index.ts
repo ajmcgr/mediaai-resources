@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     const outlet = clean(contact.outlet);
     const title = clean(contact.title);
     const country = clean(contact.country ?? row.country);
-    const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
+    const sourceUrl = clean(contact.url ?? contact.source_url);
     const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
