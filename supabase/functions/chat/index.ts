@@ -1865,7 +1865,7 @@ if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
     let lastIntent: Intent | null = null;
-    let lastPagination: { limit: number; offset: number; total_estimated: number; has_more: boolean } | null = null;
+    let lastPagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null } | null = null;
     let lastSources: { database: number; web: number } = { database: 0, web: 0 };
     let totalTokens = 0;
 
