@@ -29,6 +29,7 @@ export type Creator = {
   youtube_views_per_video: number | null;
   type: string | null;
   linkedin_url: string | null;
+  country: string | null;
 };
 
 export type DirectoryFilters = {
@@ -95,7 +96,7 @@ export const useCreatorsInfinite = (filters: DirectoryFilters) =>
       let q = supabase
         .from("creators")
         .select(
-          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url",
+          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url,country",
           { count: "exact" }
         )
         .order("id", { ascending: true })
@@ -108,6 +109,7 @@ export const useCreatorsInfinite = (filters: DirectoryFilters) =>
       if (filters.name) q = q.ilike("name", `%${filters.name}%`);
       if (filters.email) q = q.ilike("email", `%${filters.email}%`);
       if (filters.category) q = q.ilike("category", `%${filters.category}%`);
+      if (filters.country) q = q.ilike("country", `%${filters.country}%`);
 
       const { data, count, error } = await q;
       if (error) throw error;
@@ -152,7 +154,7 @@ export const useCreators = (page: number, filters: DirectoryFilters) =>
       let q = supabase
         .from("creators")
         .select(
-          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url",
+          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url,country",
           { count: "exact" }
         )
         .order("id", { ascending: true })
