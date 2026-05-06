@@ -15,22 +15,38 @@ type Props = {
   journalistIds?: number[];
   creatorIds?: number[];
   onClear: () => void;
+  /** Optional: resolve additional ids (e.g. by saving web rows first) before bulk add. */
+  resolveExtraIds?: () => Promise<{ journalistIds?: number[]; creatorIds?: number[] }>;
 };
 
-export const BulkAddToListBar = ({ count, journalistIds, creatorIds, onClear }: Props) => {
+export const BulkAddToListBar = ({ count, journalistIds, creatorIds, onClear, resolveExtraIds }: Props) => {
   const { user } = useAuth();
   const lists = useLists(user?.id);
   const bulk = useBulkAddToList(user?.id);
   const createList = useCreateList(user?.id);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   if (count === 0) return null;
 
-  const ids = { journalistIds, creatorIds };
+  const collectIds = async () => {
+    let jIds = [...(journalistIds ?? [])];
+    let cIds = [...(creatorIds ?? [])];
+    if (resolveExtraIds) {
+      setResolving(true);
+      try {
+        const extra = await resolveExtraIds();
+        if (extra.journalistIds?.length) jIds = jIds.concat(extra.journalistIds);
+        if (extra.creatorIds?.length) cIds = cIds.concat(extra.creatorIds);
+      } finally { setResolving(false); }
+    }
+    return { journalistIds: jIds, creatorIds: cIds };
+  };
 
   const handleAdd = async (listId: string, listName: string) => {
     try {
+      const ids = await collectIds();
       const res = await bulk.mutateAsync({ listId, ...ids });
       toast({ title: `Added ${res.added} to ${listName}` });
       onClear();
@@ -44,6 +60,7 @@ export const BulkAddToListBar = ({ count, journalistIds, creatorIds, onClear }: 
     if (!n) return;
     try {
       const list = await createList.mutateAsync(n);
+      const ids = await collectIds();
       const res = await bulk.mutateAsync({ listId: list.id, ...ids });
       toast({ title: `Added ${res.added} to ${n}` });
       setName(""); setCreating(false);
