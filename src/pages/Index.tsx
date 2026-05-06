@@ -675,7 +675,7 @@ const Index = () => {
                 {[
                   { label: "AI chat", row: [true, false, false, false] },
                   { label: "Journalist database", row: [true, true, true, true] },
-                  { label: "Creator database", row: [true, false, false, false] },
+                  { label: "Creator database", row: [true, false, false, true] },
                   { label: "Export to CSV", row: [true, true, true, true] },
                   { label: "Inbox", row: [true, true, true, true] },
                   { label: "Monitor", row: [true, true, true, true] },
