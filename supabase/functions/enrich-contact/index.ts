@@ -142,19 +142,19 @@ Deno.serve(async (req) => {
   }
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: jsonHeaders });
+    if (!authHeader) return json({ email: null, found: false, source: "none", confidence: null, error: "auth" }, 401);
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "auth" }), { status: 401, headers: jsonHeaders });
+    if (!user) return json({ email: null, found: false, source: "none", confidence: null, error: "auth" }, 401);
 
     const body = await req.json().catch(() => ({}));
     console.log("ENRICH_CONTACT_BODY", body);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return json({ error: "Missing required fields", received: body, required: REQUIRED_CONTACT_FIELDS }, 400);
+      return json({ email: null, found: false, source: "none", confidence: null, error: "Missing required fields", received: body, required: REQUIRED_CONTACT_FIELDS }, 400);
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
