@@ -296,7 +296,7 @@ async function extractFields(
   context: string,
   snippets: Array<{ url: string; text: string }>,
   fields: string[],
-): Promise<Record<string, string>> {
+): Promise<Record<string, any>> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key || !snippets.length) return {};
 
