@@ -1008,7 +1008,7 @@ const Chat = () => {
                         checked={allRowsSelected ? true : someRowsSelected ? "indeterminate" : false}
                         onCheckedChange={toggleAllRows}
                         aria-label="Select all"
-                        disabled={selectableIndices.length === 0}
+                        disabled={selectableKeys.length === 0}
                       />
                     </th>
                     <th className="w-8" />
