@@ -610,54 +610,33 @@ const Chat = () => {
     if (!row) return;
     setEnrichingIdx((s) => ({ ...s, [idx]: true }));
     try {
-      let dbId = typeof row.source_id === "number" ? row.source_id : null;
-      let table: "journalist" | "creators" =
+      const dbId = typeof row.source_id === "number" ? row.source_id : null;
+      const table: "journalist" | "creators" =
         row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
-      if (row.source === "exa" || dbId === null) {
-        setSavingIdx((s) => ({ ...s, [idx]: "saving" }));
-        const { data: saveData, error: saveErr } = await supabase.functions.invoke("save-contact", {
-          body: {
-            kind: results.kind,
-            row: {
-              name: row.name, outlet: row.outlet, title: row.title,
-              category: row.category, country: row.country, email: row.email,
-              ig_handle: row.ig_handle, youtube_url: row.youtube_url,
-              source_url: row.source_url,
-            },
-          },
-        });
-        if (saveErr || !saveData?.ok) throw saveErr || new Error(saveData?.error || "Save failed");
-        dbId = saveData.id;
-        table = results.kind === "journalists" ? "journalist" : "creators";
-        setSavingIdx((s) => ({ ...s, [idx]: "saved" }));
-        setResults((prev) => {
-          if (!prev) return prev;
-          const rows: Row[] = prev.rows.map((r, i) => i === idx
-            ? { ...r, source: "database", source_id: dbId!, source_table: table }
-            : r);
-          return { ...prev, rows };
-        });
-      }
-      const kindArg = table === "journalist" ? "journalist" : "creator";
+      const payload = {
+        name: row.name,
+        outlet: row.outlet,
+        title: row.title,
+        source: row.source,
+        source_id: dbId,
+        source_table: row.source === "database" ? table : undefined,
+        url: row.source_url,
+        country: row.country,
+      };
+      console.log("ENRICH_CONTACT_PAYLOAD", payload);
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
-        body: {
-          kind: kindArg,
-          id: dbId,
-          fields: ["email"],
-          contact: { name: row.name, outlet: row.outlet, source_url: row.source_url },
-        },
+        body: payload,
       });
       if (error) throw error;
-      const found = data?.updated?.email;
-      if (found) {
+      if (data?.found && data?.email) {
         setResults((prev) => {
           if (!prev) return prev;
-          const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, email: found } : r);
+          const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, email: data.email } : r);
           return { ...prev, rows };
         });
         toast.success("Email found");
       } else {
-        toast.message(data?.message ?? "Email not publicly found");
+        toast.message(data?.error ?? "No email found");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Email lookup failed");
