@@ -1026,13 +1026,20 @@ async function hybridSearch(
     offset: safeOffset,
   };
 
-  const dbRows = intent.kind === "journalists" ? await searchJournalistsDb(admin, intent) : await searchCreatorsDb(admin, intent);
+  // ----- Fetch DB rows per kind -----
+  const wantJ = intent.kind === "journalists" || intent.kind === "both";
+  const wantC = intent.kind === "creators" || intent.kind === "both";
+
+  const [jRows, cRows] = await Promise.all([
+    wantJ ? searchJournalistsDb(admin, intent) : Promise.resolve([] as Row[]),
+    wantC ? searchCreatorsDb(admin, intent) : Promise.resolve([] as Row[]),
+  ]);
+  // Tag source_table for safety
+  for (const r of jRows) r.source_table = "journalist";
+  for (const r of cRows) r.source_table = "creators";
+
   let exaRows: Row[] = [];
   debug.search_order = "database_plus_web";
-  debug.exa_skipped = false;
-  debug.database_only = false;
-
-  // Always augment with Exa.
   try {
     exaRows = await searchExa(intent, exaLimit);
     if (exaRows.length < 20) {
@@ -1044,31 +1051,111 @@ async function hybridSearch(
     debug.exa_error = error instanceof Error ? error.message : String(error);
     exaRows = [];
   }
-  debug.db_count = dbRows.length;
+  debug.db_count = jRows.length + cRows.length;
   debug.exa_count = exaRows.length;
   debug.web_count = exaRows.length;
 
-  let dbStrict = dbRows;
-  if (intent.topics.length || intent.countries.length) {
-    dbStrict = dbRows.filter((r) => {
-      const hay = [r.name, r.category, r.title, r.outlet, r.country, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
-      const topicHit = intent.topics.length === 0 || intent.topics.some((t) => hay.includes(t));
-      const countryHit = intent.countries.length === 0 || intent.countries.some((c) => hay.includes(c));
-      return topicHit || countryHit;
-    });
-  }
-  if (dbStrict.length < Math.min(planLimit, 25)) dbStrict = dbRows;
-  debug.db_strict_count = dbStrict.length;
+  // ----- Hard filters -----
+  const norm = (s: string | null | undefined) => (s ?? "").toLowerCase();
+  const hayOf = (r: Row) =>
+    [r.name, r.category, r.title, r.outlet, r.country, r.reason, r.source_url, r.ig_handle, r.youtube_url]
+      .map(norm).join(" | ");
 
-  // Cap database results at the plan target, exa already capped at exaLimit.
-  const dbRanked = rankRows(dbStrict, intent).slice(0, target);
-  const exaRanked = rankRows(exaRows, intent).slice(0, exaLimit);
-  let combined = dedupe([...dbRanked, ...exaRanked]);
-  if (intent.emailRequired) {
-    const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
+  const matchLocation = (r: Row) => {
+    if (!intent.locationTerms.length) return true;
+    const hay = hayOf(r);
+    return intent.locationTerms.some((t) => hay.includes(t));
+  };
+  const matchOutlet = (r: Row) => {
+    if (!intent.outlets.length) return true;
+    const hay = `${norm(r.outlet)} ${norm(r.source_url)}`;
+    return intent.outlets.some((o) => hay.includes(o.toLowerCase()));
+  };
+  const matchEmail = (r: Row) => {
+    if (!intent.emailRequired) return true;
+    const e = (r.email ?? "").trim().toLowerCase();
+    return !!e && !["null", "undefined", "-", "n/a"].includes(e);
+  };
+  const matchPlatform = (r: Row) => {
+    if (!intent.platforms.length) return true;
+    const hay = hayOf(r);
+    return intent.platforms.some((p) => {
+      if (p === "youtube") return !!r.youtube_url || hay.includes("youtube");
+      if (p === "instagram") return !!r.ig_handle || hay.includes("instagram");
+      return hay.includes(p);
+    });
+  };
+  const matchFollowers = (r: Row) => {
+    if (intent.minFollowers == null) return true;
+    return (r.ig_followers ?? 0) >= intent.minFollowers;
+  };
+  const matchTopic = (r: Row) => {
+    if (!intent.topics.length) return true;
+    const hay = hayOf(r);
+    return intent.topics.some((t) => hay.includes(t));
+  };
+
+  const filterJournalist = (r: Row) =>
+    matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r);
+  const filterCreator = (r: Row) =>
+    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r) && matchTopic(r);
+
+  const jStrict = jRows.filter(filterJournalist);
+  const cStrict = cRows.filter(filterCreator);
+  const exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+
+  let fallbackUsed = false;
+  let jFinal = jStrict;
+  let cFinal = cStrict;
+  let exaFinal = exaStrict;
+
+  // Fallback only if hard filters returned nothing (per kind)
+  if (wantJ && jStrict.length === 0 && jRows.length > 0) {
+    jFinal = jRows.filter(matchEmail);
+    fallbackUsed = true;
   }
+  if (wantC && cStrict.length === 0 && cRows.length > 0) {
+    cFinal = cRows.filter((r) => matchEmail(r) && matchFollowers(r) && matchPlatform(r));
+    fallbackUsed = true;
+  }
+  if (exaStrict.length === 0 && exaRows.length > 0 && (jFinal.length + cFinal.length) === 0) {
+    exaFinal = exaRows.filter(matchEmail);
+    fallbackUsed = true;
+  }
+
+  debug.parsed_intent = intent;
+  debug.kind_used = intent.kind;
+  debug.location_filter_applied = intent.locationTerms.length > 0;
+  debug.strict_location_count = jStrict.length + cStrict.length;
+  debug.email_filter_applied = intent.emailRequired;
+  debug.platform_filter_applied = intent.platforms.length > 0;
+  debug.follower_filter_applied = intent.minFollowers != null;
+  debug.fallback_used = fallbackUsed;
+  debug.journalists_count = jFinal.length;
+  debug.creators_count = cFinal.length;
+
+  const dbRanked = rankRows([...jFinal, ...cFinal], intent).slice(0, target);
+  const exaRanked = rankRows(exaFinal, intent).slice(0, exaLimit);
+
+  // Normalize emails before merge
+  const cleanEmail = (e: string | null | undefined): string | null => {
+    if (!e) return null;
+    const v = String(e).trim().toLowerCase();
+    if (!v || ["null", "undefined", "-", "n/a"].includes(v)) return null;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return null;
+    return v;
+  };
+  for (const r of [...dbRanked, ...exaRanked]) r.email = cleanEmail(r.email);
+
+  let combined = dedupe([...dbRanked, ...exaRanked]);
+  if (intent.emailRequired) combined = combined.filter((r) => !!r.email);
   debug.deduped_count = combined.length;
+
+  const dbEmailsFound = dbRanked.filter((r) => !!r.email).length;
+  const exaEmailsFound = exaRanked.filter((r) => !!r.email).length;
+  debug.db_emails_found = dbEmailsFound;
+  debug.exa_emails_found = exaEmailsFound;
+  debug.enriched_emails_found = 0;
 
   const ranked = rankRows(combined, intent);
   const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
@@ -1078,14 +1165,20 @@ async function hybridSearch(
   const hasMore = (safeOffset + requestedLimit) < totalEstimated;
 
   debug.db_returned = dbReturned;
-  debug.db_returned_count = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
   debug.has_more = hasMore;
 
   try {
-    const persisted = await persistWebRows(admin, intent.kind, paged);
-    debug.persisted = persisted;
+    if (intent.kind === "both") {
+      const jPaged = paged.filter((r) => r.source_table === "journalist" || (r.source === "exa" && wantJ));
+      const cPaged = paged.filter((r) => r.source_table === "creators");
+      const persistedJ = await persistWebRows(admin, "journalists", jPaged);
+      const persistedC = await persistWebRows(admin, "creators", cPaged);
+      debug.persisted = { journalists: persistedJ, creators: persistedC };
+    } else {
+      debug.persisted = await persistWebRows(admin, intent.kind, paged);
+    }
   } catch (error) {
     console.log("[chat.persist.error]", error instanceof Error ? error.message : String(error));
     debug.persisted = { considered: 0, saved: 0, error: error instanceof Error ? error.message : String(error) };
