@@ -106,7 +106,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         ) : (
           <span
             className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground/60 cursor-not-allowed"
-            title="Need a person name + outlet domain to enrich email."
+            title={emailNeedsDomain ? "Need a person name + outlet domain to enrich email." : "Need a name to enrich."}
           >
             <Sparkles className="h-3 w-3" />
             <span>—</span>
