@@ -377,6 +377,7 @@ export type Row = {
   ig_handle?: string | null;
   ig_followers?: number | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
   reason?: string;
   score?: number;
 };
@@ -420,7 +421,7 @@ function buildSearchTerms(intent: Intent): string[] {
 
 async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise<Row[]> {
   const { data, error } = await admin.from("journalist")
-    .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+    .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
   if (error) {
@@ -437,12 +438,13 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
     category: (r.category as string) ?? null,
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
+    linkedin_url: (r.linkedin_url as string) ?? null,
   }));
 }
 
 async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Row[]> {
   const { data, error } = await admin.from("creators")
-    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type")
+    .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
   if (error) {
@@ -462,6 +464,7 @@ async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Ro
     ig_handle: (r.ig_handle as string) ?? null,
     ig_followers: (r.ig_followers as number) ?? null,
     youtube_url: (r.youtube_url as string) ?? null,
+    linkedin_url: (r.linkedin_url as string) ?? null,
   }));
 }
 
@@ -489,6 +492,7 @@ function journalistRow(r: Record<string, unknown>): Row {
     bio,
     topics: stringifyTopics(r.topics),
     email: (r.email as string) ?? null,
+    linkedin_url: (r.linkedin_url as string) ?? null,
     reason: bio ?? undefined,
   };
 }
@@ -513,6 +517,7 @@ function creatorRow(r: Record<string, unknown>): Row {
     ig_handle: (r.ig_handle as string) ?? null,
     ig_followers: (r.ig_followers as number) ?? null,
     youtube_url: (r.youtube_url as string) ?? null,
+    linkedin_url: (r.linkedin_url as string) ?? null,
   };
 }
 

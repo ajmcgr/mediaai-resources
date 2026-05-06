@@ -46,6 +46,7 @@ type Row = {
   ig_handle?: string | null;
   ig_followers?: number | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
   reason?: string;
 };
 type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
@@ -59,6 +60,7 @@ const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
+  { key: "linkedin_url", label: "LinkedIn" },
 ];
 const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
@@ -1099,6 +1101,12 @@ const Chat = () => {
                                     );
                                   })();
                                 })()
+                              ) : c.key === "linkedin_url" ? (
+                                typeof v === "string" && /linkedin\.com\/in\//i.test(v) ? (
+                                  <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">LinkedIn</a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (

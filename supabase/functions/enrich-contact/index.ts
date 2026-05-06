@@ -11,8 +11,8 @@ const corsHeaders = {
 const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "snov-fallback-001" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
-const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
-const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type"] as const;
+const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
+const CREATOR_FIELDS = ["email", "category", "bio", "ig_handle", "youtube_url", "type", "linkedin_url"] as const;
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const BAD_EMAIL_RE = /^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster|privacy|legal|advertising|subscribe|newsletter|tips)@/i;
@@ -28,6 +28,7 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
   ig_handle: "Instagram handle starting with @.",
   youtube_url: "Full YouTube channel URL.",
   type: "Creator type (e.g. Influencer, Educator, Vlogger).",
+  linkedin_url: "Full LinkedIn profile URL of the person (must contain linkedin.com/in/).",
 };
 
 function sanitizeQuery(query: string): string {
@@ -410,6 +411,30 @@ Deno.serve(async (req) => {
           }
         }
         return json({ email: snov.email, found: true, source: "snov", confidence: 0.75, error: null, debug });
+      }
+    }
+
+    // 5) LinkedIn URL via Exa (works without an extra API)
+    if (fieldsToExtract.includes("linkedin_url")) {
+      tried.push("linkedin-exa");
+      const liQ = sanitizeQuery(`"${name}"${outlet ? ` ${outlet}` : ""} site:linkedin.com/in`);
+      const liRes = liQ ? await exaSearch(liQ, 8) : { results: [], error: null, providerResponseText: null };
+      const nameTokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+      const liHit = liRes.results.find((r) => {
+        const u = (r.url || "").toLowerCase();
+        if (!/linkedin\.com\/in\//.test(u)) return false;
+        return nameTokens.some((tok) => u.includes(tok));
+      }) ?? liRes.results.find((r) => /linkedin\.com\/in\//.test((r.url || "").toLowerCase()));
+      if (liHit) {
+        const liUrl = liHit.url.split("?")[0];
+        if (shouldUpdateDb && sourceId !== null) {
+          await admin.from(table).update({ linkedin_url: liUrl }).eq("id", sourceId);
+        }
+        // If only linkedin was requested, return now.
+        if (fieldsToExtract.length === 1) {
+          return json({ email: null, linkedin_url: liUrl, found: true, source: "exa-linkedin", confidence: 0.7, error: null, debug });
+        }
+        debug.linkedin_url = liUrl;
       }
     }
 

@@ -54,13 +54,13 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         body: basePayload,
       });
       if (error) throw error;
-      const updated = (data as { email?: string | null; found?: boolean; error?: string | null } | null) ?? {};
-      const v = field === "email" ? updated.email : null;
+      const updated = (data as { email?: string | null; linkedin_url?: string | null; found?: boolean; error?: string | null } | null) ?? {};
+      const v = field === "email" ? updated.email : field === "linkedin_url" ? updated.linkedin_url : null;
       if (updated.found && v) {
         setLocalValue(v);
-        toast.success(`Found ${field}`);
-        if (field === "email") {
-          await supabase.from(sourceTable as any).update({ email: v }).eq("id", id);
+        toast.success(`Found ${field === "linkedin_url" ? "LinkedIn" : field}`);
+        if (field === "email" || field === "linkedin_url") {
+          await supabase.from(sourceTable as any).update({ [field]: v }).eq("id", id);
         }
         qc.invalidateQueries({ queryKey: [kind === "journalist" ? "journalists-infinite" : "creators-infinite"] });
       } else if (updated.error === "insufficient_identity") {
@@ -90,7 +90,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
             title={`Find ${field} with Hunter + Exa`}
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-            <span>{field === "email" ? "Find email" : "—"}</span>
+            <span>{field === "email" ? "Find email" : field === "linkedin_url" ? "Find LinkedIn" : "—"}</span>
           </button>
         ) : (
           <span

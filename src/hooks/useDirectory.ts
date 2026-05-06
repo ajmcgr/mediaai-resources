@@ -11,6 +11,7 @@ export type Journalist = {
   xhandle: string | null;
   outlet: string | null;
   country: string | null;
+  linkedin_url: string | null;
 };
 
 export type Creator = {
@@ -27,6 +28,7 @@ export type Creator = {
   youtube_subscribers: number | null;
   youtube_views_per_video: number | null;
   type: string | null;
+  linkedin_url: string | null;
 };
 
 export type DirectoryFilters = {
@@ -53,7 +55,7 @@ export const useJournalistsInfinite = (filters: DirectoryFilters) =>
       const to = from + PAGE_SIZE - 1;
       let q = supabase
         .from("journalist")
-        .select("id,name,email,category,titles,topics,xhandle,outlet,country", { count: "exact" })
+        .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url", { count: "exact" })
         .order("id", { ascending: true })
         .range(from, to);
 
@@ -93,7 +95,7 @@ export const useCreatorsInfinite = (filters: DirectoryFilters) =>
       let q = supabase
         .from("creators")
         .select(
-          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type",
+          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url",
           { count: "exact" }
         )
         .order("id", { ascending: true })
@@ -126,7 +128,7 @@ export const useJournalists = (page: number, filters: DirectoryFilters) =>
       const to = from + PAGE_SIZE - 1;
       let q = supabase
         .from("journalist")
-        .select("id,name,email,category,titles,topics,xhandle,outlet,country", { count: "exact" })
+        .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url", { count: "exact" })
         .order("id", { ascending: true })
         .range(from, to);
       if (filters.q) {
@@ -150,7 +152,7 @@ export const useCreators = (page: number, filters: DirectoryFilters) =>
       let q = supabase
         .from("creators")
         .select(
-          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type",
+          "id,name,category,email,bio,ig_handle,ig_followers,ig_engagement_rate,ig_avg_engagements,youtube_url,youtube_subscribers,youtube_views_per_video,type,linkedin_url",
           { count: "exact" }
         )
         .order("id", { ascending: true })
