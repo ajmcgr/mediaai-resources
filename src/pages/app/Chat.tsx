@@ -705,6 +705,7 @@ const Chat = () => {
   };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
+  if (results) console.log("CHAT_RESULTS_TABLE_EMAIL_COLUMN_UPDATED_cors_fix_003");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -949,7 +950,12 @@ const Chat = () => {
                   <tr>
                     <th className="w-8" />
                     {cols.map((c) => (
-                      <th key={String(c.key)} className="text-left font-medium px-4 py-2.5">{c.label}</th>
+                      <th
+                        key={String(c.key)}
+                        className={`text-left font-medium px-4 py-2.5 ${c.key === "email" ? "min-w-[240px] max-w-[280px] w-[260px]" : ""}`}
+                      >
+                        {c.label}
+                      </th>
                     ))}
                     <th className="w-24" />
                   </tr>
@@ -972,21 +978,24 @@ const Chat = () => {
                         {cols.map((c) => {
                           const v = r[c.key];
                           return (
-                            <td key={String(c.key)} className="px-4 py-2.5">
+                            <td
+                              key={String(c.key)}
+                              className={`px-4 py-2.5 ${c.key === "email" ? "min-w-[240px] max-w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
+                            >
                               {c.key === "email" ? (
                                 v ? (
-                                  <span className="break-all">{String(v)}</span>
+                                  <span className="block truncate" title={String(v)}>{String(v)}</span>
                                 ) : r.source === "exa" ? (
                                   <span className="text-muted-foreground">—</span>
                                 ) : enriching ? (
-                                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
                                     <Loader2 className="h-3 w-3 animate-spin" />Finding…
                                   </span>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => enrichEmail(i)}
-                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                    className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
                                     title="Use Exa + AI to find this email"
                                   >
                                     <Sparkles className="h-3 w-3" />Find email
