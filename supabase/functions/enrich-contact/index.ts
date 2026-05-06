@@ -518,11 +518,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    const existingIg = clean(row.ig_handle);
-    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : ""].filter(Boolean).join(" ");
+    const existingIg = clean(contact.ig_handle ?? contact.handle ?? row.ig_handle);
+    const existingYoutubeUrl = normalizeYouTubeUrl(clean(contact.youtube_url ?? row.youtube_url)) ?? "";
+    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
     const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
       ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
     );
+
+    if (table === "creators" && fieldsToExtract.includes("youtube_url")) {
+      tried.push("youtube-exa");
+      const youtube = await findYouTubeUrl(name, existingIg, creatorContext);
+      if (youtube.error) debug.youtube_error = youtube.error;
+      if (youtube.url) {
+        if (shouldUpdateDb && sourceId !== null) {
+          await admin.from(table).update({ youtube_url: youtube.url }).eq("id", sourceId);
+        }
+        if (fieldsToExtract.length === 1) {
+          return json({ email: null, youtube_url: youtube.url, found: true, source: "exa-youtube", confidence: 0.7, error: null, debug });
+        }
+        debug.youtube_url = youtube.url;
+      }
+    }
+
     const queries = [
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact` : "",
       fieldsToExtract.includes("email") ? `"${name}" ${outlet} email` : "",
@@ -531,6 +548,7 @@ Deno.serve(async (req) => {
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
+      wantsCreatorSocial && (existingYoutubeUrl || debug.youtube_url) ? `"${existingYoutubeUrl || String(debug.youtube_url)}" subscribers` : "",
       wantsCreatorSocial && existingIg ? `site:instagram.com "${existingIg.replace(/^@/, "")}"` : "",
       wantsCreatorSocial ? `"${name}" creator influencer profile bio` : "",
       wantsCreatorSocial ? `"${name}" socialblade ${existingIg ? existingIg.replace(/^@/, "") : ""}` : "",
