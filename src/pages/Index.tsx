@@ -300,29 +300,7 @@ const Index = () => {
         </div>
 
         <div className="max-w-6xl mx-auto mt-16">
-          <div
-            className="relative w-full rounded-xl overflow-hidden"
-            style={{ filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.1)) drop-shadow(-8px 0 10px rgba(0,0,0,0.06)) drop-shadow(8px 0 10px rgba(0,0,0,0.06))" }}
-          >
-            <img
-              src={heroProductMain}
-              alt=""
-              aria-hidden="true"
-              className="w-full h-auto block"
-            />
-            <video
-              src="/video/chat-hero.mp4"
-              poster={heroProductMain}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-              onCanPlay={(e) => e.currentTarget.classList.replace("opacity-0", "opacity-100")}
-              aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
-              className="absolute inset-0 w-full h-full opacity-0 transition-opacity duration-700 ease-out"
-            />
-          </div>
+          <HeroVideo poster={heroProductMain} src="/video/chat-hero.mp4" />
         </div>
 
         <div className="max-w-6xl mx-auto mt-20 text-center">
