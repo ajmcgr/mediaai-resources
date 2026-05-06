@@ -1005,7 +1005,7 @@ const Chat = () => {
               <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
             ) : (
               <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm table-fixed">
+              <table className="w-full min-w-[1400px] text-sm">
                 <thead className="bg-secondary/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="w-10 px-2">
