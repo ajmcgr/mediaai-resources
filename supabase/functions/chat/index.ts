@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-mode-007 2026-05-06
+// redeploy trigger: chat edge function relax-loc-pagination-008 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-mode-007";
+const CHAT_VERSION = "relax-loc-pagination-008";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
