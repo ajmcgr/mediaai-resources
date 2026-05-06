@@ -803,12 +803,15 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (hay.includes(t)) s += 1;
     }
     if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
-    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 5;
+    if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 8;
     if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
     if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
     if (r.email) s += intent.emailRequired ? 12 : 4;
     if (r.source === "database") s += 20;
-    if (!r.name && r.source === "exa") s -= 8;
+    if (!r.name && r.source === "exa") s -= 15;
+    if (r.source === "exa" && (!r.name || !isPersonName(r.name))) s -= 45;
+    if (r.source === "exa" && (!r.outlet || INVALID_OUTLET_RE.test(r.outlet))) s -= 30;
+    if (r.source_url && BAD_EXA_HOST_RE.test(r.source_url.toLowerCase())) s -= 25;
     if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
     return s;
   };
