@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-007" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "snov-fallback-001" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -92,6 +92,58 @@ async function hunterDomainSearch({ fullName, domain }: { fullName: string; doma
     return null;
   } catch {
     return null;
+  }
+}
+
+let snovTokenCache: { token: string; expiresAt: number } | null = null;
+async function snovGetToken(): Promise<string | null> {
+  const id = Deno.env.get("SNOV_CLIENT_ID");
+  const secret = Deno.env.get("SNOV_CLIENT_SECRET");
+  if (!id || !secret) return null;
+  if (snovTokenCache && snovTokenCache.expiresAt > Date.now() + 60_000) return snovTokenCache.token;
+  try {
+    const r = await fetch("https://api.snov.io/v1/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j?.access_token) return null;
+    snovTokenCache = { token: j.access_token, expiresAt: Date.now() + (Number(j.expires_in ?? 3600) * 1000) };
+    return j.access_token;
+  } catch {
+    return null;
+  }
+}
+
+async function snovFindEmail({ fullName, domain, company }: { fullName: string; domain?: string; company?: string }): Promise<{ email: string | null; status: string; error: string | null }> {
+  if (!domain) return { email: null, status: "skipped_no_domain", error: null };
+  const tokens = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return { email: null, status: "skipped_no_name", error: null };
+  const firstName = tokens[0];
+  const lastName = tokens[tokens.length - 1];
+  const token = await snovGetToken();
+  if (!token) return { email: null, status: "no_token", error: "snov_auth_failed" };
+  try {
+    const payload: Record<string, string> = { domain, firstName, lastName };
+    if (company) payload.company = company;
+    const r = await fetch("https://api.snov.io/v2/email-finder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const text = await r.text();
+    if (!r.ok) return { email: null, status: `http_${r.status}`, error: text.slice(0, 200) };
+    let j: any = {};
+    try { j = JSON.parse(text); } catch { return { email: null, status: "invalid_json", error: text.slice(0, 200) }; }
+    const email: string | undefined = j?.data?.email ?? j?.email ?? j?.data?.emails?.[0]?.email;
+    if (email && email.includes("@") && !BAD_EMAIL_RE.test(email)) {
+      return { email, status: "ok", error: null };
+    }
+    return { email: null, status: "no_match", error: null };
+  } catch (e) {
+    return { email: null, status: "exception", error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -301,8 +353,18 @@ Deno.serve(async (req) => {
     }
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
-    // Hunter first pass (only when email is among target fields)
+    const debug: Record<string, unknown> = { providersTried: [] as string[] };
+    const tried = debug.providersTried as string[];
+
+    // 1) Existing DB email
+    const existingEmail = clean(row.email);
+    if (fieldsToExtract.includes("email") && existingEmail && existingEmail.includes("@") && !BAD_EMAIL_RE.test(existingEmail)) {
+      return json({ email: existingEmail, found: true, source: "database", confidence: 1, error: null, debug });
+    }
+
+    // 2/3) Hunter passes
     if (fieldsToExtract.includes("email") && (outletDomain || outlet)) {
+      tried.push("hunter");
       const hunterEmail = await hunterFindEmail({ fullName: name, domain: outletDomain || undefined, company: outlet || undefined });
       if (hunterEmail) {
         if (shouldUpdateDb && sourceId !== null) {
@@ -312,10 +374,9 @@ Deno.serve(async (req) => {
             await admin.from(table).update({ email: hunterEmail }).eq("id", sourceId);
           }
         }
-        return json({ email: hunterEmail, found: true, source: "hunter", confidence: 0.88, error: null });
+        return json({ email: hunterEmail, found: true, source: "hunter", confidence: 0.88, error: null, debug });
       }
 
-      // Hunter domain-search fallback
       if (outletDomain) {
         const domainResult = await hunterDomainSearch({ fullName: name, domain: outletDomain });
         if (domainResult) {
@@ -329,8 +390,26 @@ Deno.serve(async (req) => {
               await admin.from(table).update({ email: domainEmail }).eq("id", sourceId);
             }
           }
-          return json({ email: domainEmail, found: true, source: src, confidence: conf, error: null });
+          return json({ email: domainEmail, found: true, source: src, confidence: conf, error: null, debug });
         }
+      }
+    }
+
+    // 4) Snov fallback
+    if (fieldsToExtract.includes("email") && outletDomain) {
+      tried.push("snov");
+      const snov = await snovFindEmail({ fullName: name, domain: outletDomain, company: outlet || undefined });
+      debug.snovStatus = snov.status;
+      debug.snovError = snov.error;
+      if (snov.email) {
+        if (shouldUpdateDb && sourceId !== null) {
+          const update: Record<string, unknown> = { email: snov.email, enrichment_source_url: `snov:${outletDomain}`, enriched_at: new Date().toISOString() };
+          let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
+          if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
+            await admin.from(table).update({ email: snov.email }).eq("id", sourceId);
+          }
+        }
+        return json({ email: snov.email, found: true, source: "snov", confidence: 0.75, error: null, debug });
       }
     }
 
@@ -349,10 +428,8 @@ Deno.serve(async (req) => {
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
 
-    const hunterReason = fieldsToExtract.includes("email") ? (outletDomain ? "no_hunter_match" : "no_domain") : null;
-
     if (!allSnippets.length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email", provider_error: providerErrors[0] ?? null });
+      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", provider_error: providerErrors[0] ?? null, debug });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
@@ -372,12 +449,12 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email" });
+      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -387,11 +464,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    if (upErr) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
-    }
-
-    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
+    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
