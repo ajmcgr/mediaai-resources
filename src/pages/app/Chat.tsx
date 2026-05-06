@@ -733,6 +733,44 @@ const Chat = () => {
     }
   };
 
+  const enrichLinkedIn = async (idx: number) => {
+    if (!results) return;
+    const row = results.rows[idx];
+    if (!row) return;
+    setEnrichingIdx((s) => ({ ...s, [idx]: true }));
+    try {
+      const table: "journalist" | "creators" =
+        row.source_table ?? (results.kind === "journalists" ? "journalist" : "creators");
+      const payload = {
+        name: row.name,
+        outlet: row.outlet,
+        title: row.title,
+        source: row.source,
+        source_id: row.source_id ?? null,
+        source_table: row.source_table ?? table,
+        url: row.source_url,
+        country: row.country,
+        fields: ["linkedin_url"],
+      };
+      const { data, error } = await supabase.functions.invoke("enrich-contact", { body: payload });
+      if (error) throw error;
+      if (data?.found && data?.linkedin_url) {
+        setResults((prev) => {
+          if (!prev) return prev;
+          const rows: Row[] = prev.rows.map((r, i) => i === idx ? { ...r, linkedin_url: data.linkedin_url } : r);
+          return { ...prev, rows };
+        });
+        toast.success("LinkedIn found");
+      } else {
+        toast.message(data?.error ?? "No LinkedIn found");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "LinkedIn lookup failed");
+    } finally {
+      setEnrichingIdx((s) => { const c = { ...s }; delete c[idx]; return c; });
+    }
+  };
+
   const saveExaRow = async (idx: number) => {
     if (!results) return;
     const row = results.rows[idx];
@@ -1115,7 +1153,20 @@ const Chat = () => {
                                 typeof v === "string" && /linkedin\.com\/in\//i.test(v) ? (
                                   <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">LinkedIn</a>
                                 ) : (
-                                  <span className="text-muted-foreground">—</span>
+                                  enriching ? (
+                                    <span className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-muted-foreground">
+                                      <Loader2 className="h-3 w-3 animate-spin" />Finding…
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => enrichLinkedIn(i)}
+                                      className="inline-flex whitespace-nowrap items-center gap-1 text-xs text-primary hover:underline"
+                                      title="Find LinkedIn"
+                                    >
+                                      <Sparkles className="h-3 w-3" />Find LinkedIn
+                                    </button>
+                                  )
                                 )
                               ) : c.key === "xhandle" ? (
                                 typeof v === "string" && v.trim() ? (() => {

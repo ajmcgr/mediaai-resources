@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "snov-fallback-001" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "linkedin-response-002" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -148,23 +148,24 @@ async function snovFindEmail({ fullName, domain, company }: { fullName: string; 
   }
 }
 
-async function exaSearch(query: string, numResults = 5): Promise<{ results: Array<{ url: string; text: string }>; error: string | null; providerResponseText: string | null }> {
+async function exaSearch(query: string, numResults = 5, includeDomains: string[] = []): Promise<{ results: Array<{ url: string; title: string; text: string }>; error: string | null; providerResponseText: string | null }> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return { results: [], error: "EXA_API_KEY missing", providerResponseText: null };
 
   const sanitized = sanitizeQuery(query);
   if (!sanitized || sanitized.length < 3) return { results: [], error: "query_too_short", providerResponseText: null };
 
-  const exaPayload = {
+  const exaPayload: Record<string, unknown> = {
     query: sanitized,
     numResults,
     type: "auto",
     contents: { text: { maxCharacters: 4000 } },
   };
+  if (includeDomains.length) exaPayload.includeDomains = includeDomains;
 
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": key },
+    headers: { "Content-Type": "application/json", "x-api-key": key, "Authorization": `Bearer ${key}` },
     body: JSON.stringify(exaPayload),
   });
 
@@ -174,7 +175,7 @@ async function exaSearch(query: string, numResults = 5): Promise<{ results: Arra
   try {
     const data = JSON.parse(text);
     return {
-      results: (data.results ?? []).map((x: { url: string; text?: string }) => ({ url: x.url, text: x.text ?? "" })),
+      results: (data.results ?? []).map((x: { url: string; title?: string; text?: string }) => ({ url: x.url, title: x.title ?? "", text: x.text ?? "" })),
       error: null,
       providerResponseText: text,
     };
@@ -224,6 +225,45 @@ function pickEmail(snippets: Array<{ url: string; text: string }>, name: string)
   }))).filter((m) => !BAD_EMAIL_RE.test(m.email) && !/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(m.email));
   if (!matches.length) return null;
   return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
+}
+
+function normalizeLinkedInUrl(value: string): string | null {
+  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  if (!/linkedin\.com\/in\//i.test(cleanUrl)) return null;
+  return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
+}
+
+function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
+  const url = (hit.url || "").toLowerCase();
+  const haystack = `${hit.title ?? ""} ${hit.text ?? ""} ${url}`.toLowerCase();
+  const tokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+  let score = 0;
+  for (const token of tokens) if (haystack.includes(token) || url.includes(token)) score += 3;
+  for (const token of context.toLowerCase().split(/\s+/).filter((t) => t.length > 3)) if (haystack.includes(token)) score += 1;
+  if (/linkedin\.com\/in\//.test(url)) score += 2;
+  return score;
+}
+
+async function findLinkedInUrl(name: string, outlet: string, title: string, country: string): Promise<{ url: string | null; error: string | null }> {
+  const context = [outlet, title, country].filter(Boolean).join(" ");
+  const queries = [
+    `site:linkedin.com/in "${name}" ${context}`,
+    `"${name}" ${context} LinkedIn`,
+  ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
+
+  let firstError: string | null = null;
+  for (const query of queries) {
+    const res = await exaSearch(query, 10, ["linkedin.com"]);
+    if (res.error && !firstError) firstError = res.error;
+    const hits = res.results
+      .map((hit) => ({ hit, url: normalizeLinkedInUrl(hit.url) }))
+      .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
+      .map((item) => ({ ...item, score: scoreLinkedInHit(item.hit, name, context) }))
+      .sort((a, b) => b.score - a.score);
+    const best = hits.find((h) => h.score >= 5) ?? hits[0];
+    if (best) return { url: best.url, error: null };
+  }
+  return { url: null, error: firstError };
 }
 
 function json(payload: Record<string, unknown>, status = 200): Response {
@@ -417,16 +457,10 @@ Deno.serve(async (req) => {
     // 5) LinkedIn URL via Exa (works without an extra API)
     if (fieldsToExtract.includes("linkedin_url")) {
       tried.push("linkedin-exa");
-      const liQ = sanitizeQuery(`"${name}"${outlet ? ` ${outlet}` : ""} site:linkedin.com/in`);
-      const liRes = liQ ? await exaSearch(liQ, 8) : { results: [], error: null, providerResponseText: null };
-      const nameTokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
-      const liHit = liRes.results.find((r) => {
-        const u = (r.url || "").toLowerCase();
-        if (!/linkedin\.com\/in\//.test(u)) return false;
-        return nameTokens.some((tok) => u.includes(tok));
-      }) ?? liRes.results.find((r) => /linkedin\.com\/in\//.test((r.url || "").toLowerCase()));
-      if (liHit) {
-        const liUrl = liHit.url.split("?")[0];
+      const linkedIn = await findLinkedInUrl(name, outlet, title, country);
+      if (linkedIn.error) debug.linkedin_error = linkedIn.error;
+      if (linkedIn.url) {
+        const liUrl = linkedIn.url;
         if (shouldUpdateDb && sourceId !== null) {
           await admin.from(table).update({ linkedin_url: liUrl }).eq("id", sourceId);
         }
@@ -454,6 +488,10 @@ Deno.serve(async (req) => {
       .slice(0, 30);
 
     if (!allSnippets.length) {
+      if (debug.linkedin_url) {
+        const linkedinUrl = String(debug.linkedin_url);
+        return json({ email: null, linkedin_url: linkedinUrl, found: true, source: "exa-linkedin", confidence: 0.7, error: null, debug });
+      }
       return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", provider_error: providerErrors[0] ?? null, debug });
     }
 
@@ -473,13 +511,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!Object.keys(extracted).length) {
+    if (!Object.keys(extracted).length && !debug.linkedin_url) {
       return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
+    const linkedinUrl = extracted.linkedin_url ?? debug.linkedin_url ?? null;
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
+      return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -489,7 +528,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
+    return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
