@@ -798,6 +798,18 @@ function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
   return rankRows(picked, intent).slice(0, target);
 }
 
+const EXCLUDED_TOPIC_TERMS = ["cars", "automotive", "auto", "tv", "television", "sports", "sport", "espn", "entertainment", "movies", "music", "gaming"];
+const STRONG_FINANCE_TERMS = ["finance", "financial", "fintech", "banking", "bank", "investing", "investment", "business", "economy", "economic", "markets", "market", "crypto", "cryptocurrency", "blockchain", "stocks", "equities", "bloomberg", "reuters", "financial times", "ft.com", "wall street journal", "wsj", "forbes", "business insider"];
+
+function matchesAnyTerm(hay: string, terms: string[]): boolean {
+  return terms.some((term) => {
+    const cleaned = term.trim().toLowerCase();
+    if (!cleaned) return false;
+    if (cleaned.length <= 4) return new RegExp(`\\b${cleaned.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\b`, "i").test(hay);
+    return hay.includes(cleaned);
+  });
+}
+
 function norm(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
