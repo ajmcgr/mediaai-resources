@@ -37,7 +37,7 @@ import {
 type Tab = "journalists" | "creators";
 
 const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
-const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
+const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
   <div className="px-3 py-3 text-sm text-foreground truncate" title={typeof children === "string" ? children : undefined}>
