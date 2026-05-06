@@ -509,11 +509,8 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     ? []
     : await runJournalistQuery(admin, allTerms, fields, limit);
 
-  let rows = dedupe([...primary, ...secondary]);
-  if (rows.length < Math.min(intent.count, 50)) {
-    rows = dedupe([...rows, ...(await fetchBroadJournalists(admin, limit))]);
-  }
-  return rows;
+  // No silent broad fallback — strict-filters-004 requires the table to be filtered, not flooded with random rows.
+  return dedupe([...primary, ...secondary]);
 }
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
