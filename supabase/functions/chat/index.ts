@@ -1072,7 +1072,7 @@ async function hybridSearch(
   const topicHayOf = (r: Row) =>
     [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
   const strongTopicHayOf = (r: Row) =>
-    [r.title, r.outlet, r.reason].map(norm).join(" | ");
+    [r.title, r.outlet].map(norm).join(" | ");
 
   const matchLocation = (r: Row) => {
     if (!intent.locationTerms.length) return true;
