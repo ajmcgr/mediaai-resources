@@ -40,9 +40,11 @@ const Cell = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-type FilterKey = "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics";
+type FilterKey =
+  | "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics"
+  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min";
 
-const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
   { key: "email", label: "Search by Emails", icon: Mail },
   { key: "category", label: "Filter by Category", icon: Tag },
@@ -53,10 +55,14 @@ const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon
   { key: "topics", label: "Search by Topics", icon: Hash },
 ];
 
-const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
   { key: "email", label: "Search by Emails", icon: Mail },
+  { key: "ig_followers_min", label: "Min IG Followers", icon: Instagram, placeholder: "e.g. 10000", inputType: "number" },
+  { key: "ig_engagement_min", label: "Min Engagement %", icon: Activity, placeholder: "e.g. 2.5", inputType: "number" },
   { key: "category", label: "Filter by Category", icon: Tag },
+  { key: "youtube_subs_min", label: "Min YT Subscribers", icon: Youtube, placeholder: "e.g. 50000", inputType: "number" },
+  { key: "country", label: "Search by Country", icon: Globe },
 ];
 
 const Dashboard = () => {
