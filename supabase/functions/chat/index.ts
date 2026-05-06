@@ -1,12 +1,14 @@
-// redeploy trigger: chat edge function sync 2026-05-05
+// redeploy trigger: chat edge function result-cap-exa-002 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+
+const CHAT_VERSION = "result-cap-exa-002";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "X-Chat-Version": "debug-credits-001",
+  "X-Chat-Version": CHAT_VERSION,
 };
 
 const SYSTEM_PROMPT = `You are Media AI's hybrid search assistant for PR & influencer outreach.
