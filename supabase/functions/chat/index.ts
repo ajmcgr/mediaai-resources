@@ -280,7 +280,9 @@ function parseIntent(q: string): Intent {
   return {
     raw: q,
     kind,
+    topic: topics.has("finance") ? "finance" : ([...topics][0] ?? null),
     topics: [...topics],
+    location: countryCanonical,
     countries: [...countries],
     countryCanonical,
     locationTerms: [...locationTerms],
