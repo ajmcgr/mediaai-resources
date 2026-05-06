@@ -196,14 +196,14 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
     if (upErr) {
-      return new Response(JSON.stringify({ ok: false, message: `Found data but failed to save: ${upErr.message}`, updated: extracted }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: false, message: `Found data but failed to save: ${upErr.message}`, updated: extracted }), { headers: jsonHeaders });
     }
 
     return new Response(
       JSON.stringify({ ok: true, updated: extracted, source_urls: allSnippets.slice(0, 3).map((s) => s.url) }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: jsonHeaders },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: jsonHeaders });
   }
 });
