@@ -377,6 +377,7 @@ export type Row = {
   ig_handle?: string | null;
   ig_followers?: number | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
   reason?: string;
   score?: number;
 };
