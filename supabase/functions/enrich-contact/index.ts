@@ -484,13 +484,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    const existingIg = clean(row.ig_handle);
+    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : ""].filter(Boolean).join(" ");
+    const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
+      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
+    );
     const queries = [
-      `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact`,
-      `"${name}" ${outlet} email`,
-      `"${name}" email`,
+      fieldsToExtract.includes("email") ? `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact` : "",
+      fieldsToExtract.includes("email") ? `"${name}" ${outlet} email` : "",
+      fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
-      table === "creators" ? `"${name}" creator instagram youtube profile email` : "",
+      wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
+      wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
+      wantsCreatorSocial && existingIg ? `site:instagram.com "${existingIg.replace(/^@/, "")}"` : "",
+      wantsCreatorSocial ? `"${name}" creator influencer profile bio` : "",
+      wantsCreatorSocial ? `"${name}" socialblade ${existingIg ? existingIg.replace(/^@/, "") : ""}` : "",
     ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
