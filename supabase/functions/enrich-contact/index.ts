@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-002" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-003" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -241,6 +241,12 @@ function normalizeYouTubeUrl(value: string): string | null {
   return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
 }
 
+function youtubeUrlsFromHit(hit: { url: string; title?: string; text?: string }): string[] {
+  const raw = `${hit.url}\n${hit.title ?? ""}\n${hit.text ?? ""}`;
+  const matches = raw.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:channel\/[^\s"'<>),]+|c\/[^\s"'<>),]+|user\/[^\s"'<>),]+|@[^\s"'<>),/]+(?:\/[^\s"'<>),]+)?)/gi) ?? [];
+  return matches.map((u) => normalizeYouTubeUrl(u)).filter((u): u is string => Boolean(u));
+}
+
 function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
   const url = (hit.url || "").toLowerCase();
   const haystack = `${hit.title ?? ""} ${hit.text ?? ""} ${url}`.toLowerCase();
@@ -277,18 +283,21 @@ async function findLinkedInUrl(name: string, outlet: string, title: string, coun
 async function findYouTubeUrl(name: string, igHandle: string, context: string): Promise<{ url: string | null; error: string | null }> {
   const cleanHandle = igHandle.replace(/^@/, "");
   const queries = [
+    cleanHandle ? `site:youtube.com/@ "${cleanHandle}"` : "",
     cleanHandle ? `site:youtube.com "${cleanHandle}" YouTube channel` : "",
-    `site:youtube.com "${name}" ${context} channel`,
+    `site:youtube.com/@ "${name}" ${context}`,
+    `site:youtube.com/channel "${name}" ${context}`,
+    `site:youtube.com "${name}" ${context} YouTube channel`,
     `"${name}" ${cleanHandle} YouTube channel`,
   ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
 
   let firstError: string | null = null;
   for (const query of queries) {
-    const res = await exaSearch(query, 10, ["youtube.com"]);
+    const res = await exaSearch(query, 10);
     if (res.error && !firstError) firstError = res.error;
     const tokens = [cleanHandle, ...name.toLowerCase().split(/\s+/)].filter((t) => t.length > 1);
     const hits = res.results
-      .map((hit) => ({ hit, url: normalizeYouTubeUrl(hit.url) }))
+      .flatMap((hit) => youtubeUrlsFromHit(hit).map((url) => ({ hit, url })))
       .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
       .map((item) => {
         const haystack = `${item.hit.title} ${item.hit.text} ${item.hit.url}`.toLowerCase();
