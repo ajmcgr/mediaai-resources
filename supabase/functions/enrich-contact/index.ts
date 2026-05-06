@@ -569,6 +569,14 @@ Deno.serve(async (req) => {
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
+    if (debug.youtube_url && fieldsToExtract.includes("youtube_url") && !extracted.youtube_url) {
+      extracted.youtube_url = String(debug.youtube_url);
+    }
+    if (extracted.youtube_url) {
+      const yt = normalizeYouTubeUrl(String(extracted.youtube_url));
+      if (yt) extracted.youtube_url = yt;
+      else delete extracted.youtube_url;
+    }
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
       if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
@@ -585,7 +593,8 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length && !debug.linkedin_url) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
+      const error = fieldsToExtract.every((f) => f === "email") ? "no_email_found" : "no_data_found";
+      return json({ email: null, found: false, source: "none", confidence: null, error, reason: outletDomain ? "no_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
