@@ -46,6 +46,7 @@ type Row = {
   ig_handle?: string | null;
   ig_followers?: number | null;
   youtube_url?: string | null;
+  linkedin_url?: string | null;
   reason?: string;
 };
 type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
