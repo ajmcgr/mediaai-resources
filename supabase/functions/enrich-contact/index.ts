@@ -449,12 +449,12 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email" });
+      return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", debug });
     }
 
     const email = extracted.email ?? null;
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -464,11 +464,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    if (upErr) {
-      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
-    }
-
-    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
+    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
