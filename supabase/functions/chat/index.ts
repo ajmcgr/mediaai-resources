@@ -1491,7 +1491,7 @@ Deno.serve(async (req) => {
 
     const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    let lastKind: "journalists" | "creators" | null = null;
+    let lastKind: Intent["kind"] | null = null;
     let lastRows: Row[] = [];
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
