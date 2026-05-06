@@ -1407,7 +1407,7 @@ async function hybridSearch(
   debug.exa_emails_found = exaEmailsFound;
   debug.enriched_emails_found = 0;
 
-  const ranked = rankRows(combined, intent);
+  const ranked = rankRows(combined, intent).filter((r) => isValidRow(r, intent));
   const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
