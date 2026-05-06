@@ -19,6 +19,8 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain }: Props
   const qc = useQueryClient();
 
   const isEmpty = localValue === null || localValue === undefined || localValue === "";
+  const nameLetters = (name ?? "").match(/\p{L}/gu)?.length ?? 0;
+  const canEnrich = field !== "email" || (nameLetters >= 2 && !!(outletDomain && outletDomain.length));
 
   const enrich = async () => {
     if (loading) return;
