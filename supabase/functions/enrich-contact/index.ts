@@ -327,9 +327,10 @@ Deno.serve(async (req) => {
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
 
+    const hunterReason = fieldsToExtract.includes("email") ? (outletDomain ? "no_hunter_match" : "no_domain") : null;
+
     if (!allSnippets.length) {
-      // Graceful no-result response to avoid UI hard failure on provider-side invalid_input.
-      return json({ email: null, found: false, source: "none", confidence: null, error: null, provider_error: providerErrors[0] ?? null });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email", provider_error: providerErrors[0] ?? null });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
@@ -349,7 +350,7 @@ Deno.serve(async (req) => {
     }
 
     if (!Object.keys(extracted).length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null, reason: hunterReason ?? "no_exa_email" });
     }
 
     const email = extracted.email ?? null;
