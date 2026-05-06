@@ -1192,19 +1192,17 @@ async function hybridSearch(
   const dbAfterTopic = dbAfterLocation.filter(matchTopic).filter(matchSupplementalFilters);
   const strictDbCount = dbAfterTopic.length;
 
-  // ----- Exa only AFTER strict DB filter, only if strict DB < 50 -----
+  // ----- Run Exa in parallel with strict DB filter (do not skip on high db count) -----
   let exaRows: Row[] = [];
   debug.search_order = "raw_candidates_then_strict_filters_then_rank";
-  if (strictDbCount < 50) {
-    try {
-      exaRows = await searchExa(intent, exaLimit);
-    } catch (error) {
-      console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
-      debug.exa_error = error instanceof Error ? error.message : String(error);
-    }
-  } else {
-    debug.exa_skipped_reason = "strict_db_count_>=_50";
+  try {
+    exaRows = await searchExa(intent, exaLimit);
+  } catch (error) {
+    console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
+    debug.exa_error = error instanceof Error ? error.message : String(error);
   }
+  debug.exa_skipped_reason = null;
+  debug.strict_db_count_pre_exa = strictDbCount;
 
   const rawCandidates = dedupe([...dbRawCandidates, ...exaRows]);
   const afterKindFilterRows = rawCandidates.filter(matchKind);
