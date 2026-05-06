@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   Search, Users, Database, Download,
   User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  ChevronDown, ChevronRight, X, Bell,
+  ChevronDown, ChevronRight, X, Bell, Instagram, Activity, Youtube,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
