@@ -1469,7 +1469,7 @@ async function databaseOnlyResponse(
 
 // ---------- Handler ----------
 
-Deno.serve(async (req) => {
+if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
   console.log("CHAT_FN_REQUEST_START", {
     method: req.method,
     url: req.url,
