@@ -37,7 +37,7 @@ import {
 type Tab = "journalists" | "creators";
 
 const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
-const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs"];
+const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs", "Country"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
   <div className="px-3 py-3 text-sm text-foreground truncate" title={typeof children === "string" ? children : undefined}>
@@ -358,7 +358,7 @@ const Dashboard = () => {
           ) : (
             <div className="min-w-[1260px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_120px_minmax(140px,1fr)] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -378,7 +378,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_minmax(160px,1fr)_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_minmax(160px,1fr)_120px_minmax(140px,1fr)] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -410,6 +410,7 @@ const Dashboard = () => {
                         <EnrichCell value={null} kind="creator" id={r.id} field="youtube_url" name={r.name} row={r} />
                       )}
                       <EnrichCell value={r.youtube_subscribers != null ? r.youtube_subscribers.toLocaleString() : null} kind="creator" id={r.id} field="youtube_subscribers" name={r.name} row={r} />
+                      <EnrichCell value={r.country} kind="creator" id={r.id} field="country" name={r.name} row={r} />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
