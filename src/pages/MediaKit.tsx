@@ -221,7 +221,7 @@ const MediaKit = () => {
           <h2 className="text-xl font-medium mb-2">Need something else?</h2>
           <p className="text-muted-foreground">
             For custom assets, partnership inquiries, or press requests, email{" "}
-            <a href="mailto:press@trymedia.ai" className="text-foreground underline">press@trymedia.ai</a>.
+            <a href="mailto:alex@trymedia.ai" className="text-foreground underline">alex@trymedia.ai</a>.
           </p>
         </section>
       </div>
