@@ -1,6 +1,5 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
-import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
@@ -8,10 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { Bell, Database, MessageSquare } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const TOKENS_PER_MESSAGE = 400;
 const formatMessages = (tokens: number) =>
@@ -88,14 +96,55 @@ const Account = () => {
     navigate("/");
   };
 
+  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Helmet>
         <title>Account — Media AI</title>
       </Helmet>
-      <Header />
 
-      <main className="max-w-3xl mx-auto px-6 py-16">
+      <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
+        <NavLink to="/database" className="flex items-center">
+          <img src={logoMedia} alt="Media AI" className="h-5" />
+        </NavLink>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
+            <MessageSquare className="h-3.5 w-3.5" />Chat
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/database")}>
+            <Database className="h-3.5 w-3.5" />Database
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+            <Bell className="h-3.5 w-3.5" />Monitor
+          </Button>
+          <InboxSheet />
+          <ListsSheet />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
+                <Avatar className="h-8 w-8 border border-border">
+                  <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="text-xs text-muted-foreground">Signed in as</div>
+                <div className="text-sm truncate">{user?.email}</div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-auto">
+        <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-medium mb-8">Account</h1>
 
         <section className="rounded-2xl border border-border bg-white p-6 mb-6">
@@ -242,6 +291,7 @@ const Account = () => {
             Sign out
           </Button>
         </section>
+        </div>
       </main>
     </div>
   );
