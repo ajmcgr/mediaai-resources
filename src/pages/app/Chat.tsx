@@ -374,36 +374,58 @@ const Chat = () => {
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
 
-  // Bulk selection of database rows by row index
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  // Compute a stable rowKey for each row (db: source_table:source_id, web: web:url|domain|name+outlet)
+  const computeRowKey = (r: Row): string | null => {
+    if (r.source === "database" && r.source_table && r.source_id != null) {
+      return `${r.source_table}:${r.source_id}`;
+    }
+    let host = "";
+    try { host = r.source_url ? new URL(r.source_url).hostname.replace(/^www\./, "") : ""; } catch { host = ""; }
+    const ident = r.source_url || host || ((r.name && (r.outlet || r.email)) ? `${r.name}|${r.outlet ?? r.email}` : "");
+    if (!ident) return null;
+    return `web:${ident}`;
+  };
+  const rowsWithKeys = (results?.rows ?? []).map((r) => ({ row: r, rowKey: computeRowKey(r) }));
+  useEffect(() => {
+    if (results?.rows?.length) {
+      // eslint-disable-next-line no-console
+      console.log("CHAT_ROW_KEYS", results.rows.map((r) => ({ name: r.name, source: r.source, rowKey: computeRowKey(r) })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results?.rows]);
+
+  // Bulk selection of rows by stable rowKey
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   useEffect(() => { setSelectedRows(new Set()); }, [results?.kind, lastQuery]);
-  const toggleRow = (i: number) => {
+  const toggleRow = (key: string) => {
     setSelectedRows((prev) => {
       const next = new Set(prev);
-      if (next.has(i)) next.delete(i); else next.add(i);
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   };
-  const selectableIndices = (results?.rows ?? [])
-    .map((r, i) => (r.source === "database" && typeof r.source_id === "number" ? i : -1))
-    .filter((i) => i >= 0);
-  const allRowsSelected = selectableIndices.length > 0 && selectableIndices.every((i) => selectedRows.has(i));
-  const someRowsSelected = selectableIndices.some((i) => selectedRows.has(i));
+  const selectableKeys = rowsWithKeys.map((x) => x.rowKey).filter((k): k is string => !!k);
+  const allRowsSelected = selectableKeys.length > 0 && selectableKeys.every((k) => selectedRows.has(k));
+  const someRowsSelected = selectableKeys.some((k) => selectedRows.has(k));
   const toggleAllRows = () => {
     setSelectedRows((prev) => {
       if (allRowsSelected) {
         const next = new Set(prev);
-        for (const i of selectableIndices) next.delete(i);
+        for (const k of selectableKeys) next.delete(k);
         return next;
       }
       const next = new Set(prev);
-      for (const i of selectableIndices) next.add(i);
+      for (const k of selectableKeys) next.add(k);
       return next;
     });
   };
-  const selectedDbIds = (results?.rows ?? [])
-    .map((r, i) => (selectedRows.has(i) && r.source === "database" && typeof r.source_id === "number" ? (r.source_id as number) : null))
-    .filter((x): x is number => x !== null);
+  const selectedDbIds = rowsWithKeys
+    .filter(({ row, rowKey }) => rowKey && selectedRows.has(rowKey) && row.source === "database" && typeof row.source_id === "number")
+    .map(({ row }) => row.source_id as number);
+  const selectedWebRows = rowsWithKeys
+    .filter(({ row, rowKey }) => rowKey && selectedRows.has(rowKey) && row.source !== "database")
+    .map(({ row }) => row);
+  const selectedCount = selectedDbIds.length + selectedWebRows.length;
 
   const savedSearches = useSavedSearches(!!user);
   const upsertSearch = useUpsertSavedSearch();
@@ -986,7 +1008,7 @@ const Chat = () => {
                         checked={allRowsSelected ? true : someRowsSelected ? "indeterminate" : false}
                         onCheckedChange={toggleAllRows}
                         aria-label="Select all"
-                        disabled={selectableIndices.length === 0}
+                        disabled={selectableKeys.length === 0}
                       />
                     </th>
                     <th className="w-8" />
@@ -1004,17 +1026,21 @@ const Chat = () => {
                 <tbody>
                   {results.rows.map((r, i) => {
                     const dbId = r.source === "database" && typeof r.source_id === "number" ? r.source_id : null;
+                    const rowKey = computeRowKey(r);
                     const enriching = !!enrichingIdx[i];
                     const saving = savingIdx[i] === "saving";
+                    const selected = rowKey ? selectedRows.has(rowKey) : false;
                     return (
-                      <tr key={i} className={`group border-b border-border hover:bg-secondary/30 align-top ${selectedRows.has(i) ? "bg-primary/5" : ""}`}>
+                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-secondary/30 align-top ${selected ? "bg-primary/5" : ""}`}>
                         <td className="px-2 py-2.5">
-                          {dbId !== null && (
+                          {rowKey ? (
                             <Checkbox
-                              checked={selectedRows.has(i)}
-                              onCheckedChange={() => toggleRow(i)}
+                              checked={selected}
+                              onCheckedChange={() => toggleRow(rowKey)}
                               aria-label="Select row"
                             />
+                          ) : (
+                            <span title="Missing contact identity" className="inline-block h-4 w-4 opacity-30 cursor-not-allowed" aria-label="Missing contact identity" />
                           )}
                         </td>
                         <td className="px-2 py-2.5">
@@ -1137,9 +1163,31 @@ const Chat = () => {
         )}
       </div>
       <BulkAddToListBar
-        count={selectedDbIds.length}
+        count={selectedCount}
         journalistIds={results?.kind === "journalists" ? selectedDbIds : undefined}
         creatorIds={results?.kind === "creators" ? selectedDbIds : undefined}
+        resolveExtraIds={selectedWebRows.length === 0 ? undefined : async () => {
+          const kind = results?.kind;
+          if (!kind) return {};
+          const ids: number[] = [];
+          for (const row of selectedWebRows) {
+            try {
+              const { data, error } = await supabase.functions.invoke("save-contact", {
+                body: {
+                  kind,
+                  row: {
+                    name: row.name, outlet: row.outlet, title: row.title,
+                    category: row.category, country: row.country, email: row.email,
+                    ig_handle: row.ig_handle, youtube_url: row.youtube_url, source_url: row.source_url,
+                  },
+                },
+              });
+              if (error || !data?.ok) continue;
+              if (typeof data.id === "number") ids.push(data.id);
+            } catch { /* skip */ }
+          }
+          return kind === "journalists" ? { journalistIds: ids } : { creatorIds: ids };
+        }}
         onClear={() => setSelectedRows(new Set())}
       />
     </div>
