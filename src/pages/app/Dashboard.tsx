@@ -358,7 +358,7 @@ const Dashboard = () => {
           ) : (
             <div className="min-w-[1260px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_120px_minmax(140px,1fr)] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_minmax(160px,1fr)_120px_minmax(140px,1fr)] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
