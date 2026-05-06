@@ -319,6 +319,25 @@ function numericId(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function parseCompactNumber(raw: string): number | null {
+  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb])?/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const unit = (match[2] ?? "").toLowerCase();
+  return Math.round(value * (unit === "b" ? 1_000_000_000 : unit === "m" ? 1_000_000 : unit === "k" ? 1_000 : 1));
+}
+
+function findYouTubeSubscriberCount(snippets: Array<{ url: string; text: string; title?: string }>): number | null {
+  for (const snippet of snippets) {
+    const haystack = `${snippet.title ?? ""} ${snippet.text}`;
+    const match = haystack.match(/(\d[\d,.]*\s*[kmb]?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
+    const parsed = match ? parseCompactNumber(match[1]) : null;
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
 function sourceTable(value: unknown): "journalist" | "creators" | null {
   if (value === "journalist" || value === "journalists") return "journalist";
   if (value === "creator" || value === "creators") return "creators";
