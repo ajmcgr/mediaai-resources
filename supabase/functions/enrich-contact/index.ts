@@ -188,10 +188,10 @@ Deno.serve(async (req) => {
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
     const queries = [
-      `"${name}" ${outlet} email contact`,
-      kind === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
-      kind === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
-      kind === "creator" ? `"${name}" creator instagram youtube profile` : null,
+      `"${name}" ${outlet} ${title} ${country} email contact`,
+      table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
+      table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
+      table === "creators" ? `"${name}" creator instagram youtube profile` : null,
       `"${name}" email address journalist`,
       `"${name}" author profile bio`,
     ].filter(Boolean) as string[];
@@ -200,17 +200,17 @@ Deno.serve(async (req) => {
     const allSnippets = settled.flat().filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i).slice(0, 30);
 
     if (!allSnippets.length) {
-      return new Response(JSON.stringify({ ok: false, message: "No sources found." }), { headers: jsonHeaders });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
     }
 
-    const extracted = await extractFields(name, context, allSnippets, targetFields);
+    const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
       if (!cleaned.includes("@") || BAD_EMAIL_RE.test(cleaned)) delete extracted.email;
       else extracted.email = cleaned;
     }
     let emailSourceUrl = allSnippets[0]?.url ?? null;
-    if (targetFields.includes("email") && !extracted.email) {
+    if (fieldsToExtract.includes("email") && !extracted.email) {
       const directEmail = pickEmail(allSnippets, name);
       if (directEmail) {
         extracted.email = directEmail.email;
@@ -218,27 +218,29 @@ Deno.serve(async (req) => {
       }
     }
     if (!Object.keys(extracted).length) {
-      return new Response(JSON.stringify({ ok: false, message: targetFields.includes("email") ? "Email not publicly found" : "No verifiable details found.", source_urls: allSnippets.map((s) => s.url) }), { headers: jsonHeaders });
+      return json({ email: null, found: false, source: "none", confidence: null, error: null });
+    }
+
+    const email = extracted.email ?? null;
+    if (!shouldUpdateDb) {
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
     }
 
     const update: Record<string, unknown> = { ...extracted };
     update.enrichment_source_url = emailSourceUrl;
     update.enriched_at = new Date().toISOString();
 
-    let { error: upErr } = await admin.from(table).update(update).eq("id", id);
+    let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
     if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
-      const r = await admin.from(table).update(extracted).eq("id", id);
+      const r = await admin.from(table).update(extracted).eq("id", sourceId);
       upErr = r.error;
     }
     if (upErr) {
-      return new Response(JSON.stringify({ ok: false, message: `Found data but failed to save: ${upErr.message}`, updated: extracted }), { headers: jsonHeaders });
+      return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: `Found data but failed to save: ${upErr.message}` });
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, updated: extracted, source_urls: allSnippets.slice(0, 3).map((s) => s.url) }),
-      { headers: jsonHeaders },
-    );
+    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: null });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: jsonHeaders });
+    return json({ email: null, found: false, source: "none", confidence: null, error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
