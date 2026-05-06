@@ -385,6 +385,22 @@ const Chat = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
 
+  // Infinite-scroll: when sentinel below the table enters viewport, fetch next page.
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+    if (!results?.pagination?.has_more) return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          loadMore();
+        }
+      }
+    }, { root: null, rootMargin: "200px", threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [results?.pagination?.has_more, results?.rows.length, loadMore]);
+
   // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
   useEffect(() => {
     const url = new URL(document.URL);
