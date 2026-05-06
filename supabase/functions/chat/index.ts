@@ -317,6 +317,8 @@ const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
     "the information", "protocol.com", "buzzfeed", "vox.com", "washingtonpost",
     "usatoday", "latimes", "nbcnews", "abcnews", "cbsnews", "npr.org", "politico",
     "huffpost", "time.com", "newsweek", "atlantic", "wired",
+    "mit technology review", "technologyreview.com", "the org", "theorg",
+    "muck rack", "muckrack", "help a reporter", "helpareporter", "presscontact",
   ],
   "United Kingdom": [
     "bbc.co.uk", "bbc.com", "theguardian", "guardian.co.uk", "ft.com", "financial times",
