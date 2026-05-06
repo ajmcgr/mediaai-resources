@@ -221,10 +221,10 @@ Deno.serve(async (req) => {
       : allFields.filter((f) => row[f] === null || row[f] === undefined || row[f] === ""));
     const fieldsToExtract = targetFields.length ? targetFields : ["email"];
 
-    const name = clean(contact.name ?? row.name);
+    const name = clean(contact.name);
     if (!name) return json({ error: "missing_name", received: body }, 400);
-    const outlet = clean(contact.outlet ?? row.outlet);
-    const title = clean(contact.title ?? row.title ?? row.titles);
+    const outlet = clean(contact.outlet);
+    const title = clean(contact.title);
     const country = clean(contact.country ?? row.country);
     const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
     const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
