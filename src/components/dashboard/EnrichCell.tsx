@@ -19,11 +19,12 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
   const [localValue, setLocalValue] = useState<string | number | null | undefined>(value);
   const qc = useQueryClient();
 
-  const isEmpty = localValue === null || localValue === undefined || localValue === "";
+  const numericEmptyFields = new Set(["ig_followers", "ig_engagement_rate", "youtube_subscribers"]);
+  const isEmpty = localValue === null || localValue === undefined || localValue === "" || (numericEmptyFields.has(field) && (localValue === 0 || localValue === "0"));
   const effectiveName = name ?? row?.name ?? null;
   const nameLetters = (effectiveName ?? "").match(/\p{L}/gu)?.length ?? 0;
   const effectiveDomain = outletDomain ?? row?.domain ?? row?.outlet ?? null;
-  const emailNeedsDomain = field === "email";
+  const emailNeedsDomain = field === "email" && kind === "journalist";
   const canEnrich = nameLetters >= 2 && (!emailNeedsDomain || !!(effectiveDomain && String(effectiveDomain).length));
   const findLabel: Record<string, string> = {
     email: "Find email",
@@ -53,6 +54,10 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         domain: r.domain ?? null,
         country: r.country ?? null,
         email: r.email ?? null,
+        youtube_url: r.youtube_url ?? null,
+        youtube_subscribers: r.youtube_subscribers ?? null,
+        ig_handle: r.ig_handle ?? null,
+        ig_followers: r.ig_followers ?? null,
         fields: [field],
       };
       if (kind === "creator") {
