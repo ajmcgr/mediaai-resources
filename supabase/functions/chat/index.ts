@@ -852,6 +852,12 @@ function normalizeSearchText(value: unknown): string {
     .trim();
 }
 
+function stripContactNoise(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, " ")
+    .replace(/https?:\/\/\S+|www\.\S+/gi, " ");
+}
+
 function matchesAnyTerm(hay: string, terms: string[]): boolean {
   return terms.some((term) => {
     const cleaned = normalizeSearchText(term);
@@ -862,8 +868,9 @@ function matchesAnyTerm(hay: string, terms: string[]): boolean {
 
 export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
   const fieldHay = (values: unknown[]) => values.map(normalizeSearchText).filter(Boolean).join(" | ");
+  const locationFieldHay = (values: unknown[]) => values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
   const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
-  const locationHayOf = (r: Row) => fieldHay([r.country, r.location, r.city, r.region, r.bio]);
+  const locationHayOf = (r: Row) => locationFieldHay([r.country, r.location, r.city, r.region, r.bio]);
   const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
   const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
   const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
