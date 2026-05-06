@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   useSavedSearches, useUpsertSavedSearch,
   useTogglePinSavedSearch, useDeleteSavedSearch,
