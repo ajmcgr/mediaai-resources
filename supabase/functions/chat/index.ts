@@ -1040,7 +1040,7 @@ async function hybridSearch(
   const debug: Record<string, unknown> = {
     version: CHAT_VERSION,
     original: q,
-    intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
+    intent: { kind: intent.kind, topic: intent.topic, topics: intent.topics, location: intent.location, countries: intent.countries, countryCanonical: intent.countryCanonical, locationTerms: intent.locationTerms, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
     cap: planLimit,
     target,
