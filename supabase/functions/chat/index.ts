@@ -826,6 +826,9 @@ function dedupe(rows: Row[]): Row[] {
 }
 
 function rankRows(rows: Row[], intent: Intent): Row[] {
+  const inferredOutlets = intent.countryCanonical
+    ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []).map((o) => o.toLowerCase())
+    : [];
   const score = (r: Row): number => {
     let s = 0;
     const name = (r.name ?? "").toLowerCase();
@@ -834,34 +837,61 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
     const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
+    const locHay = [cnt, (r.location ?? "").toLowerCase(), (r.city ?? "").toLowerCase(), (r.region ?? "").toLowerCase(), (r.bio ?? "").toLowerCase()].join(" | ");
+    const outletHay = `${out} ${(r.source_url ?? "").toLowerCase()}`;
+
+    // Topic
+    let topicMatched = false;
     for (const t of intent.topics) {
-      if (cat.includes(t)) s += 10;
-      if (ttl.includes(t)) s += 4;
-      if (out.includes(t)) s += 3;
-      if (hay.includes(t)) s += 2;
+      if (cat.includes(t)) { s += 50; topicMatched = true; }
+      else if (ttl.includes(t)) { s += 25; topicMatched = true; }
+      else if (out.includes(t)) { s += 10; topicMatched = true; }
+      else if (hay.includes(t)) { s += 5; topicMatched = true; }
     }
-    for (const c of intent.countries) {
-      if (cnt.includes(c)) s += 8;
-      if (out.includes(c)) s += 2;
-      if (hay.includes(c)) s += 1;
+
+    // Location: explicit (+100) or inferred outlet/domain (+70)
+    let locMatched = false;
+    for (const c of intent.locationTerms) {
+      if (locHay.includes(c)) { s += 100; locMatched = true; break; }
     }
+    if (!locMatched && inferredOutlets.some((o) => outletHay.includes(o))) { s += 70; locMatched = true; }
+
+    // Free terms
     for (const t of intent.freeTerms) {
       if (name.includes(t)) s += 3;
       if (cat.includes(t)) s += 3;
       if (out.includes(t)) s += 2;
       if (hay.includes(t)) s += 1;
     }
-    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
+
+    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 25;
     if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 8;
     if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
-    if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
-    if (r.email) s += intent.emailRequired ? 12 : 4;
+    if (r.email) s += intent.emailRequired ? 30 : 20;
     if (r.source === "database") s += 20;
     if (!r.name && r.source === "exa") s -= 15;
     if (r.source === "exa" && (!r.name || !isPersonName(r.name))) s -= 45;
     if (r.source === "exa" && (!r.outlet || INVALID_OUTLET_RE.test(r.outlet))) s -= 30;
     if (r.source_url && BAD_EXA_HOST_RE.test(r.source_url.toLowerCase())) s -= 25;
     if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
+
+    // Explicit wrong country penalty
+    if (intent.countryCanonical && cnt) {
+      const wanted = intent.countryCanonical.toLowerCase();
+      if (!cnt.includes(wanted) && !intent.locationTerms.some((t) => cnt.includes(t))) {
+        for (const known of KNOWN_COUNTRY_CANONICALS) {
+          if (known === wanted) continue;
+          if (cnt === known || cnt.includes(known)) { s -= 100; break; }
+        }
+      }
+    }
+
+    // Topic mismatch penalty for populated unrelated category
+    if (intent.topics.length && cat && !topicMatched) {
+      const unrelated = ["cars","automotive","auto","tv","television","sports","sport","entertainment","movies","music","gaming"];
+      if (unrelated.some((u) => cat.includes(u))) s -= 100;
+    }
+
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
