@@ -36,8 +36,8 @@ import {
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "Category", "Titles", "xHandle", "Outlet", "Country", "LinkedIn"];
-const CREATOR_COLS = ["Name", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
+const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
+const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "Type", "YouTube"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
   <div className="px-3 py-3 text-sm text-foreground truncate" title={typeof children === "string" ? children : undefined}>
@@ -304,7 +304,7 @@ const Dashboard = () => {
           {tab === "journalists" ? (
             <div className="min-w-[1140px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px_140px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -324,7 +324,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px_140px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -337,16 +337,16 @@ const Dashboard = () => {
                         <AddToListMenu journalistId={r.id} />
                       </div>
                       <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" name={r.name} outletDomain={r.outlet} row={r} />
-                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" name={r.name} outletDomain={r.outlet} row={r} />
-                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} row={r} />
-                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
-                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
-                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
                       {r.linkedin_url ? (
                         <Cell><a href={r.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">LinkedIn</a></Cell>
                       ) : (
                         <EnrichCell value={null} kind="journalist" id={r.id} field="linkedin_url" name={r.name} outletDomain={r.outlet} row={r} />
                       )}
+                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
@@ -356,9 +356,9 @@ const Dashboard = () => {
               )}
             </div>
           ) : (
-            <div className="min-w-[1140px]">
+            <div className="min-w-[1260px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -378,7 +378,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(220px,1.3fr)_150px_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -390,6 +390,12 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
                       </div>
+                      <EnrichCell value={r.email} kind="creator" id={r.id} field="email" name={r.name} row={r} />
+                      {r.linkedin_url ? (
+                        <Cell><a href={r.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">LinkedIn</a></Cell>
+                      ) : (
+                        <EnrichCell value={null} kind="creator" id={r.id} field="linkedin_url" name={r.name} row={r} />
+                      )}
                       <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" name={r.name} row={r} />
                       <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                       <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
