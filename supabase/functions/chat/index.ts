@@ -1556,17 +1556,24 @@ async function hybridSearch(
   debug.enriched_emails_found = 0;
 
   const ranked = rankRows(combined, intent).filter((r) => isValidRow(r, intent));
-  const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
+  // Cap total available rows to plan budget for paging.
+  const totalEstimated = Math.min(ranked.length, maxTotalForPlan);
+  const paged = ranked.slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated));
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
-  const totalEstimated = ranked.length;
-  const hasMore = (safeOffset + requestedLimit) < totalEstimated;
+  const returned = paged.length;
+  const consumed = safeOffset + returned;
+  const hasMore = consumed < totalEstimated && consumed < maxTotalForPlan;
+  const nextOffset = hasMore ? consumed : null;
 
   debug.db_returned = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
   debug.finalCount = paged.length;
   debug.has_more = hasMore;
+  debug.next_offset = nextOffset;
+  debug.returned = returned;
+  debug.maxTotalForPlan = maxTotalForPlan;
   if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
     debug.response_message = paged.length === 0
       ? "No exact finance journalists in Germany found."
