@@ -538,8 +538,10 @@ Deno.serve(async (req) => {
 
     const email = extracted.email ?? null;
     const linkedinUrl = extracted.linkedin_url ?? debug.linkedin_url ?? null;
+    const otherKeys = Object.keys(extracted).filter((k) => !["email", "linkedin_url"].includes(k));
+    const found = Boolean(email || linkedinUrl || otherKeys.length);
     if (!shouldUpdateDb || sourceId === null) {
-      return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
+      return json({ ...extracted, email, linkedin_url: linkedinUrl, found, source: email ? "exa" : linkedinUrl ? "exa-linkedin" : otherKeys.length ? "exa" : "none", confidence: found ? 0.7 : null, error: found ? null : "no_data_found", debug });
     }
 
     const update: Record<string, unknown> = { ...extracted, enrichment_source_url: emailSourceUrl, enriched_at: new Date().toISOString() };
@@ -549,7 +551,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    return json({ email, linkedin_url: linkedinUrl, found: Boolean(email || linkedinUrl), source: email ? "exa" : linkedinUrl ? "exa-linkedin" : "none", confidence: email ? 0.72 : linkedinUrl ? 0.7 : null, error: email || linkedinUrl ? null : "no_email_found", debug });
+    return json({ ...extracted, email, linkedin_url: linkedinUrl, found, source: email ? "exa" : linkedinUrl ? "exa-linkedin" : otherKeys.length ? "exa" : "none", confidence: found ? 0.7 : null, error: found ? null : "no_data_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
