@@ -75,8 +75,8 @@ export const BulkAddToListBar = ({ count, journalistIds, creatorIds, onClear, re
       <span className="font-medium">{count} selected</span>
       <DropdownMenu onOpenChange={(o) => !o && setCreating(false)}>
         <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="secondary" className="h-8 gap-1.5 rounded-full" disabled={bulk.isPending}>
-            {bulk.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ListPlus className="h-3.5 w-3.5" />}
+          <Button size="sm" variant="secondary" className="h-8 gap-1.5 rounded-full" disabled={bulk.isPending || resolving}>
+            {(bulk.isPending || resolving) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ListPlus className="h-3.5 w-3.5" />}
             Add to list
           </Button>
         </DropdownMenuTrigger>
