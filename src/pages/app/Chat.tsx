@@ -60,6 +60,7 @@ const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
+  { key: "linkedin_url", label: "LinkedIn" },
 ];
 const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
