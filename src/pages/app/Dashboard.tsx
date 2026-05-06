@@ -385,11 +385,11 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
                       </div>
-                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" />
+                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" name={r.name} row={r} />
                       <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                       <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
-                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" />
-                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" />
+                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" name={r.name} row={r} />
+                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" name={r.name} row={r} />
                       <Cell>
                         {r.youtube_url ? (
                           <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
