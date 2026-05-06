@@ -1263,9 +1263,79 @@ async function hybridSearch(
       reason,
     }));
 
-  const rankedStrictRows = rankRows(strictRows, intent);
+  let rankedStrictRows = rankRows(strictRows, intent);
+
+  // ----- Fallback expansion: if strict rows < 100, run broader Exa queries -----
+  let broadAddedCount = 0;
+  if (rankedStrictRows.length < 100) {
+    const country = intent.countryCanonical ?? "";
+    const rawQ = intent.raw || "";
+    const broadQueries = [
+      `${rawQ} journalist ${country}`.trim(),
+      ...(intent.topics.includes("food") ? [`${rawQ} food writer ${country}`.trim()] : []),
+      ...(intent.topic ? [`${rawQ} ${intent.topic} writer ${country}`.trim()] : []),
+      `${rawQ} reporter ${country}`.trim(),
+    ].filter((q, i, arr) => q && arr.indexOf(q) === i);
+
+    const broadRows: Row[] = [];
+    try {
+      const settled = await Promise.all(broadQueries.map((q) => exaSearchOnce(q, 20)));
+      settled.forEach((items, qi) => {
+        for (const it of items) {
+          const url = it.url;
+          if (!url) continue;
+          if (isJunkWebResult(it, intent)) continue;
+          let host = "";
+          try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+          const titleStr = it.title ?? "";
+          const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
+          const nameGuess = extractNameGuess(titleStr, blob, it.author);
+          const email = pickEmailFromText(blob, nameGuess);
+          const webText = (it.highlights?.[0] || it.text?.slice(0, 180) || `Broad match — query: "${broadQueries[qi]}"`).trim();
+          broadRows.push({
+            source: "exa",
+            source_table: intent.kind === "creators" ? "creators" : "journalist",
+            source_url: url,
+            name: nameGuess,
+            outlet: host || null,
+            title: titleStr || null,
+            category: intent.topics[0] ?? null,
+            country: null,
+            bio: webText,
+            topics: intent.topics,
+            email,
+            reason: webText,
+          });
+        }
+      });
+    } catch (error) {
+      console.warn("[chat.broad_exa_failed]", error instanceof Error ? error.message : String(error));
+      debug.broad_exa_error = error instanceof Error ? error.message : String(error);
+    }
+
+    const broadDeduped = dedupe(broadRows);
+    const broadFiltered = broadDeduped
+      .filter(matchKind)
+      .filter(matchLocation)
+      .filter(matchTopic)
+      .filter(matchSupplementalFilters);
+
+    const strictKeys = new Set(
+      rankedStrictRows.map((r) => `${r.source}|${r.source_url ?? ""}|${(r.email ?? "").toLowerCase()}|${(r.name ?? "").toLowerCase()}`),
+    );
+    const newBroad = broadFiltered.filter((r) => {
+      const k = `${r.source}|${r.source_url ?? ""}|${(r.email ?? "").toLowerCase()}|${(r.name ?? "").toLowerCase()}`;
+      return !strictKeys.has(k);
+    });
+    const rankedBroad = rankRows(newBroad, intent);
+    broadAddedCount = rankedBroad.length;
+    rankedStrictRows = [...rankedStrictRows, ...rankedBroad].slice(0, 150);
+  }
+  debug.broad_fallback_added = broadAddedCount;
+  debug.ranked_pool_size = rankedStrictRows.length;
+
   const dbRanked = rankedStrictRows.filter((r) => r.source === "database").slice(0, target);
-  const exaRanked = rankedStrictRows.filter((r) => r.source === "exa").slice(0, exaLimit);
+  const exaRanked = rankedStrictRows.filter((r) => r.source === "exa").slice(0, exaLimit + 100);
 
   // Normalize emails before merge
   const cleanEmail = (e: string | null | undefined): string | null => {
