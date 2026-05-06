@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   Search, Users, Database, Download,
   User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
-  ChevronDown, ChevronRight, X, Bell,
+  ChevronDown, ChevronRight, X, Bell, Instagram, Activity, Youtube,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,9 +40,11 @@ const Cell = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-type FilterKey = "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics";
+type FilterKey =
+  | "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics"
+  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min";
 
-const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
   { key: "email", label: "Search by Emails", icon: Mail },
   { key: "category", label: "Filter by Category", icon: Tag },
@@ -53,10 +55,14 @@ const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon
   { key: "topics", label: "Search by Topics", icon: Hash },
 ];
 
-const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon }[] = [
+const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
   { key: "email", label: "Search by Emails", icon: Mail },
+  { key: "ig_followers_min", label: "Min IG Followers", icon: Instagram, placeholder: "e.g. 10000", inputType: "number" },
+  { key: "ig_engagement_min", label: "Min Engagement %", icon: Activity, placeholder: "e.g. 2.5", inputType: "number" },
   { key: "category", label: "Filter by Category", icon: Tag },
+  { key: "youtube_subs_min", label: "Min YT Subscribers", icon: Youtube, placeholder: "e.g. 50000", inputType: "number" },
+  { key: "country", label: "Search by Country", icon: Globe },
 ];
 
 const Dashboard = () => {
@@ -233,7 +239,7 @@ const Dashboard = () => {
           <div className="px-3 pt-2 pb-3 border-t border-border">
             <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Filters</div>
             <div className="space-y-0.5">
-              {filterDefs.map(({ key, label, icon: Icon }) => {
+              {filterDefs.map(({ key, label, icon: Icon, placeholder, inputType }) => {
                 const value = filterValues[key] ?? "";
                 const isOpen = openFilter === key;
                 const isActive = !!value.trim();
@@ -261,9 +267,11 @@ const Dashboard = () => {
                       <div className="px-3 pb-2 pt-1">
                         <Input
                           autoFocus
+                          type={inputType ?? "text"}
+                          inputMode={inputType === "number" ? "decimal" : undefined}
                           value={value}
                           onChange={(e) => setFilterValues((f) => ({ ...f, [key]: e.target.value }))}
-                          placeholder={label.replace(/^Search by |^Filter by /, "")}
+                          placeholder={placeholder ?? label.replace(/^Search by |^Filter by |^Min /, "")}
                           className="h-8 text-sm"
                         />
                       </div>
