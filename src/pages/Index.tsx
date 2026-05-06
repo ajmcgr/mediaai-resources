@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import heroProductMain from "@/assets/home/hero-product-main.png";
 import heroProductDiscover from "@/assets/home/feature-database.jpg";
 import featureAiChat from "@/assets/home/feature-ai-chat.jpg";
-import audiencesImg from "@/assets/home/audiences.png";
+import audiencesImg from "@/assets/home/audiences-v2.jpg";
 import featureSearch from "@/assets/home/feature-search-v2.jpg";
 import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
 import featureContactInbox from "@/assets/home/feature-contact-inbox.jpg";
