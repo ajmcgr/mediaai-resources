@@ -342,6 +342,11 @@ const Dashboard = () => {
                       <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
+                      {r.linkedin_url ? (
+                        <Cell><a href={r.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">LinkedIn</a></Cell>
+                      ) : (
+                        <EnrichCell value={null} kind="journalist" id={r.id} field="linkedin_url" name={r.name} outletDomain={r.outlet} row={r} />
+                      )}
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
