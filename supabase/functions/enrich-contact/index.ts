@@ -157,6 +157,7 @@ async function resolveOutletDomain(outlet: string): Promise<string | null> {
     return host.replace(/^www\./, "");
   }
   return null;
+}
 
 function hostFrom(value: string): string | null {
   try { return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.replace(/^www\./, ""); } catch { return null; }
