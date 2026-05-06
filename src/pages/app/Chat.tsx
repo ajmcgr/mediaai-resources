@@ -1026,17 +1026,21 @@ const Chat = () => {
                 <tbody>
                   {results.rows.map((r, i) => {
                     const dbId = r.source === "database" && typeof r.source_id === "number" ? r.source_id : null;
+                    const rowKey = computeRowKey(r);
                     const enriching = !!enrichingIdx[i];
                     const saving = savingIdx[i] === "saving";
+                    const selected = rowKey ? selectedRows.has(rowKey) : false;
                     return (
-                      <tr key={i} className={`group border-b border-border hover:bg-secondary/30 align-top ${selectedRows.has(i) ? "bg-primary/5" : ""}`}>
+                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-secondary/30 align-top ${selected ? "bg-primary/5" : ""}`}>
                         <td className="px-2 py-2.5">
-                          {dbId !== null && (
+                          {rowKey ? (
                             <Checkbox
-                              checked={selectedRows.has(i)}
-                              onCheckedChange={() => toggleRow(i)}
+                              checked={selected}
+                              onCheckedChange={() => toggleRow(rowKey)}
                               aria-label="Select row"
                             />
+                          ) : (
+                            <span title="Missing contact identity" className="inline-block h-4 w-4 opacity-30 cursor-not-allowed" aria-label="Missing contact identity" />
                           )}
                         </td>
                         <td className="px-2 py-2.5">
