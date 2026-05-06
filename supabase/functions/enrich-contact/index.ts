@@ -328,12 +328,22 @@ ${corpus}`;
     const m = txt.match(/\{[\s\S]*\}/);
     if (!m) return {};
     const parsed = JSON.parse(m[0]);
-    const out: Record<string, string> = {};
+    const out: Record<string, unknown> = {};
+    const numericFields = new Set(["ig_followers", "youtube_subscribers", "ig_engagement_rate"]);
     for (const f of fields) {
       const v = parsed[f];
-      if (typeof v === "string" && v.trim()) out[f] = v.trim();
+      if (v === null || v === undefined || v === "") continue;
+      if (numericFields.has(f)) {
+        const n = typeof v === "number" ? v : Number(String(v).replace(/[, ]+/g, ""));
+        if (Number.isFinite(n) && n > 0) {
+          // Normalize engagement rate: if it came as a percent (>1), convert
+          out[f] = f === "ig_engagement_rate" && n > 1 ? n / 100 : n;
+        }
+      } else if (typeof v === "string" && v.trim()) {
+        out[f] = v.trim();
+      }
     }
-    return out;
+    return out as Record<string, string>;
   } catch {
     return {};
   }
