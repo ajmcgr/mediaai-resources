@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-debug-003" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "payload-live-004" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country"] as const;
@@ -220,23 +220,6 @@ Deno.serve(async (req) => {
       Object.entries(providerPayloadRaw).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
     );
     console.log("ENRICH_PROVIDER_PAYLOAD", providerPayload);
-
-    // TEMP DEBUG: return sanitized payload before calling provider to verify sanitization live.
-    return new Response(JSON.stringify({
-      found: false,
-      email: null,
-      debugOnly: true,
-      received: body,
-      providerPayload,
-    }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "X-Enrich-Version": "payload-debug-003",
-      },
-    });
-
 
     const queryParts = [
       `"${providerPayload.full_name}"`,
