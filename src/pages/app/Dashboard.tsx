@@ -302,9 +302,16 @@ const Dashboard = () => {
           </div>
 
           {tab === "journalists" ? (
-            <div className="min-w-[1100px]">
+            <div className="min-w-[1140px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                  <div className="px-3 py-3 flex items-center">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </div>
                   {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
               </div>
@@ -317,7 +324,14 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30">
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                      <div className="px-3 py-3 flex items-center">
+                        <Checkbox
+                          checked={selectedIds.has(r.id)}
+                          onCheckedChange={() => toggleSelect(r.id)}
+                          aria-label={`Select ${r.name ?? "row"}`}
+                        />
+                      </div>
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
@@ -337,9 +351,16 @@ const Dashboard = () => {
               )}
             </div>
           ) : (
-            <div className="min-w-[1100px]">
+            <div className="min-w-[1140px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] text-xs font-medium text-muted-foreground">
+                  <div className="px-3 py-3 flex items-center">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </div>
                   {CREATOR_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
                 </div>
               </div>
@@ -352,7 +373,14 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className="group grid grid-cols-[minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30">
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_160px_140px_140px_160px_140px_minmax(180px,1fr)] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                      <div className="px-3 py-3 flex items-center">
+                        <Checkbox
+                          checked={selectedIds.has(r.id)}
+                          onCheckedChange={() => toggleSelect(r.id)}
+                          aria-label={`Select ${r.name ?? "row"}`}
+                        />
+                      </div>
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
