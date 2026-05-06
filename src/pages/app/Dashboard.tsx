@@ -239,7 +239,7 @@ const Dashboard = () => {
           <div className="px-3 pt-2 pb-3 border-t border-border">
             <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Filters</div>
             <div className="space-y-0.5">
-              {filterDefs.map(({ key, label, icon: Icon }) => {
+              {filterDefs.map(({ key, label, icon: Icon, placeholder, inputType }) => {
                 const value = filterValues[key] ?? "";
                 const isOpen = openFilter === key;
                 const isActive = !!value.trim();
@@ -267,9 +267,11 @@ const Dashboard = () => {
                       <div className="px-3 pb-2 pt-1">
                         <Input
                           autoFocus
+                          type={inputType ?? "text"}
+                          inputMode={inputType === "number" ? "decimal" : undefined}
                           value={value}
                           onChange={(e) => setFilterValues((f) => ({ ...f, [key]: e.target.value }))}
-                          placeholder={label.replace(/^Search by |^Filter by /, "")}
+                          placeholder={placeholder ?? label.replace(/^Search by |^Filter by |^Min /, "")}
                           className="h-8 text-sm"
                         />
                       </div>
