@@ -517,6 +517,7 @@ function creatorRow(r: Record<string, unknown>): Row {
     ig_handle: (r.ig_handle as string) ?? null,
     ig_followers: (r.ig_followers as number) ?? null,
     youtube_url: (r.youtube_url as string) ?? null,
+    linkedin_url: (r.linkedin_url as string) ?? null,
   };
 }
 
