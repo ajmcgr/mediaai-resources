@@ -240,7 +240,9 @@ Deno.serve(async (req) => {
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
     const providerErrors = settled.map((s) => s.error).filter(Boolean) as string[];
-    const providerResponseText = settled.find((s) => s.providerResponseText)?.providerResponseText ?? null;
+    const providerResponseText = settled.find((s) => s.error && s.providerResponseText)?.providerResponseText
+      ?? settled.find((s) => s.providerResponseText)?.providerResponseText
+      ?? null;
     const allSnippets = settled.flatMap((s) => s.results)
       .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
       .slice(0, 30);
