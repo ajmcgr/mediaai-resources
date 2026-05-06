@@ -165,7 +165,7 @@ async function exaSearch(query: string, numResults = 5, includeDomains: string[]
 
   const r = await fetch("https://api.exa.ai/search", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": key },
+    headers: { "Content-Type": "application/json", "x-api-key": key, "Authorization": `Bearer ${key}` },
     body: JSON.stringify(exaPayload),
   });
 
