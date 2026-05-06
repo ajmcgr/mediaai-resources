@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Search, Users, Database, Download, Pin, PinOff, Trash2,
+  Search, Users, Database, Download,
   User as UserIcon, Mail, Tag, Globe, AtSign, Building2, Briefcase, Hash,
   ChevronDown, ChevronRight, X, Bell,
 } from "lucide-react";
