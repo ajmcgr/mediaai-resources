@@ -228,23 +228,49 @@ Deno.serve(async (req) => {
     const title = clean(contact.title ?? row.title ?? row.titles);
     const country = clean(contact.country ?? row.country);
     const sourceUrl = clean(contact.url ?? contact.source_url ?? row.enrichment_source_url);
-    const outletDomain = hostFrom(sourceUrl) ?? hostFrom(outlet) ?? "";
+    const outletDomain = deriveDomain(outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
+    const providerPayloadRaw = {
+      full_name: name,
+      company: outlet,
+      domain: outletDomain,
+      title: title,
+    };
+    const providerPayload = Object.fromEntries(
+      Object.entries(providerPayloadRaw).filter(([_, v]) => v !== null && v !== undefined && v !== "")
+    );
+    console.log("ENRICH_PROVIDER_PAYLOAD", providerPayload);
+
+    const queryParts = [
+      `"${providerPayload.full_name}"`,
+      providerPayload.company ?? "",
+      providerPayload.title ?? "",
+      providerPayload.domain ? `site:${providerPayload.domain}` : "",
+      "email contact",
+    ].filter(Boolean);
+    const primaryQuery = queryParts.join(" ").trim();
+
     const queries = [
-      `"${name}" ${outlet} ${title} ${country} email contact`,
+      primaryQuery,
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : null,
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : null,
       table === "creators" ? `"${name}" creator instagram youtube profile` : null,
-      `"${name}" email address journalist`,
-      `"${name}" author profile bio`,
-    ].filter(Boolean) as string[];
+      `"${name}" email address`,
+    ].filter((q): q is string => Boolean(q && q.trim()));
 
     const settled = await Promise.all(queries.map((q) => exaSearch(q, 10)));
-    const allSnippets = settled.flat().filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i).slice(0, 30);
+    const providerErrors = settled.map((s) => s.error).filter(Boolean) as string[];
+    const allSnippets = settled.flatMap((s) => s.results)
+      .filter((s, i, arr) => s.url && arr.findIndex((x) => x.url === s.url) === i)
+      .slice(0, 30);
 
     if (!allSnippets.length) {
-      return json({ email: null, found: false, source: "none", confidence: null, error: null });
+      const providerError = providerErrors[0] ?? null;
+      if (providerError && /invalid_input/i.test(providerError)) {
+        return json({ found: false, email: null, source: "none", confidence: null, error: providerError, providerPayload });
+      }
+      return json({ email: null, found: false, source: "none", confidence: null, error: providerError });
     }
 
     const extracted = await extractFields(name, context, allSnippets, fieldsToExtract);
