@@ -1,6 +1,5 @@
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
-import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
@@ -8,10 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { openBillingPortal, startTopup, TOPUP_PACKS, type TopupPack } from "@/lib/billing";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { Bell, Database, MessageSquare } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InboxSheet } from "@/components/dashboard/InboxSheet";
+import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import logoMedia from "@/assets/brand/logo-media-blue.png";
 
 const TOKENS_PER_MESSAGE = 400;
 const formatMessages = (tokens: number) =>
