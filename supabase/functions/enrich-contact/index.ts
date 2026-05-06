@@ -231,6 +231,21 @@ Deno.serve(async (req) => {
     const outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     const context = [outlet, title, country].filter(Boolean).join(" · ");
 
+    // Hunter first pass (only when email is among target fields)
+    if (fieldsToExtract.includes("email") && (outletDomain || outlet)) {
+      const hunterEmail = await hunterFindEmail({ fullName: name, domain: outletDomain || undefined, company: outlet || undefined });
+      if (hunterEmail) {
+        if (shouldUpdateDb && sourceId !== null) {
+          const update: Record<string, unknown> = { email: hunterEmail, enrichment_source_url: `hunter:${outletDomain || outlet}`, enriched_at: new Date().toISOString() };
+          let { error: upErr } = await admin.from(table).update(update).eq("id", sourceId);
+          if (upErr && /enrichment_source_url|enriched_at/.test(upErr.message ?? "")) {
+            await admin.from(table).update({ email: hunterEmail }).eq("id", sourceId);
+          }
+        }
+        return json({ email: hunterEmail, found: true, source: "hunter", confidence: 0.88, error: null });
+      }
+    }
+
     const queries = [
       `"${name}" ${outlet} ${title} ${outletDomain ? `site:${outletDomain}` : ""} email contact`,
       `"${name}" ${outlet} email`,
