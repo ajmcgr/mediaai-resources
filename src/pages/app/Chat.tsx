@@ -62,8 +62,8 @@ const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
-  { key: "xhandle", label: "X" },
   { key: "linkedin_url", label: "LinkedIn" },
+  { key: "xhandle", label: "X" },
 ];
 const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "name", label: "Name" },
@@ -71,6 +71,7 @@ const CREATOR_COLS: { key: keyof Row; label: string }[] = [
   { key: "ig_followers", label: "Followers" },
   { key: "category", label: "Topic" },
   { key: "email", label: "Email" },
+  { key: "linkedin_url", label: "LinkedIn" },
 ];
 
 const MIN_CHAT_RESULTS = 25;
@@ -215,7 +216,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
   if (expression) {
     const { data, error } = await supabase
       .from("journalist")
-      .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+      .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
       .or(expression)
       .limit(75);
 
@@ -231,6 +232,8 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           category: row.category ?? row.topics,
           country: row.country,
           email: row.email,
+          linkedin_url: row.linkedin_url,
+          xhandle: row.xhandle,
         });
       }
     }
@@ -242,7 +245,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
       const pattern = `%${safeSearchFragment(term)}%`;
       const { data, error } = await supabase
         .from("journalist")
-        .select("id,name,email,category,titles,topics,xhandle,outlet,country")
+        .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
         .or(`name.ilike.${pattern},email.ilike.${pattern},outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},xhandle.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
         .limit(25);
 
@@ -258,6 +261,8 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           category: row.category ?? row.topics,
           country: row.country,
           email: row.email,
+          linkedin_url: row.linkedin_url,
+          xhandle: row.xhandle,
         });
       }
       if (collected.length >= 75) break;
