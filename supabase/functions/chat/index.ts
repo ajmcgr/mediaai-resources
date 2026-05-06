@@ -623,23 +623,25 @@ function buildExaQueries(intent: Intent): string[] {
 
   if (intent.raw.trim()) queries.push(intent.raw.trim());
 
-  if (intent.kind === "journalists") {
-    if (topic && loc) queries.push(`${topic} journalists ${loc}`);
-    if (topic && loc) queries.push(`${topic === "technology" ? "tech" : topic} reporters ${loc === "United Kingdom" ? "UK" : loc}`);
-    if ((topic === "technology" || topic === "ai") && loc) queries.push(`AI journalists ${loc === "United Kingdom" ? "London" : loc}`);
-    if (topic && loc) queries.push(`${topic} writers ${loc === "United Kingdom" ? "UK" : loc} publication`);
-    if (topic) queries.push(`${topic} journalist bylines`);
-    if (topic) queries.push(`${topic} reporter contact`);
-    if (outlet && topic) queries.push(`site:${outlet}.com ${topic} reporter`);
-    if (topic && outlet) queries.push(`${topic} writer ${outlet}`);
+  const platform = intent.platforms[0] ?? "";
+  const followers = intent.minFollowers ? `${intent.minFollowers >= 1_000_000 ? `${intent.minFollowers / 1_000_000}m` : `${Math.round(intent.minFollowers / 1000)}k`} followers` : "";
+  const wantJ = intent.kind === "journalists" || intent.kind === "both";
+  const wantC = intent.kind === "creators" || intent.kind === "both";
+
+  if (wantJ) {
+    if (topic && loc) queries.push(`${topic} journalist ${loc}`);
+    if (topic && loc) queries.push(`${topic} reporter ${loc}`);
+    if (outlet && topic) queries.push(`${topic} reporter ${outlet}`);
+    if (outlet && topic) queries.push(`site:${outlet.replace(/\s+/g, "")}.com ${topic} reporter`);
+    if (topic && !loc) queries.push(`${topic} journalist bylines`);
     if (!topic && loc) queries.push(`${loc} journalist contact`);
-    if (!queries.length) queries.push(`${intent.raw} journalist`);
-  } else {
-    if (topic && loc) queries.push(`${topic} creator ${loc}`);
-    if (topic && loc) queries.push(`${topic} youtuber ${loc}`);
-    if (topic) queries.push(`${topic} influencer ${loc || ""}`.trim());
-    if (!queries.length) queries.push(`${intent.raw} creator`);
   }
+  if (wantC) {
+    if (topic && loc) queries.push(`${topic} creator ${loc} ${platform} ${followers}`.trim().replace(/\s+/g, " "));
+    if (topic && platform) queries.push(`${topic} ${platform} creator ${loc}`.trim());
+    if (topic) queries.push(`${topic} influencer ${loc || ""} ${followers}`.trim().replace(/\s+/g, " "));
+  }
+  if (!queries.length) queries.push(`${intent.raw}`.trim());
   return [...new Set(queries)].slice(0, 8);
 }
 
