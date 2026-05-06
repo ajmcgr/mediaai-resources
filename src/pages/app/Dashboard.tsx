@@ -234,9 +234,6 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <SavedSearchesList
-            onApply={(s) => { setTab(s.tab); setSearch(s.query.q ?? ""); setFilterValues({}); }}
-          />
 
           <div className="px-3 pt-2 pb-3 border-t border-border">
             <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Filters</div>
