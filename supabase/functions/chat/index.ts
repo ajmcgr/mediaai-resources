@@ -547,7 +547,7 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     ...intent.countries.slice(0, 4),
   ]);
   const allTerms = buildSearchTerms(intent);
-  const fields = ["name", "email", "outlet", "titles", "topics", "country", "category", "xhandle", "bio"];
+  const fields = ["name", "email", "outlet", "titles", "topics", "country", "location", "city", "region", "category", "xhandle", "bio"];
 
   const primary = await runJournalistQuery(
     admin,
@@ -572,7 +572,7 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
     intent.countryCanonical,
   ]);
   const allTerms = buildSearchTerms(intent);
-  const fields = ["name", "category", "email", "bio", "ig_handle", "youtube_url", "type"];
+  const fields = ["name", "category", "topics", "country", "location", "city", "region", "email", "bio", "ig_handle", "youtube_url", "type"];
 
   const primary = await runCreatorQuery(
     admin,
