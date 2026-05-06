@@ -227,6 +227,45 @@ function pickEmail(snippets: Array<{ url: string; text: string }>, name: string)
   return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
 }
 
+function normalizeLinkedInUrl(value: string): string | null {
+  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  if (!/linkedin\.com\/in\//i.test(cleanUrl)) return null;
+  return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
+}
+
+function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
+  const url = (hit.url || "").toLowerCase();
+  const haystack = `${hit.title ?? ""} ${hit.text ?? ""} ${url}`.toLowerCase();
+  const tokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+  let score = 0;
+  for (const token of tokens) if (haystack.includes(token) || url.includes(token)) score += 3;
+  for (const token of context.toLowerCase().split(/\s+/).filter((t) => t.length > 3)) if (haystack.includes(token)) score += 1;
+  if (/linkedin\.com\/in\//.test(url)) score += 2;
+  return score;
+}
+
+async function findLinkedInUrl(name: string, outlet: string, title: string, country: string): Promise<{ url: string | null; error: string | null }> {
+  const context = [outlet, title, country].filter(Boolean).join(" ");
+  const queries = [
+    `site:linkedin.com/in "${name}" ${context}`,
+    `"${name}" ${context} LinkedIn`,
+  ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
+
+  let firstError: string | null = null;
+  for (const query of queries) {
+    const res = await exaSearch(query, 10, ["linkedin.com"]);
+    if (res.error && !firstError) firstError = res.error;
+    const hits = res.results
+      .map((hit) => ({ hit, url: normalizeLinkedInUrl(hit.url) }))
+      .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
+      .map((item) => ({ ...item, score: scoreLinkedInHit(item.hit, name, context) }))
+      .sort((a, b) => b.score - a.score);
+    const best = hits.find((h) => h.score >= 5) ?? hits[0];
+    if (best) return { url: best.url, error: null };
+  }
+  return { url: null, error: firstError };
+}
+
 function json(payload: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(payload), { status, headers: jsonHeaders });
 }
