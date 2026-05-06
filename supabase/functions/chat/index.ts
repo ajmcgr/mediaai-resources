@@ -1,12 +1,14 @@
-// redeploy trigger: chat edge function sync 2026-05-05
+// redeploy trigger: chat edge function result-cap-exa-002 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+
+const CHAT_VERSION = "result-cap-exa-002";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "X-Chat-Version": "debug-credits-001",
+  "X-Chat-Version": CHAT_VERSION,
 };
 
 const SYSTEM_PROMPT = `You are Media AI's hybrid search assistant for PR & influencer outreach.
@@ -936,17 +938,19 @@ async function hybridSearch(
   // If they did, honor it but still cap to plan.
   if (!userExplicit) intent.count = planLimit;
   else intent.count = Math.min(intent.count, planLimit);
+  const target = intent.count;
 
-  const maxTotal = planLimit + exaLimit;
-  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(limitOverride, maxTotal) : maxTotal;
+  const maxTotal = target + exaLimit;
+  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(Math.max(limitOverride, target), maxTotal) : maxTotal;
   const safeOffset = Math.max(0, offset);
 
   const debug: Record<string, unknown> = {
+    version: CHAT_VERSION,
     original: q,
     intent: { kind: intent.kind, topics: intent.topics, countries: intent.countries, countryCanonical: intent.countryCanonical, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
     plan,
     cap: planLimit,
-    target: planLimit,
+    target,
     plan_limit: planLimit,
     exa_limit: exaLimit,
     maxTotal,
@@ -988,13 +992,13 @@ async function hybridSearch(
   if (dbStrict.length < Math.min(planLimit, 25)) dbStrict = dbRows;
   debug.db_strict_count = dbStrict.length;
 
-  // Cap database results at planLimit, exa already capped at exaLimit.
-  const dbRanked = rankRows(dbStrict, intent).slice(0, planLimit);
+  // Cap database results at the plan target, exa already capped at exaLimit.
+  const dbRanked = rankRows(dbStrict, intent).slice(0, target);
   const exaRanked = rankRows(exaRows, intent).slice(0, exaLimit);
   let combined = dedupe([...dbRanked, ...exaRanked]);
   if (intent.emailRequired) {
     const withEmail = combined.filter((r) => !!r.email);
-    if (withEmail.length >= Math.min(planLimit, 5)) combined = withEmail;
+    if (withEmail.length >= Math.min(target, 5)) combined = withEmail;
   }
   debug.deduped_count = combined.length;
 
@@ -1255,9 +1259,6 @@ Deno.serve(async (req) => {
         await admin.from("profiles").update({ chat_credits: summary.credits }).eq("id", user.id);
       } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
     }
-
-    const databaseFirstOnly = Deno.env.get("CHAT_DATABASE_FIRST_ONLY") === "true";
-    if (databaseFirstOnly) return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "database_first", {}, reqLimit, reqOffset);
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
