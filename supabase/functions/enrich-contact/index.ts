@@ -565,7 +565,7 @@ Deno.serve(async (req) => {
       ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio", "country"].includes(f),
     );
 
-    if (table === "creators" && fieldsToExtract.includes("youtube_url")) {
+    if (table === "creators" && (fieldsToExtract.includes("youtube_url") || fieldsToExtract.includes("youtube_subscribers"))) {
       tried.push("youtube-exa");
       const youtube = await findYouTubeUrl(name, existingIg, creatorContext);
       if (youtube.error) debug.youtube_error = youtube.error;
@@ -573,7 +573,7 @@ Deno.serve(async (req) => {
         if (shouldUpdateDb && sourceId !== null) {
           await admin.from(table).update({ youtube_url: youtube.url }).eq("id", sourceId);
         }
-        if (fieldsToExtract.length === 1) {
+        if (fieldsToExtract.length === 1 && fieldsToExtract.includes("youtube_url")) {
           return json({ email: null, youtube_url: youtube.url, found: true, source: "exa-youtube", confidence: 0.7, error: null, debug });
         }
         debug.youtube_url = youtube.url;
