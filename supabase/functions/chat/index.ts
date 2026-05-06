@@ -1238,6 +1238,8 @@ async function hybridSearch(
   debug.location_filter_applied = intent.locationTerms.length > 0;
   debug.topicFilterApplied = intent.topics.length > 0;
   debug.topic_filter_applied = intent.topics.length > 0;
+  debug.locationTerms = intent.locationTerms;
+  debug.topicTerms = filterRules.topicTerms;
   debug.email_filter_applied = intent.emailRequired;
   debug.platform_filter_applied = intent.platforms.length > 0;
   debug.follower_filter_applied = intent.minFollowers != null;
@@ -1305,7 +1307,9 @@ async function hybridSearch(
       : `Found ${paged.length} finance journalists in Germany.`;
   }
   if (paged.length === 0) {
-    if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
+    if ((intent.topic === "food" || intent.topics.includes("food")) && intent.countryCanonical === "India" && intent.kind === "journalists") {
+      debug.empty_state_message = "No exact food journalists in India found.";
+    } else if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
       debug.empty_state_message = "No exact finance journalists in Germany found.";
     } else {
       const filterParts: string[] = [];
