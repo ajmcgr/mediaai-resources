@@ -1333,13 +1333,13 @@ async function hybridSearch(
     });
     const rankedBroad = rankRows(newBroad, intent);
     broadAddedCount = rankedBroad.length;
-    rankedStrictRows = [...rankedStrictRows, ...rankedBroad].slice(0, 150);
+    rankedStrictRows = [...rankedStrictRows, ...rankedBroad].slice(0, 1200);
   }
   debug.broad_fallback_added = broadAddedCount;
   debug.ranked_pool_size = rankedStrictRows.length;
 
   const dbRanked = rankedStrictRows.filter((r) => r.source === "database").slice(0, target);
-  const exaRanked = rankedStrictRows.filter((r) => r.source === "exa").slice(0, exaLimit + 100);
+  const exaRanked = rankedStrictRows.filter((r) => r.source === "exa").slice(0, exaLimit + 900);
 
   // Normalize emails before merge
   const cleanEmail = (e: string | null | undefined): string | null => {
