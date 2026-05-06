@@ -805,7 +805,7 @@ function matchesAnyTerm(hay: string, terms: string[]): boolean {
   return terms.some((term) => {
     const cleaned = term.trim().toLowerCase();
     if (!cleaned) return false;
-    if (cleaned.length <= 4) return new RegExp(`\\b${cleaned.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\b`, "i").test(hay);
+    if (cleaned.length <= 4) return new RegExp(`\\b${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay);
     return hay.includes(cleaned);
   });
 }
