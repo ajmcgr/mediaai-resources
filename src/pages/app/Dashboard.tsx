@@ -304,7 +304,7 @@ const Dashboard = () => {
           {tab === "journalists" ? (
             <div className="min-w-[1140px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px_140px] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -324,7 +324,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_140px_160px_140px_160px_120px_140px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
