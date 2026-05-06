@@ -35,6 +35,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
     youtube_url: "Find YouTube",
     youtube_subscribers: "Find subs",
     category: "Find category",
+    country: "Find country",
   };
 
   const enrich = async () => {

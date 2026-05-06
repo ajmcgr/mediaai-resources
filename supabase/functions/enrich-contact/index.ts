@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-002" };
+const enrichVersionHeaders = { ...corsHeaders, "X-Enrich-Version": "creator-fields-003" };
 const jsonHeaders = { ...enrichVersionHeaders, "Content-Type": "application/json" };
 
 const JOURNALIST_FIELDS = ["email", "category", "titles", "xhandle", "outlet", "country", "linkedin_url"] as const;
@@ -236,9 +236,16 @@ function normalizeLinkedInUrl(value: string): string | null {
 }
 
 function normalizeYouTubeUrl(value: string): string | null {
-  const cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
+  let cleanUrl = value.trim().split(/[?#]/)[0].replace(/\/$/, "");
   if (!/(^|\.)youtube\.com\/(channel\/|c\/|user\/|@)/i.test(cleanUrl)) return null;
+  cleanUrl = cleanUrl.replace(/(youtube\.com\/@[^/]+)\/.+$/i, "$1");
   return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl.replace(/^\/\//, "")}`;
+}
+
+function youtubeUrlsFromHit(hit: { url: string; title?: string; text?: string }): string[] {
+  const raw = `${hit.url}\n${hit.title ?? ""}\n${hit.text ?? ""}`;
+  const matches = raw.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:channel\/[^\s"'<>),]+|c\/[^\s"'<>),]+|user\/[^\s"'<>),]+|@[^\s"'<>),/]+(?:\/[^\s"'<>),]+)?)/gi) ?? [];
+  return matches.map((u) => normalizeYouTubeUrl(u)).filter((u): u is string => Boolean(u));
 }
 
 function scoreLinkedInHit(hit: { url: string; title?: string; text?: string }, name: string, context: string): number {
@@ -277,18 +284,21 @@ async function findLinkedInUrl(name: string, outlet: string, title: string, coun
 async function findYouTubeUrl(name: string, igHandle: string, context: string): Promise<{ url: string | null; error: string | null }> {
   const cleanHandle = igHandle.replace(/^@/, "");
   const queries = [
+    cleanHandle ? `site:youtube.com/@ "${cleanHandle}"` : "",
     cleanHandle ? `site:youtube.com "${cleanHandle}" YouTube channel` : "",
-    `site:youtube.com "${name}" ${context} channel`,
+    `site:youtube.com/@ "${name}" ${context}`,
+    `site:youtube.com/channel "${name}" ${context}`,
+    `site:youtube.com "${name}" ${context} YouTube channel`,
     `"${name}" ${cleanHandle} YouTube channel`,
   ].map(sanitizeQuery).filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
 
   let firstError: string | null = null;
   for (const query of queries) {
-    const res = await exaSearch(query, 10, ["youtube.com"]);
+    const res = await exaSearch(query, 10);
     if (res.error && !firstError) firstError = res.error;
     const tokens = [cleanHandle, ...name.toLowerCase().split(/\s+/)].filter((t) => t.length > 1);
     const hits = res.results
-      .map((hit) => ({ hit, url: normalizeYouTubeUrl(hit.url) }))
+      .flatMap((hit) => youtubeUrlsFromHit(hit).map((url) => ({ hit, url })))
       .filter((item): item is { hit: { url: string; title: string; text: string }; url: string } => Boolean(item.url))
       .map((item) => {
         const haystack = `${item.hit.title} ${item.hit.text} ${item.hit.url}`.toLowerCase();
@@ -320,22 +330,34 @@ function numericId(value: unknown): number | null {
 }
 
 function parseCompactNumber(raw: string): number | null {
-  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb])?/i);
+  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*([kmb]|thousand|million|billion)?/i);
   if (!match) return null;
   const value = Number(match[1]);
   if (!Number.isFinite(value) || value <= 0) return null;
   const unit = (match[2] ?? "").toLowerCase();
-  return Math.round(value * (unit === "b" ? 1_000_000_000 : unit === "m" ? 1_000_000 : unit === "k" ? 1_000 : 1));
+  return Math.round(value * (/^b|billion/.test(unit) ? 1_000_000_000 : /^m|million/.test(unit) ? 1_000_000 : /^k|thousand/.test(unit) ? 1_000 : 1));
 }
 
 function findYouTubeSubscriberCount(snippets: Array<{ url: string; text: string; title?: string }>): number | null {
   for (const snippet of snippets) {
     const haystack = `${snippet.title ?? ""} ${snippet.text}`;
-    const match = haystack.match(/(\d[\d,.]*\s*[kmb]?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
+    const match = haystack.match(/(\d[\d,.]*(?:\.\d+)?\s*(?:k|m|b|thousand|million|billion)?)\s*(?:YouTube\s*)?(?:subscribers|subs)\b/i);
     const parsed = match ? parseCompactNumber(match[1]) : null;
     if (parsed) return parsed;
   }
   return null;
+}
+
+function deriveCountryFromText(snippets: Array<{ url: string; text: string; title?: string }>, countryContext: string): string | null {
+  const knownCountries = ["United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Italy", "Spain", "Netherlands", "Sweden", "Norway", "Denmark", "Finland", "Ireland", "Portugal", "Brazil", "Mexico", "India", "Japan", "South Korea", "Singapore", "United Arab Emirates", "South Africa", "New Zealand"];
+  const haystack = `${countryContext}\n${snippets.map((s) => `${s.title ?? ""} ${s.text}`).join("\n")}`;
+  const based = haystack.match(/(?:based|located|lives|from)\s+in\s+([A-Z][A-Za-z .'-]{2,40})/);
+  if (based) {
+    const phrase = based[1].replace(/\s+(?:and|with|who|where|as|for|\|).*$/i, "").trim();
+    const known = knownCountries.find((c) => new RegExp(`\\b${c.replace(/ /g, "\\s+")}\\b`, "i").test(phrase));
+    if (known) return known;
+  }
+  return knownCountries.find((c) => new RegExp(`\\b${c.replace(/ /g, "\\s+")}\\b`, "i").test(haystack)) ?? null;
 }
 
 function sourceTable(value: unknown): "journalist" | "creators" | null {
@@ -448,16 +470,19 @@ Deno.serve(async (req) => {
       return json({ email: null, found: false, source: "none", confidence: null, error: "insufficient_identity", reason: "insufficient_identity" });
     }
 
-    const outlet = clean(contact.outlet);
-    const title = clean(contact.title);
+    const outlet = clean(contact.outlet ?? row.outlet);
+    const title = clean(contact.title ?? contact.titles ?? row.title ?? row.titles);
     const country = clean(contact.country ?? row.country);
-    const sourceUrl = clean(contact.url ?? contact.source_url);
+    const categoryContext = clean(contact.category ?? row.category);
+    const bioContext = clean(contact.bio ?? row.bio).slice(0, 180);
+    const platformContext = clean(contact.platform ?? row.platform);
+    const sourceUrl = clean(contact.url ?? contact.source_url ?? row.url ?? row.website);
     let outletDomain = deriveDomain(clean(contact.domain ?? root.domain), outlet, sourceUrl);
     if (!outletDomain && fieldsToExtract.includes("email")) {
       const resolved = await resolveOutletDomain(outlet);
       if (resolved) outletDomain = resolved;
     }
-    const context = [outlet, title, country].filter(Boolean).join(" · ");
+    const context = [outlet, title, country, categoryContext].filter(Boolean).join(" · ");
 
     const debug: Record<string, unknown> = { providersTried: [] as string[] };
     const tried = debug.providersTried as string[];
@@ -539,12 +564,12 @@ Deno.serve(async (req) => {
 
     const existingIg = clean(contact.ig_handle ?? contact.handle ?? row.ig_handle);
     const existingYoutubeUrl = normalizeYouTubeUrl(clean(contact.youtube_url ?? row.youtube_url)) ?? "";
-    const creatorContext = [outlet, title, country, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
+    const creatorContext = [outlet, title, country, categoryContext, platformContext, bioContext, existingIg ? `@${existingIg.replace(/^@/, "")}` : "", existingYoutubeUrl].filter(Boolean).join(" ");
     const wantsCreatorSocial = table === "creators" && fieldsToExtract.some((f) =>
-      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio"].includes(f),
+      ["ig_handle", "ig_followers", "ig_engagement_rate", "youtube_url", "youtube_subscribers", "category", "bio", "country"].includes(f),
     );
 
-    if (table === "creators" && fieldsToExtract.includes("youtube_url")) {
+    if (table === "creators" && (fieldsToExtract.includes("youtube_url") || fieldsToExtract.includes("youtube_subscribers"))) {
       tried.push("youtube-exa");
       const youtube = await findYouTubeUrl(name, existingIg, creatorContext);
       if (youtube.error) debug.youtube_error = youtube.error;
@@ -552,7 +577,7 @@ Deno.serve(async (req) => {
         if (shouldUpdateDb && sourceId !== null) {
           await admin.from(table).update({ youtube_url: youtube.url }).eq("id", sourceId);
         }
-        if (fieldsToExtract.length === 1) {
+        if (fieldsToExtract.length === 1 && fieldsToExtract.includes("youtube_url")) {
           return json({ email: null, youtube_url: youtube.url, found: true, source: "exa-youtube", confidence: 0.7, error: null, debug });
         }
         debug.youtube_url = youtube.url;
@@ -566,6 +591,8 @@ Deno.serve(async (req) => {
       fieldsToExtract.includes("email") && table !== "creators" ? `"${name}" email` : "",
       table === "journalist" && outletDomain ? `"${name}" journalist contact site:${outletDomain}` : "",
       table === "journalist" && outlet ? `"${name}" ${outlet} journalist contact profile` : "",
+      fieldsToExtract.includes("country") ? `"${name}" ${creatorContext} based in country location` : "",
+      fieldsToExtract.includes("country") ? `"${name}" ${creatorContext} creator profile country` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} instagram followers` : "",
       wantsCreatorSocial ? `"${name}" ${creatorContext} youtube channel subscribers` : "",
       wantsCreatorSocial && (existingYoutubeUrl || debug.youtube_url) ? `"${existingYoutubeUrl || String(debug.youtube_url)}" subscribers` : "",
@@ -600,6 +627,10 @@ Deno.serve(async (req) => {
     if (fieldsToExtract.includes("youtube_subscribers") && !extracted.youtube_subscribers) {
       const subs = findYouTubeSubscriberCount(allSnippets);
       if (subs) extracted.youtube_subscribers = subs;
+    }
+    if (fieldsToExtract.includes("country") && !extracted.country) {
+      const derivedCountry = deriveCountryFromText(allSnippets, creatorContext);
+      if (derivedCountry) extracted.country = derivedCountry;
     }
     if (extracted.email) {
       const cleaned = extracted.email.trim().replace(/[),.;:]+$/, "");
