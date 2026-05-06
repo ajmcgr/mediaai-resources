@@ -11,6 +11,7 @@ export type Journalist = {
   xhandle: string | null;
   outlet: string | null;
   country: string | null;
+  linkedin_url: string | null;
 };
 
 export type Creator = {
