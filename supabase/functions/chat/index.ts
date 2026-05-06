@@ -1024,8 +1024,8 @@ async function hybridSearch(
     rows: paged,
     debug,
     intent,
-    cap: maxTotal,
-    pagination: { limit: effectiveLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
+    cap: planLimit,
+    pagination: { limit: requestedLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
     sources: { database: dbReturned, web: webReturned },
   };
 }
