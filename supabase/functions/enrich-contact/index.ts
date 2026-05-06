@@ -457,16 +457,10 @@ Deno.serve(async (req) => {
     // 5) LinkedIn URL via Exa (works without an extra API)
     if (fieldsToExtract.includes("linkedin_url")) {
       tried.push("linkedin-exa");
-      const liQ = sanitizeQuery(`"${name}"${outlet ? ` ${outlet}` : ""} site:linkedin.com/in`);
-      const liRes = liQ ? await exaSearch(liQ, 8) : { results: [], error: null, providerResponseText: null };
-      const nameTokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
-      const liHit = liRes.results.find((r) => {
-        const u = (r.url || "").toLowerCase();
-        if (!/linkedin\.com\/in\//.test(u)) return false;
-        return nameTokens.some((tok) => u.includes(tok));
-      }) ?? liRes.results.find((r) => /linkedin\.com\/in\//.test((r.url || "").toLowerCase()));
-      if (liHit) {
-        const liUrl = liHit.url.split("?")[0];
+      const linkedIn = await findLinkedInUrl(name, outlet, title, country);
+      if (linkedIn.error) debug.linkedin_error = linkedIn.error;
+      if (linkedIn.url) {
+        const liUrl = linkedIn.url;
         if (shouldUpdateDb && sourceId !== null) {
           await admin.from(table).update({ linkedin_url: liUrl }).eq("id", sourceId);
         }
@@ -529,7 +523,7 @@ Deno.serve(async (req) => {
       upErr = r.error;
     }
 
-    return json({ email, found: Boolean(email), source: email ? "exa" : "none", confidence: email ? 0.72 : null, error: email ? null : "no_email_found", debug });
+    return json({ email, linkedin_url: extracted.linkedin_url ?? debug.linkedin_url ?? null, found: Boolean(email || extracted.linkedin_url || debug.linkedin_url), source: email ? "exa" : extracted.linkedin_url || debug.linkedin_url ? "exa-linkedin" : "none", confidence: email ? 0.72 : extracted.linkedin_url || debug.linkedin_url ? 0.7 : null, error: email || extracted.linkedin_url || debug.linkedin_url ? null : "no_email_found", debug });
   } catch (e) {
     return json({ email: null, found: false, source: "none", confidence: null, error: null, internal_error: e instanceof Error ? e.message : String(e) });
   }
