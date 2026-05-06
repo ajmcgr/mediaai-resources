@@ -336,12 +336,12 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu journalistId={r.id} />
                       </div>
-                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" name={r.name} outletDomain={r.outlet} />
-                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" name={r.name} outletDomain={r.outlet} />
-                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} />
-                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} />
-                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} />
-                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} />
+                      <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.category} kind="journalist" id={r.id} field="category" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
+                      <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
                     </div>
                   ))}
                   <div ref={sentinelRef} className="h-12 flex items-center justify-center text-xs text-muted-foreground">
@@ -385,11 +385,11 @@ const Dashboard = () => {
                         <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
                         <AddToListMenu creatorId={r.id} />
                       </div>
-                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" />
+                      <EnrichCell value={r.ig_handle} kind="creator" id={r.id} field="ig_handle" name={r.name} row={r} />
                       <Cell>{r.ig_followers != null ? r.ig_followers.toLocaleString() : null}</Cell>
                       <Cell>{r.ig_engagement_rate != null ? `${(r.ig_engagement_rate * 100).toFixed(2)}%` : null}</Cell>
-                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" />
-                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" />
+                      <EnrichCell value={r.category} kind="creator" id={r.id} field="category" name={r.name} row={r} />
+                      <EnrichCell value={r.type} kind="creator" id={r.id} field="type" name={r.name} row={r} />
                       <Cell>
                         {r.youtube_url ? (
                           <a href={r.youtube_url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate block">
