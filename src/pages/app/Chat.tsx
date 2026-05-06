@@ -1101,6 +1101,12 @@ const Chat = () => {
                                     );
                                   })();
                                 })()
+                              ) : c.key === "linkedin_url" ? (
+                                typeof v === "string" && /linkedin\.com\/in\//i.test(v) ? (
+                                  <a href={v} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">LinkedIn</a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
                               ) : v == null || v === "" ? (
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
