@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
@@ -46,7 +46,7 @@ type Row = {
   youtube_url?: string | null;
   reason?: string;
 };
-type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean };
+type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
 type Results =
   | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
@@ -369,6 +369,7 @@ const Chat = () => {
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
 
   const savedSearches = useSavedSearches(!!user);
@@ -383,6 +384,21 @@ const Chat = () => {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
+
+  // Infinite-scroll: when sentinel below the table enters viewport, fetch next page.
+  const loadMoreRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+    if (!results?.pagination?.has_more) return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) loadMoreRef.current();
+      }
+    }, { root: null, rootMargin: "200px", threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [results?.pagination?.has_more, results?.rows.length]);
 
   // Confirm Stripe top-up on return from checkout (synchronous backup to webhook)
   useEffect(() => {
@@ -563,13 +579,14 @@ const Chat = () => {
     }
   };
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!results || !results.pagination?.has_more || loadingMore || !lastQuery) return;
     setLoadingMore(true);
     try {
-      const nextOffset = results.pagination.offset + results.pagination.limit;
+      const pag = results.pagination;
+      const nextOffset = (pag.next_offset ?? (pag.offset + pag.limit)) as number;
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: lastQuery }], limit: results.pagination.limit, offset: nextOffset },
+        body: { messages: [{ role: "user", content: lastQuery }], limit: 100, offset: nextOffset },
       });
       if (error) throw error;
       if (data?.usage) applyServerUsage(data.usage);
@@ -580,13 +597,18 @@ const Chat = () => {
           pagination: data.pagination ?? prev.pagination,
           sources: data.sources ?? prev.sources,
         } : prev);
+      } else if (data?.pagination) {
+        // No new rows but server still updates pagination (e.g. has_more flipped to false)
+        setResults((prev) => prev ? { ...prev, pagination: data.pagination } : prev);
       }
     } catch (e) {
       toast.error((e as Error).message || "Could not load more");
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [results, loadingMore, lastQuery, applyServerUsage]);
+
+  useEffect(() => { loadMoreRef.current = loadMore; }, [loadMore]);
 
   const buyTokens = async (pack: TopupPack) => {
     if (!user) { navigate("/login"); return; }
@@ -1051,10 +1073,14 @@ const Chat = () => {
               </div>
             )}
             {results.pagination?.has_more && results.rows.length > 0 && (
-              <div className="p-4 flex justify-center">
-                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
-                  {loadingMore ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading…</> : "Load more"}
-                </Button>
+              <div ref={loadMoreSentinelRef} className="p-4 flex justify-center">
+                {loadingMore ? (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading more…
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={loadMore}>Load more</Button>
+                )}
               </div>
             )}
           </section>

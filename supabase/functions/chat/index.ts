@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-mode-007 2026-05-06
+// redeploy trigger: chat edge function relax-loc-pagination-008 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-mode-007";
+const CHAT_VERSION = "relax-loc-pagination-008";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -300,10 +300,59 @@ function parseIntent(q: string): Intent {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = (plan ?? "").toLowerCase();
-  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 500;
+  // free=50, starter=100, growth/pro/enterprise=unlimited (large sentinel for in-memory ranking)
+  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 100_000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
+
+// ---------- Inferred location: outlet/domain -> country ----------
+// Used when a row has blank country/city/region but its outlet/domain implies a country.
+const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
+  "United States": [
+    "techcrunch", "wired.com", "bloomberg", "cnbc", "wsj.com", "wall street journal",
+    "nytimes", "new york times", "business insider", "the verge", "theverge",
+    "venturebeat", "ars technica", "arstechnica", "forbes", "axios", "fast company",
+    "fastcompany", "cnet", "zdnet", "gizmodo", "mashable", "engadget", "recode",
+    "the information", "protocol.com", "buzzfeed", "vox.com", "washingtonpost",
+    "usatoday", "latimes", "nbcnews", "abcnews", "cbsnews", "npr.org", "politico",
+    "huffpost", "time.com", "newsweek", "atlantic", "wired",
+  ],
+  "United Kingdom": [
+    "bbc.co.uk", "bbc.com", "theguardian", "guardian.co.uk", "ft.com", "financial times",
+    "telegraph.co.uk", "thetimes.co.uk", "independent.co.uk", "dailymail",
+    "wired.co.uk", "techcrunch.co.uk", "metro.co.uk", "sky.com", "skynews",
+    "press gazette", "pressgazette", "the sun", "the mirror",
+  ],
+  "Japan": [
+    "nikkei", "coinpost", "bitcoinmagazine.jp", "coindesk.jp", "asahi.com",
+    "japantimes", "mainichi.jp", "yomiuri", "kyodonews", "nhk.or.jp",
+  ],
+  "India": [
+    "indianexpress", "timesofindia", "business standard", "business-standard",
+    "ndtv.com", "moneycontrol", "thehindu", "hindustantimes", "livemint",
+    "economictimes", "firstpost", "scroll.in", "thewire.in", "yourstory",
+    "inc42", "entrackr",
+  ],
+  "Germany": [
+    "spiegel.de", "zeit.de", "faz.net", "handelsblatt", "sueddeutsche",
+    "welt.de", "bild.de", "t-online.de", "heise.de", "golem.de", "wired.de",
+  ],
+  "France": [
+    "lemonde.fr", "lefigaro.fr", "liberation.fr", "lesechos.fr", "leparisien",
+    "france24", "rfi.fr", "challenges.fr", "lexpress.fr",
+  ],
+  "Singapore": ["straitstimes", "channelnewsasia", "cna", "businesstimes.com.sg", "techinasia"],
+  "Australia": ["smh.com.au", "theaustralian", "news.com.au", "abc.net.au", "afr.com"],
+  "Canada": ["cbc.ca", "theglobeandmail", "nationalpost", "thestar.com", "ctvnews"],
+};
+
+// All known country canonicals — used to detect "explicit wrong country" rejections.
+const KNOWN_COUNTRY_CANONICALS = new Set<string>([
+  ...Object.values(COUNTRY_SYNONYMS).map((c) => c.canonical.toLowerCase()),
+  ...Object.values(EXTRA_LOCATIONS).map((c) => c.canonical.toLowerCase()),
+]);
+
 
 // ---------- Unified row ----------
 
@@ -777,6 +826,9 @@ function dedupe(rows: Row[]): Row[] {
 }
 
 function rankRows(rows: Row[], intent: Intent): Row[] {
+  const inferredOutlets = intent.countryCanonical
+    ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []).map((o) => o.toLowerCase())
+    : [];
   const score = (r: Row): number => {
     let s = 0;
     const name = (r.name ?? "").toLowerCase();
@@ -785,34 +837,61 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
     const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
+    const locHay = [cnt, (r.location ?? "").toLowerCase(), (r.city ?? "").toLowerCase(), (r.region ?? "").toLowerCase(), (r.bio ?? "").toLowerCase()].join(" | ");
+    const outletHay = `${out} ${(r.source_url ?? "").toLowerCase()}`;
+
+    // Topic
+    let topicMatched = false;
     for (const t of intent.topics) {
-      if (cat.includes(t)) s += 10;
-      if (ttl.includes(t)) s += 4;
-      if (out.includes(t)) s += 3;
-      if (hay.includes(t)) s += 2;
+      if (cat.includes(t)) { s += 50; topicMatched = true; }
+      else if (ttl.includes(t)) { s += 25; topicMatched = true; }
+      else if (out.includes(t)) { s += 10; topicMatched = true; }
+      else if (hay.includes(t)) { s += 5; topicMatched = true; }
     }
-    for (const c of intent.countries) {
-      if (cnt.includes(c)) s += 8;
-      if (out.includes(c)) s += 2;
-      if (hay.includes(c)) s += 1;
+
+    // Location: explicit (+100) or inferred outlet/domain (+70)
+    let locMatched = false;
+    for (const c of intent.locationTerms) {
+      if (locHay.includes(c)) { s += 100; locMatched = true; break; }
     }
+    if (!locMatched && inferredOutlets.some((o) => outletHay.includes(o))) { s += 70; locMatched = true; }
+
+    // Free terms
     for (const t of intent.freeTerms) {
       if (name.includes(t)) s += 3;
       if (cat.includes(t)) s += 3;
       if (out.includes(t)) s += 2;
       if (hay.includes(t)) s += 1;
     }
-    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 7;
+
+    if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 25;
     if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 8;
     if (r.outlet && !/linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com/.test(out)) s += 4;
-    if (intent.countryCanonical === "United Kingdom" && /london|uk|united kingdom|britain|england|bbc|guardian|wired\.co\.uk|ft\.com|telegraph|independent/.test(hay)) s += 5;
-    if (r.email) s += intent.emailRequired ? 12 : 4;
+    if (r.email) s += intent.emailRequired ? 30 : 20;
     if (r.source === "database") s += 20;
     if (!r.name && r.source === "exa") s -= 15;
     if (r.source === "exa" && (!r.name || !isPersonName(r.name))) s -= 45;
     if (r.source === "exa" && (!r.outlet || INVALID_OUTLET_RE.test(r.outlet))) s -= 30;
     if (r.source_url && BAD_EXA_HOST_RE.test(r.source_url.toLowerCase())) s -= 25;
     if (/neural runner|generic|directory|job|salary|course/.test(hay)) s -= 20;
+
+    // Explicit wrong country penalty
+    if (intent.countryCanonical && cnt) {
+      const wanted = intent.countryCanonical.toLowerCase();
+      if (!cnt.includes(wanted) && !intent.locationTerms.some((t) => cnt.includes(t))) {
+        for (const known of KNOWN_COUNTRY_CANONICALS) {
+          if (known === wanted) continue;
+          if (cnt === known || cnt.includes(known)) { s -= 100; break; }
+        }
+      }
+    }
+
+    // Topic mismatch penalty for populated unrelated category
+    if (intent.topics.length && cat && !topicMatched) {
+      const unrelated = ["cars","automotive","auto","tv","television","sports","sport","entertainment","movies","music","gaming"];
+      if (unrelated.some((u) => cat.includes(u))) s -= 100;
+    }
+
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
@@ -874,11 +953,50 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
   const locationFieldHay = (values: unknown[]) => values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
   const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
   const locationHayOf = (r: Row) => locationFieldHay([r.country, r.location, r.city, r.region, r.bio]);
+  const outletHayOf = (r: Row) => normalizeSearchText([r.outlet, r.source_url].filter(Boolean).join(" "));
   const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
   const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
   const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
   const matchKind = (r: Row) => intent.kind === "journalists" ? r.source_table === "journalist" : intent.kind === "creators" ? r.source_table === "creators" : true;
-  const matchLocation = (r: Row) => !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+
+  // Tier 2 inferred outlets for the user's target country.
+  const inferredOutlets = intent.countryCanonical
+    ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []).map(normalizeSearchText).filter(Boolean)
+    : [];
+
+  const matchExplicitLocation = (r: Row) =>
+    !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
+  const matchInferredLocation = (r: Row) => {
+    if (!inferredOutlets.length) return false;
+    const hay = outletHayOf(r);
+    if (!hay) return false;
+    return inferredOutlets.some((o) => hay.includes(o));
+  };
+  // Reject only when the row has a *populated* country that clearly maps to a
+  // different known country canonical. Blank country = unknown, allowed through.
+  const isExplicitWrongCountry = (r: Row) => {
+    if (!intent.countryCanonical) return false;
+    const c = normalizeSearchText(r.country);
+    if (!c) return false;
+    if (matchesAnyTerm(c, intent.locationTerms)) return false;
+    const wanted = normalizeSearchText(intent.countryCanonical);
+    for (const known of KNOWN_COUNTRY_CANONICALS) {
+      if (known === wanted) continue;
+      if (c === known || c.includes(known) || known.includes(c)) return true;
+    }
+    return false;
+  };
+
+  const matchLocation = (r: Row) => {
+    if (!intent.locationTerms.length) return true;
+    if (matchExplicitLocation(r)) return true;
+    if (matchInferredLocation(r)) return true;
+    if (isExplicitWrongCountry(r)) return false;
+    // Blank/unknown location for DB rows — let them through; ranker deprioritizes.
+    // Exa rows still get the stricter check inside isValidRow().
+    return r.source === "database";
+  };
+
   const matchTopic = (r: Row) => {
     if (!intent.topics.length) return true;
     if (intent.topic === "finance" || intent.topics.includes("finance")) {
@@ -900,7 +1018,16 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
     if (!matchTopic(row)) return "topic_mismatch";
     return null;
   };
-  return { topicTerms, afterKind, afterLocation, afterTopic, rejectionReason };
+  return {
+    topicTerms,
+    afterKind,
+    afterLocation,
+    afterTopic,
+    rejectionReason,
+    matchExplicitLocation,
+    matchInferredLocation,
+    inferredOutlets,
+  };
 }
 
 function norm(value: string | null | undefined): string {
@@ -942,12 +1069,16 @@ export function isValidRow(row: Row, intent: Intent): boolean {
   if (row.source === "exa" && (!outletNorm || outletNorm === "—")) return false;
   if (row.source === "exa" && outletNorm && normalizeSearchText(outletNorm) === normalizeSearchText(name)) return false;
   if (intent.kind === "journalists" && !isPersonName(name)) return false;
-  // location requirement for exa rows
+  // location requirement for exa rows: explicit hay match OR inferred outlet/host match
   if (row.source === "exa" && intent.locationTerms.length) {
     const hayLoc = [row.country, row.location, row.city, row.region, row.bio, row.source_url, row.title, row.outlet]
       .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
     const ok = intent.locationTerms.some((t) => hayLoc.includes(String(t).toLowerCase()));
-    if (!ok) return false;
+    const inferredList = intent.countryCanonical ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []) : [];
+    const okInferred = inferredList.length
+      ? inferredList.some((o) => hayLoc.includes(o.toLowerCase()))
+      : false;
+    if (!ok && !okInferred) return false;
   }
   // topic requirement for exa rows
   if (row.source === "exa" && intent.topics.length) {
@@ -1168,24 +1299,31 @@ async function hybridSearch(
   plan: string | null,
   limitOverride: number | null = null,
   offset = 0,
-): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; has_more: boolean }; sources: { database: number; web: number } }> {
+): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
   const planNorm = (plan ?? "").toLowerCase();
   const isStarter = planNorm === "starter";
   const isGrowthOrHigher = ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(planNorm);
-  // Exa cap: starter = 100, growth+ = unlimited (large sentinel), default = 50
+  // Plan caps: free=50 total, starter=100 total, growth+=unlimited (large sentinel)
+  const maxTotalForPlan = planLimit; // 50 / 100 / 100_000
   const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
   const userExplicit = intent.count > 0;
-  // If user did not explicitly request a count, use the plan's database cap as target.
-  // If they did, honor it but still cap to plan.
+  // Use plan cap as the in-memory target so ranking pool is large enough for paging.
   if (!userExplicit) intent.count = planLimit;
   else intent.count = Math.min(intent.count, planLimit);
   const target = intent.count;
 
-  const maxTotal = target + exaLimit;
-  const requestedLimit = limitOverride && limitOverride > 0 ? Math.min(Math.max(limitOverride, target), maxTotal) : maxTotal;
+  // Per-page request limit: default 100, cap at 100, never overshoot remaining plan budget.
+  const pageDefault = 100;
   const safeOffset = Math.max(0, offset);
+  const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
+  const requestedLimit = Math.max(1, Math.min(
+    limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+    100,
+    remainingBudget,
+  ));
+  const maxTotal = maxTotalForPlan;
 
   const debug: Record<string, unknown> = {
     version: CHAT_VERSION,
@@ -1418,17 +1556,24 @@ async function hybridSearch(
   debug.enriched_emails_found = 0;
 
   const ranked = rankRows(combined, intent).filter((r) => isValidRow(r, intent));
-  const paged = ranked.slice(safeOffset, safeOffset + requestedLimit);
+  // Cap total available rows to plan budget for paging.
+  const totalEstimated = Math.min(ranked.length, maxTotalForPlan);
+  const paged = ranked.slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated));
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
-  const totalEstimated = ranked.length;
-  const hasMore = (safeOffset + requestedLimit) < totalEstimated;
+  const returned = paged.length;
+  const consumed = safeOffset + returned;
+  const hasMore = consumed < totalEstimated && consumed < maxTotalForPlan;
+  const nextOffset = hasMore ? consumed : null;
 
   debug.db_returned = dbReturned;
   debug.web_returned = webReturned;
   debug.final_count = paged.length;
   debug.finalCount = paged.length;
   debug.has_more = hasMore;
+  debug.next_offset = nextOffset;
+  debug.returned = returned;
+  debug.maxTotalForPlan = maxTotalForPlan;
   if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
     debug.response_message = paged.length === 0
       ? "No exact finance journalists in Germany found."
@@ -1472,7 +1617,7 @@ async function hybridSearch(
     debug,
     intent,
     cap: planLimit,
-    pagination: { limit: requestedLimit, offset: safeOffset, total_estimated: totalEstimated, has_more: hasMore },
+    pagination: { limit: requestedLimit, offset: safeOffset, total_estimated: totalEstimated, returned, has_more: hasMore, next_offset: nextOffset },
     sources: { database: dbReturned, web: webReturned },
   };
 }
@@ -1720,7 +1865,7 @@ if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
     let lastQuery = "";
     let lastDebug: Record<string, unknown> = {};
     let lastIntent: Intent | null = null;
-    let lastPagination: { limit: number; offset: number; total_estimated: number; has_more: boolean } | null = null;
+    let lastPagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null } | null = null;
     let lastSources: { database: number; web: number } = { database: 0, web: 0 };
     let totalTokens = 0;
 
