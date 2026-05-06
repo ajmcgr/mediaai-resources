@@ -217,16 +217,6 @@ const MediaKit = () => {
           </div>
         </section>
 
-        <section className="mb-16">
-          <h2 className="text-2xl font-medium mb-6">Social banners & icons</h2>
-          <AssetGrid assets={SOCIALS} />
-        </section>
-
-        <section className="mb-16">
-          <h2 className="text-2xl font-medium mb-6">Favicons & app icons</h2>
-          <AssetGrid assets={FAVICONS} />
-        </section>
-
         <section className="rounded-2xl border bg-muted/40 p-8">
           <h2 className="text-xl font-medium mb-2">Need something else?</h2>
           <p className="text-muted-foreground">
