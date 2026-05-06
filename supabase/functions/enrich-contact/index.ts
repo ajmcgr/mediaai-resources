@@ -61,6 +61,31 @@ function pickEmail(snippets: Array<{ url: string; text: string }>, name: string)
   return matches.find((m) => nameParts.some((p) => m.email.toLowerCase().includes(p))) ?? matches[0];
 }
 
+const REQUIRED_CONTACT_FIELDS = ["name", "outlet", "title", "source", "source_id", "source_table", "url", "country"];
+
+function json(payload: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(payload), { status, headers: jsonHeaders });
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function clean(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
+function numericId(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function sourceTable(value: unknown): "journalist" | "creators" | null {
+  if (value === "journalist" || value === "journalists") return "journalist";
+  if (value === "creator" || value === "creators") return "creators";
+  return null;
+}
+
 async function extractFields(
   name: string,
   context: string,
