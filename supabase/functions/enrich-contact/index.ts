@@ -488,6 +488,10 @@ Deno.serve(async (req) => {
       .slice(0, 30);
 
     if (!allSnippets.length) {
+      if (debug.linkedin_url) {
+        const linkedinUrl = String(debug.linkedin_url);
+        return json({ email: null, linkedin_url: linkedinUrl, found: true, source: "exa-linkedin", confidence: 0.7, error: null, debug });
+      }
       return json({ email: null, found: false, source: "none", confidence: null, error: "no_email_found", reason: outletDomain ? "no_hunter_match" : "no_domain", provider_error: providerErrors[0] ?? null, debug });
     }
 
