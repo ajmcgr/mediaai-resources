@@ -27,12 +27,7 @@ import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  useSavedSearches,
-  useUpsertSavedSearch,
-  useTogglePinSavedSearch,
-  useDeleteSavedSearch,
-} from "@/hooks/useSavedSearches";
+import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 
 type Tab = "journalists" | "creators";
 
