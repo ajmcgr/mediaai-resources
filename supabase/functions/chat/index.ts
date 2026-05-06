@@ -1067,7 +1067,8 @@ async function hybridSearch(
   // Location applies to fields that actually represent geography. Excludes name/title/reason
   // to avoid false matches like "wired.co.uk" passing for any UK query unrelated to location.
   const locHayOf = (r: Row) =>
-    [r.country, r.outlet, r.source_url].map(norm).join(" | ");
+    (r.source === "exa" ? [r.outlet, r.source_url, r.title, r.reason] : [r.country, r.outlet, r.source_url])
+      .map(norm).join(" | ");
   const topicHayOf = (r: Row) =>
     [r.category, r.title, r.outlet, r.reason].map(norm).join(" | ");
   const strongTopicHayOf = (r: Row) =>
@@ -1122,23 +1123,27 @@ async function hybridSearch(
     return matchesAnyTerm(hay, intent.topics);
   };
 
-  const filterJournalist = (r: Row) =>
-    matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r);
-  const filterCreator = (r: Row) =>
-    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r) && matchTopic(r);
+  const filterJournalistLocation = (r: Row) =>
+    matchLocation(r) && matchOutlet(r) && matchEmail(r);
+  const filterCreatorLocation = (r: Row) =>
+    matchLocation(r) && matchPlatform(r) && matchFollowers(r) && matchEmail(r);
 
-  const jStrict = jRows.filter(filterJournalist);
-  const cStrict = cRows.filter(filterCreator);
+  const jLocationStrict = jRows.filter(filterJournalistLocation);
+  const cLocationStrict = cRows.filter(filterCreatorLocation);
+  const jStrict = jLocationStrict.filter(matchTopic);
+  const cStrict = cLocationStrict.filter(matchTopic);
   const strictDbCount = jStrict.length + cStrict.length;
 
   // ----- Exa only AFTER strict DB filter, only if strict DB < 50 -----
   let exaRows: Row[] = [];
+  let exaLocationStrict: Row[] = [];
   let exaStrict: Row[] = [];
   debug.search_order = "strict_db_then_web_if_needed";
   if (strictDbCount < 50) {
     try {
       exaRows = await searchExa(intent, exaLimit);
-      exaStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r) && matchTopic(r));
+      exaLocationStrict = exaRows.filter((r) => matchLocation(r) && matchOutlet(r) && matchEmail(r));
+      exaStrict = exaLocationStrict.filter(matchTopic);
     } catch (error) {
       console.warn("[chat.exa_failed_continuing_with_db]", error instanceof Error ? error.message : String(error));
       debug.exa_error = error instanceof Error ? error.message : String(error);
