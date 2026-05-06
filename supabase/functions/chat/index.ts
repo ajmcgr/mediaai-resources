@@ -1,7 +1,7 @@
-// redeploy trigger: chat edge function strict-mode-006 2026-05-06
+// redeploy trigger: chat edge function strict-mode-007 2026-05-06
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "strict-mode-006";
+const CHAT_VERSION = "strict-mode-007";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,7 +68,7 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   health: ["health", "wellness", "fitness", "medical", "healthcare"],
   beauty: ["beauty", "makeup", "skincare", "cosmetics"],
   fashion: ["fashion", "style", "apparel"],
-  food: ["food", "cooking", "culinary", "restaurant"],
+  food: ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"],
   travel: ["travel", "tourism", "destination"],
   gaming: ["gaming", "games", "esports"],
   sports: ["sports", "athletics"],
@@ -93,7 +93,7 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
   australia: { canonical: "Australia", variants: ["australia", "australian"] },
   germany: { canonical: "Germany", variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg", "leipzig"] },
   france: { canonical: "France", variants: ["france", "french"] },
-  india: { canonical: "India", variants: ["india", "indian"] },
+  india: { canonical: "India", variants: ["india", "new delhi", "delhi", "mumbai", "bangalore", "bengaluru", "kolkata", "chennai", "hyderabad", "pune"] },
   singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
   japan: { canonical: "Japan", variants: ["japan", "japanese"] },
   china: { canonical: "China", variants: ["china", "chinese"] },
@@ -148,7 +148,7 @@ const EXTRA_LOCATIONS: Record<string, { canonical: string; variants: string[] }>
   taiwan: { canonical: "Taiwan", variants: ["taiwan", "taipei"] },
 };
 
-type Intent = {
+export type Intent = {
   raw: string;
   kind: "journalists" | "creators" | "both";
   topic: string | null;
@@ -307,7 +307,7 @@ function capForPlan(plan: string | null | undefined): number {
 
 // ---------- Unified row ----------
 
-type Row = {
+export type Row = {
   source: "database" | "exa";
   source_id?: string | number;
   source_url?: string;
