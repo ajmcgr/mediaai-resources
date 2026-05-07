@@ -29,6 +29,8 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
+import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
+import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -55,17 +57,18 @@ type Results =
   | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
 
-const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
+const JOURNALIST_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "title", label: "Title" },
   { key: "outlet", label: "Outlet" },
+  { key: "authority", label: "Authority" },
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
   { key: "linkedin_url", label: "LinkedIn" },
   { key: "xhandle", label: "X" },
 ];
-const CREATOR_COLS: { key: keyof Row; label: string }[] = [
+const CREATOR_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "ig_handle", label: "Handle" },
   { key: "ig_followers", label: "Followers" },
@@ -810,6 +813,8 @@ const Chat = () => {
   };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
+  const journalistOutlets = results?.kind === "journalists" ? results.rows.map((r) => r.outlet ?? null) : [];
+  const authorities = useOutletAuthorities(journalistOutlets);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -1102,13 +1107,15 @@ const Chat = () => {
                           )}
                         </td>
                         {cols.map((c) => {
-                          const v = r[c.key];
+                          const v = c.key === "authority" ? null : r[c.key as keyof Row];
                           return (
                             <td
                               key={String(c.key)}
                               className={`px-4 py-2.5 ${c.key === "email" ? "w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
                             >
-                              {c.key === "email" ? (
+                              {c.key === "authority" ? (
+                                <AuthorityBadge score={resolveAuthority(authorities.data, r.outlet)} />
+                              ) : c.key === "email" ? (
                                 (() => {
                                   const raw = typeof v === "string" ? v.trim().toLowerCase() : "";
                                   const valid = !!raw && !["null", "undefined", "-", "n/a"].includes(raw) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);

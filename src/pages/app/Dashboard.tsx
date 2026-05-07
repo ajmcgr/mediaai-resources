@@ -19,6 +19,9 @@ import {
   useJournalistsInfinite, useCreatorsInfinite, type DirectoryFilters,
 } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
+import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
+import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3 } from "lucide-react";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,7 +34,7 @@ import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
+const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Authority", "Country"];
 const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs", "Country"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
@@ -42,7 +45,8 @@ const Cell = ({ children }: { children: React.ReactNode }) => (
 
 type FilterKey =
   | "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics"
-  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min";
+  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min"
+  | "authority_min" | "authority_max";
 
 const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
@@ -53,6 +57,8 @@ const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon
   { key: "outlet", label: "Search by Outlet", icon: Building2 },
   { key: "title", label: "Search by Title", icon: Briefcase },
   { key: "topics", label: "Search by Topics", icon: Hash },
+  { key: "authority_min", label: "Min Authority (DR)", icon: BarChart3, placeholder: "e.g. 70", inputType: "number" },
+  { key: "authority_max", label: "Max Authority (DR)", icon: BarChart3, placeholder: "e.g. 100", inputType: "number" },
 ];
 
 const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
@@ -77,6 +83,7 @@ const Dashboard = () => {
   const filters: DirectoryFilters = useMemo(() => {
     const f: DirectoryFilters = { q: search.trim() || undefined };
     for (const [k, v] of Object.entries(filterValues)) {
+      if (k === "authority_min" || k === "authority_max") continue; // client-side
       const val = v?.trim();
       if (val) (f as Record<string, string>)[k] = val;
     }
@@ -89,11 +96,45 @@ const Dashboard = () => {
   const creators = useCreatorsInfinite(filters);
   const active = tab === "journalists" ? journalists : creators;
 
-  const allRows = useMemo(
+  const rawRows = useMemo(
     () => active.data?.pages.flatMap(p => p.rows) ?? [],
     [active.data]
   );
   const total = active.data?.pages[0]?.count ?? 0;
+
+  // Authority sort + cache lookup (journalists only)
+  const [authoritySort, setAuthoritySort] = useState<"none" | "desc" | "asc">("none");
+  const journalistOutlets = useMemo(
+    () => tab === "journalists" ? (rawRows as Array<{ outlet?: string | null }>).map(r => r.outlet ?? null) : [],
+    [tab, rawRows]
+  );
+  const authorities = useOutletAuthorities(journalistOutlets);
+
+  const allRows = useMemo(() => {
+    if (tab !== "journalists") return rawRows;
+    const min = Number(filterValues.authority_min);
+    const max = Number(filterValues.authority_max);
+    const hasMin = Number.isFinite(min) && min > 0;
+    const hasMax = Number.isFinite(max) && max > 0;
+    let rows = rawRows as Array<{ outlet?: string | null } & Record<string, unknown>>;
+    if (hasMin || hasMax) {
+      rows = rows.filter((r) => {
+        const score = resolveAuthority(authorities.data, r.outlet);
+        if (score == null) return false;
+        if (hasMin && score < min) return false;
+        if (hasMax && score > max) return false;
+        return true;
+      });
+    }
+    if (authoritySort !== "none") {
+      rows = [...rows].sort((a, b) => {
+        const sa = resolveAuthority(authorities.data, a.outlet) ?? -1;
+        const sb = resolveAuthority(authorities.data, b.outlet) ?? -1;
+        return authoritySort === "desc" ? sb - sa : sa - sb;
+      });
+    }
+    return rows;
+  }, [tab, rawRows, authorities.data, authoritySort, filterValues.authority_min, filterValues.authority_max]);
 
   // Bulk selection — reset on tab change
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -264,7 +305,21 @@ const Dashboard = () => {
                       {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                     </button>
                     {isOpen && (
-                      <div className="px-3 pb-2 pt-1">
+                      <div className="px-3 pb-2 pt-1 space-y-1.5">
+                        {key === "authority_min" && (
+                          <div className="flex flex-wrap gap-1">
+                            {[90, 80, 70, 50, 30].map((n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setFilterValues((f) => ({ ...f, authority_min: String(n) }))}
+                                className={`px-2 py-0.5 text-[11px] rounded border ${value === String(n) ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border hover:bg-secondary/70"}`}
+                              >
+                                DR {n}+
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <Input
                           autoFocus
                           type={inputType ?? "text"}
@@ -302,9 +357,9 @@ const Dashboard = () => {
           </div>
 
           {tab === "journalists" ? (
-            <div className="min-w-[1140px]">
+            <div className="min-w-[1250px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_110px_120px] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -312,7 +367,24 @@ const Dashboard = () => {
                       aria-label="Select all"
                     />
                   </div>
-                  {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
+                  {JOURNALIST_COLS.map((c) => {
+                    if (c === "Authority") {
+                      const SortIcon = authoritySort === "desc" ? ArrowDown : authoritySort === "asc" ? ArrowUp : ArrowUpDown;
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setAuthoritySort((s) => s === "none" ? "desc" : s === "desc" ? "asc" : "none")}
+                          className="px-3 py-3 flex items-center gap-1 hover:text-foreground text-left"
+                          title="Sort by Authority (Domain Rating)"
+                        >
+                          {c}
+                          <SortIcon className="h-3 w-3" />
+                        </button>
+                      );
+                    }
+                    return <div key={c} className="px-3 py-3">{c}</div>;
+                  })}
                 </div>
               </div>
               {journalists.isLoading ? (
@@ -324,7 +396,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_110px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -346,6 +418,9 @@ const Dashboard = () => {
                       <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
+                      <div className="px-3 py-3 flex items-center">
+                        <AuthorityBadge score={resolveAuthority(authorities.data, r.outlet)} />
+                      </div>
                       <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
                     </div>
                   ))}
