@@ -758,7 +758,7 @@ const Index = () => {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
               <h2 className="text-3xl md:text-5xl font-medium tracking-tight mb-8 leading-tight" style={{ fontFamily: "var(--font-heading)" }}>
-                Find journalists and creators. Start exploring Media AI today.
+                Find journalists and creators. Start exploring Media AI.
               </h2>
               <Button
                 onClick={startTrial}
