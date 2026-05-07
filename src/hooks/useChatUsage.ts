@@ -96,7 +96,10 @@ async function loadUsageFallback(userId: string, base?: ChatUsage): Promise<Chat
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
     : 20_000);
   const used = base?.used ?? toNumber((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used);
-  const profileCredits = toNumber(base?.credits ?? profile?.chat_credits);
+  const profileCredits = Math.max(
+    toNumber(base?.credits),
+    toNumber(profile?.chat_credits)
+  );
   const ledgerPurchased = Array.isArray(topupResult.data)
     ? (topupResult.data as Array<{ tokens?: number | string }>).reduce((sum, row) => sum + toNumber(row.tokens), 0)
     : 0;
