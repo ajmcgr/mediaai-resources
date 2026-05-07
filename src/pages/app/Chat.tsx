@@ -57,17 +57,18 @@ type Results =
   | { kind: "journalists" | "creators"; rows: Row[]; query?: string; intent?: { count?: number } | null; debug?: Record<string, unknown> | null; pagination?: Pagination | null; sources?: { database: number; web: number } | null }
   | null;
 
-const JOURNALIST_COLS: { key: keyof Row; label: string }[] = [
+const JOURNALIST_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "title", label: "Title" },
   { key: "outlet", label: "Outlet" },
+  { key: "authority", label: "Authority" },
   { key: "category", label: "Topic" },
   { key: "country", label: "Country" },
   { key: "email", label: "Email" },
   { key: "linkedin_url", label: "LinkedIn" },
   { key: "xhandle", label: "X" },
 ];
-const CREATOR_COLS: { key: keyof Row; label: string }[] = [
+const CREATOR_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "ig_handle", label: "Handle" },
   { key: "ig_followers", label: "Followers" },
