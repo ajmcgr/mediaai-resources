@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Plus, Minus, ArrowRight, Star, X as XIcon, CornerDownRight, Twitter, Linkedin } from "lucide-react";
+import { Check, Plus, Minus, ArrowRight, Star, X as XIcon, CornerDownRight, Linkedin } from "lucide-react";
+
+const XLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-6.99L4.6 22H1.34l8.02-9.16L1 2h7.02l4.84 6.39L18.244 2zm-1.2 18h1.86L7.04 4H5.06l11.984 16z" />
+  </svg>
+);
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
