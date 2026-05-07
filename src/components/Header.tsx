@@ -69,13 +69,15 @@ const Header = () => {
                 >
                   <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
                 </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                >
-                  <Link to="/pricing">Inbox</Link>
-                </Button>
+                {!hasGrowth && (
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                  >
+                    <Link to="/pricing">Inbox</Link>
+                  </Button>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
