@@ -1,90 +1,110 @@
-# Fix /chat result limits, infinite scroll, and under-retrieval
+# Keyword Monitor — Fix & Upgrade Plan
 
-This is a substantive refactor of the chat search pipeline (`supabase/functions/chat/index.ts`) and the Chat page (`src/pages/app/Chat.tsx`). Enrichment, credits, billing, and UI styling are explicitly out of scope.
+This is a large, multi-layer change. Below is the scoped plan before any code is touched. No chat/database/enrichment work. No full redesign.
 
-## 1. Edge function: pagination contract
+## 1. Branding rename: Brand Monitor → Keyword Monitor
 
-`supabase/functions/chat/index.ts`
+Search/replace across:
+- `src/pages/app/Monitor.tsx` (title, subtitles, empty states, buttons)
+- `src/components/Header.tsx` / sidebar nav links
+- `src/pages/Index.tsx` (homepage card if present)
+- `src/hooks/useMonitor.ts` (comments only — keep DB table names)
+- Edge function email subjects/bodies (`monitor-check`, `monitor-run-all`)
 
-- Accept new request fields: `limit` (default 100, max 100), `offset` (default 0).
-- Resolve plan (free/starter/growth) using existing subscription helper.
-- Compute `maxTotal`:
-  - free → 50
-  - starter → 100
-  - growth → unlimited (Number.POSITIVE_INFINITY)
-- Cap effective `limit` against `maxTotal - offset`.
-- Build the full ranked candidate pool once per request (current pipeline already does this), then slice `[offset, offset + limit)`.
-- Return:
-  ```
-  { results, pagination: { limit, offset, returned, has_more, next_offset }, debug }
-  ```
-- `has_more = (offset + returned) < totalRanked && (offset + returned) < maxTotal`.
-- `next_offset = has_more ? offset + returned : null`.
-- Preserve existing `reason`, error envelope, and `X-...` headers.
+New subtitle: *"Track brands, founders, competitors, products, and keywords across Google News."*
 
-## 2. Edge function: looser, multi-tier retrieval
+DB table names (`brand_monitors`, `monitor_updates`, `monitor_snapshots`) stay — only UI strings change.
 
-Goal: return many more relevant rows for queries like "tech journalists in the united states" without dropping rows that have blank country/city.
+## 2. Database schema additions (migration)
 
-Pipeline (replace current strict gate):
+Extend `brand_monitors`:
+- `founder_names text[] default '{}'`
+- `product_names text[] default '{}'`
+- `digest_last_sent_at timestamptz`
+- `last_status text` (last run status: ok / error / no_results)
+- `last_error text`
+- `last_mentions_found int default 0`
 
-1. **Parse intent** — reuse existing parser; expose `kind` (journalist|creator|any), `topic`, `locationCountry`, `locationCity`.
-2. **Kind filter (hard)** — journalist queries query only `journalist`; creator queries only `creators`. Never mix.
-3. **Topic filter (soft)** — semantic synonym groups (tech, finance, food, crypto, sports, entertainment, politics, health, travel, fashion). Match against `topic`, `category`, `titles/title`, `outlet`, `bio`, `tags`. Reject only rows whose populated category/topic clearly contradicts (e.g. "cars" for finance).
-4. **Location matching (tiered, never rejecting on blanks)**:
-   - Tier 1 explicit: word-boundary match on `country`, `city`, `location`, `region`, `bio`. Use `\b` regex; "india" must not match "indiana"/"indianapolis". Also handle aliases (US ↔ United States ↔ USA, UK ↔ United Kingdom ↔ Britain, etc.).
-   - Tier 2 inferred: per-country outlet/domain map (US: TechCrunch, Wired, Bloomberg, CNBC, WSJ, NYTimes, Business Insider, The Verge, VentureBeat, Ars Technica, Forbes, Axios, Fast Company, CNET, ZDNet, Gizmodo, Mashable; Japan: Nikkei, CoinPost, bitcoinmagazine.jp, coindesk.jp; India: Indian Express, Times of India, Business Standard, NDTV, Moneycontrol; UK, Germany, France basic sets). Match outlet name OR publication domain.
-   - Tier 3 augmentation: existing Exa path remains, used to top up when DB pool is thin.
-   - Rows with blank location fields are NOT rejected — they fall through to Tier 2/3 scoring.
-   - Rows with explicit *wrong* country are rejected (-100 in scoring → cut).
-5. **Ranking** (new scoring function):
-   - +100 explicit location
-   - +70 inferred outlet/domain location
-   - +50 topic match
-   - +25 exact title match
-   - +20 has verified email
-   - +15 recent activity (e.g. `enriched_at`/`updated_at` within 180 days)
-   - -100 explicit wrong country
-   - -100 obvious topic mismatch (populated category in unrelated bucket)
-   - Keep rows with score ≥ threshold (e.g. 50).
-6. **Pagination** — slice ranked pool per Section 1.
+Extend `monitor_updates` (additive — keep existing rows):
+- `mention_type text` ('brand' | 'competitor' | 'founder' | 'keyword' | 'product')
+- `matched_keyword text`
+- `source text` ('google_news' | 'blog' | 'news_site' | 'newsletter')
+- `title text`
+- `publisher text`
+- `published_at timestamptz`
+- `image_url text`
+- `sentiment text` ('positive' | 'neutral' | 'negative')
 
-## 3. Edge function: candidate breadth
+Existing `summary`, `why_it_matters`, `pr_score` columns stay (still used by AI evaluation path); new schema makes them optional.
 
-- Raise initial DB candidate pull when a topic/location is detected (e.g. fetch up to 2000 journalist rows matching topic synonyms across `category/topic/outlet/titles`, then rank/filter in-memory). Current cap at ~150–500 is the main reason for under-retrieval.
-- Keep existing Exa breadth caps as-is.
+## 3. Backend: rewrite `monitor-check` around Google News
 
-## 4. Edge function: debug payload
+Replace the current "fetch & diff brand website" approach with a Google News RSS / search pipeline:
 
-Return `debug` with: `strictMode, parsedIntent, kindFilterApplied, topicFilterApplied, locationFilterApplied, explicitLocationMatches, inferredLocationMatches, webMatches, rawCandidateCount, afterKindFilter, afterTopicFilter, afterLocationFilter, finalCount, has_more, rejectedExamples` (first 5).
+- For each `brand_names + founder_names + competitor_urls (host) + keywords + products`, query Google News RSS:
+  `https://news.google.com/rss/search?q=<term>&hl=en-US&gl=US&ceid=US:en`
+- Parse items (title, link, pubDate, source, snippet, image enclosure when present).
+- Skip items already stored (dedupe by `(monitor_id, url)`).
+- Lightweight sentiment (rule-based on title — fast & free; AI optional flag).
+- Insert into `monitor_updates` with new columns populated.
+- Update `brand_monitors.last_checked_at`, `last_status`, `last_error`, `last_mentions_found`.
+- Return `{ ok, inserted, results }`.
+- Proper CORS on every response (already OK pattern). Structured `{ error, details }`.
 
-## 5. Empty-state messaging
+Add log lines: `MONITOR_RUN_CHECK_STARTED/FINISHED`, `MONITOR_SCHEDULED_CHECK_STARTED/FINISHED`, `MONITOR_EMAIL_SENT`.
 
-If `finalCount === 0` after ranking, response includes `reason: "no_matches"` and a user-facing `message: "No exact matches found. Try broadening topic or location."`. Do not pad with irrelevant rows.
+Keep `monitor-run-all` cron (already wired) — just calls the new `monitor-check` per active monitor.
 
-## 6. Frontend: infinite scroll on `/chat`
+## 4. Email digests (Resend via gateway)
 
-`src/pages/app/Chat.tsx`
+In `monitor-check`:
+- `instant` → email per high-priority mention (founder mention, competitor major coverage, negative sentiment, keyword spike).
+- `daily` / `weekly` → only sent by `monitor-run-all` when `digest_last_sent_at` is older than 24h / 7d. Bundle top mentions into branded HTML using existing `_shared/email-template.ts`. CTA button "Open Keyword Monitor".
 
-- Track per-message: `results`, `pagination`, `loadingMore`.
-- On initial send: invoke chat with `{ query, limit: 100, offset: 0 }`.
-- Add an `IntersectionObserver` sentinel below the results table for the latest assistant message.
-- When sentinel intersects and `pagination.has_more && !loadingMore`:
-  - call chat with `{ query, limit: 100, offset: pagination.next_offset }`
-  - append rows (dedupe by `source_table+source_id` and by `email`)
-  - update `pagination`
-- Plan-based behavior is enforced server-side; the client loads until `has_more` is false.
-- Show a small "Loading more…" spinner near the sentinel; hide when no more.
-- No styling changes beyond minimal spinner + sentinel.
+## 5. Frontend: `src/pages/app/Monitor.tsx`
 
-## Out of scope
-- Enrichment (`enrich-contact`), Hunter, Snov, save-contact
-- Credits / chat token metering math (existing usage tracking still wraps the call)
-- Billing, Stripe
-- UI redesign, fonts, colors, layout
+Keep current layout. Add (compact, not bloated):
 
-## Verification
-- Manual: run "tech journalists in the united states" and confirm result count grows past prior ~17, and that scrolling triggers a second batch on growth.
-- Manual: "india tech journalists" must not return Indiana/Indianapolis rows.
-- Manual: a creator query returns no journalist rows and vice versa.
-- Build passes (typecheck handled by harness).
+- **Header row**: title "Keyword Monitor" + tiny `Powered by Google News` badge with Google logo (asset path: `/google-news.svg` — placeholder until user provides the asset; I'll add a fallback inline SVG).
+- **Trust row** (small muted icons): Google News · Daily monitoring · Email alerts · Competitor tracking.
+- **KPI cards** (5 small cards): Total · Today · Competitor · Positive · Negative.
+- **Charts** (recharts, already in deps): mentions-over-time line + source pie + sentiment bar. 7d / 30d toggle.
+- **Updates list**: mention badges (type + source) + publisher + published_at + image thumbnail when available.
+- **Per-monitor debug strip** (collapsed): last check time / status / mentions found / last error.
+- **Run check** handler: console logs (`MONITOR_RUN_CHECK_CLICKED`, `_PAYLOAD`, `_RESPONSE`), invalidate queries, toast `Found X new mentions` / `No new mentions found.`
+- **Form**: add `founder_names` and `product_names` inputs; rename "Brand" form labels to "Keyword Monitor".
+
+## 6. Hook updates: `src/hooks/useMonitor.ts`
+
+- Type extensions for new fields on `BrandMonitor` / `MonitorUpdate`.
+- New `useMonitorStats(monitorId?)` returning aggregated counts for KPI cards (client-side reduce over `useUpdates` results — no extra round trip).
+
+## 7. Homepage card (`src/pages/Index.tsx`)
+
+If a "Brand Monitor" card exists, rename to "Keyword Monitor" + small Google badge. Show: mentions today, active keywords, latest mention headline, sentiment trend dot. Skip if no such card exists today (will check).
+
+## 8. Out of scope (explicit)
+
+- No chat / database / enrichment changes.
+- No global redesign — only Monitor page + homepage card + nav label.
+- No new tables for things that fit existing ones.
+
+## Technical notes
+
+- Google News RSS is free and unauthenticated. Reasonable rate (one request per term, sequential, ~10 max per monitor per run). Timeout 15s per fetch.
+- RSS parsing: minimal regex parser inside the edge function (no extra deps).
+- Sentiment: simple positive/negative wordlist on the title. Marked clearly as heuristic.
+- `recharts` is already installed (used elsewhere) — verify before importing.
+- New columns added with `default` values so existing rows remain valid.
+- Migration is additive; nothing destructive.
+
+## Deliverables order
+
+1. Migration (extend tables).
+2. Edge function rewrite (`monitor-check`) + small `monitor-run-all` tweak for digests.
+3. Hook + types update.
+4. Monitor page UI (KPIs, charts, badges, debug, run-check logs/toasts, founder/product inputs, Google badge, trust row).
+5. Nav + homepage rename + card.
+6. QA: run preview, click Run check on existing monitor, confirm network call, confirm rows, confirm UI refresh.
+
+Approve and I'll ship in this order.
