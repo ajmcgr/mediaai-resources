@@ -34,7 +34,7 @@ import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 
 type Tab = "journalists" | "creators";
 
-const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Country"];
+const JOURNALIST_COLS = ["Name", "Email", "LinkedIn", "Category", "Titles", "xHandle", "Outlet", "Authority", "Country"];
 const CREATOR_COLS = ["Name", "Email", "LinkedIn", "IG Handle", "IG Followers", "Engagement", "Category", "YouTube", "YT Subs", "Country"];
 
 const Cell = ({ children }: { children: React.ReactNode }) => (
