@@ -57,6 +57,8 @@ const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon
   { key: "outlet", label: "Search by Outlet", icon: Building2 },
   { key: "title", label: "Search by Title", icon: Briefcase },
   { key: "topics", label: "Search by Topics", icon: Hash },
+  { key: "authority_min", label: "Min Authority (DR)", icon: BarChart3, placeholder: "e.g. 70", inputType: "number" },
+  { key: "authority_max", label: "Max Authority (DR)", icon: BarChart3, placeholder: "e.g. 100", inputType: "number" },
 ];
 
 const CREATOR_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
