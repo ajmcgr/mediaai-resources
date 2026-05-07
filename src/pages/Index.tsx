@@ -811,14 +811,14 @@ const Index = () => {
           <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Connect</h4>
             <div className="flex items-center gap-3">
-              <a href="https://x.com/" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Twitter className="h-4 w-4" /></a>
-              <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Linkedin className="h-4 w-4" /></a>
+              <a href="https://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Twitter className="h-4 w-4" /></a>
+              <a href="https://www.linkedin.com/company/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Linkedin className="h-4 w-4" /></a>
             </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground text-center mt-12">
           Copyright © {new Date().getFullYear()} Works App, Inc. Built with 🫶🏻 by{" "}
-          <a href="https://works.xyz" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Works</a>.
+          <a href="https://works.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">Works</a>.
         </p>
       </footer>
     </div>
