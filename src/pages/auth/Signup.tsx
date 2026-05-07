@@ -45,7 +45,7 @@ const Signup = () => {
   const handleGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
+      options: { redirectTo: `${window.location.origin}/chat` },
     });
     if (error) toast.error(error.message);
   };
