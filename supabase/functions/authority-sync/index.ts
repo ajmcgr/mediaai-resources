@@ -66,8 +66,30 @@ Deno.serve(async (req) => {
     if (data.length < PAGE) break;
     from += PAGE;
   }
-  const domains = Array.from(domainSet);
-  console.log("AUTHORITY_SYNC_DOMAINS", { count: domains.length });
+  const allDomains = Array.from(domainSet);
+  console.log("AUTHORITY_SYNC_DOMAINS", { count: allDomains.length });
+
+  // Skip domains synced in the last 25 days (saves Ahrefs credits).
+  const cutoff = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString();
+  const fresh = new Set<string>();
+  {
+    let f = 0;
+    for (;;) {
+      const { data, error } = await admin
+        .from("outlet_authority")
+        .select("domain")
+        .gte("updated_at", cutoff)
+        .eq("source", "ahrefs")
+        .range(f, f + PAGE - 1);
+      if (error) { console.error("AUTHORITY_SYNC_FRESH_QUERY_FAILED", error); break; }
+      if (!data?.length) break;
+      for (const r of data) if (r.domain) fresh.add(r.domain);
+      if (data.length < PAGE) break;
+      f += PAGE;
+    }
+  }
+  const domains = allDomains.filter((d) => !fresh.has(d));
+  console.log("AUTHORITY_SYNC_TO_FETCH", { total: allDomains.length, fresh: fresh.size, toFetch: domains.length });
 
   let updated = 0;
   let failed = 0;
