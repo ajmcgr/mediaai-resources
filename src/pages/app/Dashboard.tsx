@@ -304,7 +304,21 @@ const Dashboard = () => {
                       {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                     </button>
                     {isOpen && (
-                      <div className="px-3 pb-2 pt-1">
+                      <div className="px-3 pb-2 pt-1 space-y-1.5">
+                        {key === "authority_min" && (
+                          <div className="flex flex-wrap gap-1">
+                            {[90, 80, 70, 50, 30].map((n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setFilterValues((f) => ({ ...f, authority_min: String(n) }))}
+                                className={`px-2 py-0.5 text-[11px] rounded border ${value === String(n) ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border hover:bg-secondary/70"}`}
+                              >
+                                DR {n}+
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <Input
                           autoFocus
                           type={inputType ?? "text"}
