@@ -206,7 +206,7 @@ const Account = () => {
             <h2 className="text-sm font-medium text-muted-foreground">
               Chat credits
             </h2>
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" onClick={refreshUsage} disabled={usageLoading}>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" onClick={() => refreshUsage(true)} disabled={usageLoading}>
               <RefreshCw className={`h-3.5 w-3.5 ${usageLoading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
