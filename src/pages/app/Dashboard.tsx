@@ -19,6 +19,9 @@ import {
   useJournalistsInfinite, useCreatorsInfinite, type DirectoryFilters,
 } from "@/hooks/useDirectory";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
+import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
+import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3 } from "lucide-react";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
