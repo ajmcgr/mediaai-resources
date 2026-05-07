@@ -11,25 +11,41 @@ export type BrandMonitor = {
   website_url: string;
   competitor_urls: string[];
   keywords: string[];
+  founder_names: string[];
+  product_names: string[];
   email_alerts: boolean;
   alert_frequency: AlertFrequency;
   is_active: boolean;
   last_checked_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  last_mentions_found: number | null;
   created_at: string;
 };
+
+export type MentionType = "brand" | "competitor" | "founder" | "keyword" | "product";
 
 export type MonitorUpdate = {
   id: string;
   monitor_id: string;
   url: string;
   url_kind: string;
-  summary: string;
+  summary: string | null;
   why_it_matters: string | null;
   pr_score: number | null;
   next_action: string | null;
   pitch_angle: string | null;
   email_sent: boolean;
   detected_at: string;
+  // new Google News fields
+  mention_type: MentionType | null;
+  matched_keyword: string | null;
+  source: string | null;
+  title: string | null;
+  publisher: string | null;
+  published_at: string | null;
+  image_url: string | null;
+  sentiment: "positive" | "neutral" | "negative" | null;
 };
 
 export const useMonitors = () => {
