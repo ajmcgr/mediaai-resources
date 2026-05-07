@@ -11,6 +11,7 @@ export interface ChatUsage {
 }
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7);
+const toNumber = (value: unknown) => Number(value ?? 0) || 0;
 
 export const useChatUsage = () => {
   const { user } = useAuth();
@@ -25,13 +26,14 @@ export const useChatUsage = () => {
     const { data, error } = await supabase.rpc("chat_usage_summary");
     if (!error && Array.isArray(data) && data[0]) {
       const row = data[0] as Record<string, unknown>;
-      setUsage({
-        allowance: Number(row.allowance ?? 0),
-        used: Number(row.used ?? 0),
-        remaining: Number(row.remaining ?? 0),
-        credits: Number(row.credits ?? 0),
+      const rpcUsage = {
+        allowance: toNumber(row.allowance),
+        used: toNumber(row.used),
+        remaining: toNumber(row.remaining),
+        credits: toNumber(row.credits),
         period_ym: String(row.period_ym ?? ""),
-      });
+      };
+      setUsage(await loadUsageFallback(user.id, rpcUsage) ?? rpcUsage);
     } else if (error) {
       console.error("chat_usage_summary failed", error);
       const fallback = await loadUsageFallback(user.id);
@@ -62,9 +64,9 @@ export const useChatUsage = () => {
   return { usage, loading, error, refresh, applyServerUsage };
 };
 
-async function loadUsageFallback(userId: string): Promise<ChatUsage | null> {
+async function loadUsageFallback(userId: string, base?: ChatUsage): Promise<ChatUsage | null> {
   const period = currentPeriod();
-  const [profileResult, usageResult] = await Promise.all([
+  const [profileResult, usageResult, topupResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("chat_credits, sub_active, plan_identifier")
@@ -76,9 +78,13 @@ async function loadUsageFallback(userId: string): Promise<ChatUsage | null> {
       .eq("user_id", userId)
       .eq("period_ym", period)
       .maybeSingle(),
+    supabase
+      .from("topup_transactions")
+      .select("tokens")
+      .eq("user_id", userId),
   ]);
 
-  if (profileResult.error) return null;
+  if (profileResult.error && !base) return null;
 
   const profile = profileResult.data as {
     chat_credits?: number | string | null;
@@ -86,17 +92,23 @@ async function loadUsageFallback(userId: string): Promise<ChatUsage | null> {
     plan_identifier?: string | null;
   } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
-  const allowance = profile?.sub_active
+  const allowance = base?.allowance ?? (profile?.sub_active
     ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
-    : 20_000;
-  const used = Number((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
-  const credits = Number(profile?.chat_credits ?? 0);
+    : 20_000);
+  const used = base?.used ?? toNumber((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used);
+  const profileCredits = toNumber(base?.credits ?? profile?.chat_credits);
+  const ledgerPurchased = Array.isArray(topupResult.data)
+    ? (topupResult.data as Array<{ tokens?: number | string }>).reduce((sum, row) => sum + toNumber(row.tokens), 0)
+    : 0;
+  const ledgerCredits = Math.max(ledgerPurchased - Math.max(used - allowance, 0), 0);
+  const credits = Math.max(profileCredits, ledgerCredits);
+  const monthlyRemaining = Math.max(allowance - used, 0);
 
   return {
     allowance,
     used,
     credits,
-    remaining: Math.max(allowance - used, 0) + credits,
-    period_ym: period,
+    remaining: Math.max(base?.remaining ?? 0, monthlyRemaining + credits),
+    period_ym: base?.period_ym || period,
   };
 }
