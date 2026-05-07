@@ -37,7 +37,7 @@ function slugify(s: string) {
 
 async function callAI(body: unknown) {
   const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) throw new Error("LOVABLE_API_KEY missing");
+  if (!key) throw new Error("LOVABLE_API_KEY missing (env)");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
