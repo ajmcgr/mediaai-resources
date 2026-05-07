@@ -813,6 +813,8 @@ const Chat = () => {
   };
 
   const cols = results?.kind === "creators" ? CREATOR_COLS : JOURNALIST_COLS;
+  const journalistOutlets = results?.kind === "journalists" ? results.rows.map((r) => r.outlet ?? null) : [];
+  const authorities = useOutletAuthorities(journalistOutlets);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
