@@ -35,10 +35,10 @@ function slugify(s: string) {
     .slice(0, 80);
 }
 
-async function callAI(body: unknown) {
-  const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) throw new Error("LOVABLE_API_KEY missing (env)");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+async function callAI(body: Record<string, unknown>) {
+  const key = Deno.env.get("OPENAI_API_KEY");
+  if (!key) throw new Error("OPENAI_API_KEY missing");
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     // 1. Generate post (JSON: title, description, html content)
     const writeRes = await callAI({
-      model: "google/gemini-2.5-flash",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
