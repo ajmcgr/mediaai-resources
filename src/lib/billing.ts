@@ -53,20 +53,11 @@ export async function confirmCheckout(sessionId: string) {
 }
 
 export async function confirmTopup(sessionId: string | null) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
-
-  const payload = {
-    action: "confirm",
-    session_id: sessionId,
-    user_id: session.user.id,
-    user_email: session.user.email,
-  };
-
-  const data = sessionId
-    ? await authedInvoke("confirm-topup", { session_id: sessionId })
-    : await authedInvoke("create-topup", payload);
-
+  if (!sessionId) {
+    // Without a session_id we can't confirm reliably; rely on the Stripe webhook.
+    return { ok: true, tokens: 0, already: false };
+  }
+  const data = await authedInvoke("confirm-topup", { session_id: sessionId });
   return {
     ok: Boolean(data.ok),
     tokens: Number(data.tokens ?? data.granted ?? 0),
