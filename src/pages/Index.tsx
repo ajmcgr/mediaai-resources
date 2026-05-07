@@ -817,7 +817,7 @@ const Index = () => {
           <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Connect</h4>
             <div className="flex items-center gap-3">
-              <a href="https://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Twitter className="h-4 w-4" /></a>
+              <a href="https://x.com/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><XLogo className="h-4 w-4" /></a>
               <a href="https://www.linkedin.com/company/trymediaai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"><Linkedin className="h-4 w-4" /></a>
             </div>
           </div>
