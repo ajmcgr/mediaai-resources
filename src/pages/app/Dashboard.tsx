@@ -95,11 +95,45 @@ const Dashboard = () => {
   const creators = useCreatorsInfinite(filters);
   const active = tab === "journalists" ? journalists : creators;
 
-  const allRows = useMemo(
+  const rawRows = useMemo(
     () => active.data?.pages.flatMap(p => p.rows) ?? [],
     [active.data]
   );
   const total = active.data?.pages[0]?.count ?? 0;
+
+  // Authority sort + cache lookup (journalists only)
+  const [authoritySort, setAuthoritySort] = useState<"none" | "desc" | "asc">("none");
+  const journalistOutlets = useMemo(
+    () => tab === "journalists" ? (rawRows as Array<{ outlet?: string | null }>).map(r => r.outlet ?? null) : [],
+    [tab, rawRows]
+  );
+  const authorities = useOutletAuthorities(journalistOutlets);
+
+  const allRows = useMemo(() => {
+    if (tab !== "journalists") return rawRows;
+    const min = Number(filterValues.authority_min);
+    const max = Number(filterValues.authority_max);
+    const hasMin = Number.isFinite(min) && min > 0;
+    const hasMax = Number.isFinite(max) && max > 0;
+    let rows = rawRows as Array<{ outlet?: string | null } & Record<string, unknown>>;
+    if (hasMin || hasMax) {
+      rows = rows.filter((r) => {
+        const score = resolveAuthority(authorities.data, r.outlet);
+        if (score == null) return false;
+        if (hasMin && score < min) return false;
+        if (hasMax && score > max) return false;
+        return true;
+      });
+    }
+    if (authoritySort !== "none") {
+      rows = [...rows].sort((a, b) => {
+        const sa = resolveAuthority(authorities.data, a.outlet) ?? -1;
+        const sb = resolveAuthority(authorities.data, b.outlet) ?? -1;
+        return authoritySort === "desc" ? sb - sa : sa - sb;
+      });
+    }
+    return rows;
+  }, [tab, rawRows, authorities.data, authoritySort, filterValues.authority_min, filterValues.authority_max]);
 
   // Bulk selection — reset on tab change
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
