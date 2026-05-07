@@ -84,32 +84,36 @@ Deno.serve(async (req) => {
     // 2. Generate cover image
     let imageUrl: string | null = null;
     try {
-      const imgRes = await callAI({
-        model: "google/gemini-2.5-flash-image",
-        modalities: ["image", "text"],
-        messages: [
-          {
-            role: "user",
-            content: `Editorial blog cover image for an article titled "${title}". Minimalist, modern, professional, abstract, soft gradients, no text. 16:9.`,
-          },
-        ],
+      const openaiKey = Deno.env.get("OPENAI_API_KEY")!;
+      const imgRes = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: `Editorial blog cover image for an article titled "${title}". Minimalist, modern, professional, abstract, soft gradients, no text.`,
+          size: "1792x1024",
+          n: 1,
+          response_format: "b64_json",
+        }),
       });
-      const dataUrl =
-        imgRes.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
-      if (dataUrl?.startsWith("data:image/")) {
-        const base64 = dataUrl.split(",")[1];
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        const path = `auto/${Date.now()}-${slugify(title)}.png`;
-        // Try upload to "blog" bucket; if it doesn't exist, fall back to data URL
-        const { error: upErr } = await supabase.storage
-          .from("blog")
-          .upload(path, bytes, { contentType: "image/png", upsert: false });
-        if (!upErr) {
-          const { data: pub } = supabase.storage.from("blog").getPublicUrl(path);
-          imageUrl = pub.publicUrl;
-        } else {
-          imageUrl = dataUrl;
+      if (imgRes.ok) {
+        const json = await imgRes.json();
+        const b64 = json.data?.[0]?.b64_json as string | undefined;
+        if (b64) {
+          const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          const path = `auto/${Date.now()}-${slugify(title)}.png`;
+          const { error: upErr } = await supabase.storage
+            .from("blog")
+            .upload(path, bytes, { contentType: "image/png", upsert: false });
+          if (!upErr) {
+            const { data: pub } = supabase.storage.from("blog").getPublicUrl(path);
+            imageUrl = pub.publicUrl;
+          } else {
+            imageUrl = `data:image/png;base64,${b64}`;
+          }
         }
+      } else {
+        console.error("image gen failed", imgRes.status, await imgRes.text());
       }
     } catch (e) {
       console.error("image gen failed", e);
