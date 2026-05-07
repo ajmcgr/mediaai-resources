@@ -19,10 +19,17 @@ export const useChatUsage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (forceDirect = false) => {
     if (!user) { setUsage(null); setError(null); setLoading(false); return; }
     setLoading(true);
     setError(null);
+    if (forceDirect) {
+      const fallback = await loadUsageFallback(user.id);
+      setUsage(fallback);
+      setError(fallback ? null : "Could not load chat credits.");
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase.rpc("chat_usage_summary");
     if (!error && Array.isArray(data) && data[0]) {
       const row = data[0] as Record<string, unknown>;
@@ -49,6 +56,19 @@ export const useChatUsage = () => {
   }, [user]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`chat-usage-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, () => refresh(true))
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_usage", filter: `user_id=eq.${user.id}` }, () => refresh(true))
+      .on("postgres_changes", { event: "*", schema: "public", table: "topup_transactions", filter: `user_id=eq.${user.id}` }, () => refresh(true))
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [refresh, user]);
 
   const applyServerUsage = useCallback((u: Partial<ChatUsage> | null | undefined) => {
     if (!u) return;
