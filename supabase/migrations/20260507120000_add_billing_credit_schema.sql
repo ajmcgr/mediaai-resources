@@ -180,7 +180,9 @@ as $$
 declare
   period text := to_char(now(), 'YYYY-MM');
   token_count bigint := greatest(coalesce(_tokens, 0), 0);
-  summary_row record;
+  profile_row public.profiles%rowtype;
+  monthly_allowance bigint := 20000;
+  used_tokens bigint := 0;
 begin
   if _user is null then
     raise exception 'missing user';
@@ -195,8 +197,19 @@ begin
   on conflict (user_id, period_ym) do update
     set tokens_used = public.chat_usage.tokens_used + excluded.tokens_used;
 
-  select * into summary_row from public.chat_usage_summary();
-  return coalesce(summary_row.remaining, 0);
+  select * into profile_row from public.profiles where id = _user;
+  if profile_row.sub_active then
+    monthly_allowance := case
+      when lower(coalesce(profile_row.plan_identifier, '')) in ('growth', 'both', 'media-pro', 'pro', 'enterprise') then 1000000
+      else 200000
+    end;
+  end if;
+
+  select coalesce(tokens_used, 0) into used_tokens
+  from public.chat_usage
+  where user_id = _user and period_ym = period;
+
+  return greatest(monthly_allowance - coalesce(used_tokens, 0), 0) + coalesce(profile_row.chat_credits, 0);
 end;
 $$;
 
