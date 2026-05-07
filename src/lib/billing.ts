@@ -10,7 +10,7 @@ export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; 
   large:  { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
 };
 
-type InvokeResponse = { url?: string; ok?: boolean; active?: boolean; tokens?: number; granted?: number; already?: boolean };
+type InvokeResponse = { url?: string; ok?: boolean; active?: boolean; tokens?: number; granted?: number; already?: boolean; recovered?: boolean };
 
 async function authedInvoke(path: string, body: unknown) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -54,14 +54,21 @@ export async function confirmCheckout(sessionId: string) {
 
 export async function confirmTopup(sessionId: string | null) {
   if (!sessionId) {
-    // Without a session_id we can't confirm reliably; rely on the Stripe webhook.
-    return { ok: true, tokens: 0, already: false };
+    // Recover old Stripe success redirects that did not include CHECKOUT_SESSION_ID.
+    const data = await authedInvoke("create-topup", { action: "confirm" });
+    return {
+      ok: Boolean(data.ok),
+      tokens: Number(data.tokens ?? data.granted ?? 0),
+      already: Boolean(data.already),
+      recovered: Boolean(data.recovered),
+    };
   }
   const data = await authedInvoke("confirm-topup", { session_id: sessionId });
   return {
     ok: Boolean(data.ok),
     tokens: Number(data.tokens ?? data.granted ?? 0),
     already: Boolean(data.already),
+    recovered: Boolean(data.recovered),
   };
 }
 
