@@ -83,6 +83,7 @@ const Dashboard = () => {
   const filters: DirectoryFilters = useMemo(() => {
     const f: DirectoryFilters = { q: search.trim() || undefined };
     for (const [k, v] of Object.entries(filterValues)) {
+      if (k === "authority_min" || k === "authority_max") continue; // client-side
       const val = v?.trim();
       if (val) (f as Record<string, string>)[k] = val;
     }
