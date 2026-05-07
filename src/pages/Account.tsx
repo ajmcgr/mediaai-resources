@@ -11,7 +11,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, Database, MessageSquare } from "lucide-react";
+import { Bell, Database, MessageSquare, RefreshCw } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -35,7 +35,7 @@ const PLAN_LABELS: Record<string, string> = {
 const Account = () => {
   const { user, signOut } = useAuth();
   const sub = useSubscription();
-  const { usage, loading: usageLoading, error: usageError } = useChatUsage();
+  const { usage, loading: usageLoading, error: usageError, refresh: refreshUsage } = useChatUsage();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
   const [topupLoading, setTopupLoading] = useState<TopupPack | null>(null);
@@ -202,9 +202,15 @@ const Account = () => {
         </section>
 
         <section className="rounded-2xl border border-border bg-white p-6 mb-6">
-          <h2 className="text-sm font-medium text-muted-foreground mb-4">
-            Chat credits
-          </h2>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Chat credits
+            </h2>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" onClick={refreshUsage} disabled={usageLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${usageLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
           {usageLoading ? (
             <div className="py-2"><Spinner /></div>
           ) : usageError ? (
