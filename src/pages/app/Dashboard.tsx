@@ -77,6 +77,13 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<Partial<Record<FilterKey, string>>>({});
   const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("dashboard.sidebarCollapsed") === "1";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("dashboard.sidebarCollapsed", sidebarCollapsed ? "1" : "0"); } catch {}
+  }, [sidebarCollapsed]);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
