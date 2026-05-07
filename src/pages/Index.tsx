@@ -160,7 +160,7 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "Media AI chat + full journalist & creator database + brand monitoring + inbox.",
+    tagline: "Media AI chat + full journalist & creator database + keyword monitoring + inbox.",
     monthly: 99,
     yearly: 990,
     highlight: true,
@@ -174,7 +174,7 @@ const TIERS: Tier[] = [
       "100% database access — no row limits",
       "Sort, filter, save views, export",
       "Share contacts via link, email, or CSV",
-      "Brand Monitor — daily PR signal alerts",
+      "Keyword Monitor — daily Google News alerts",
       "Outreach Inbox — pitch & reply tracking",
       "Email support",
       "1-month free trial",
@@ -254,10 +254,10 @@ const FEATURE_BLOCKS = [
     bullets: ["Export to CSV, Excel, or PDF", "Share contacts with your team via link or email", "One-click sync to keep lists fresh"],
   },
   {
-    eyebrow: "Brand Monitor",
-    body: "Track your brand and competitors across the web. Media AI checks the URLs you care about every day, detects meaningful changes, and surfaces the PR opportunities — with a suggested pitch angle ready to go.",
+    eyebrow: "Keyword Monitor",
+    body: "Track brands, founders, competitors, products, and keywords across Google News. Media AI surfaces fresh mentions, scores sentiment, and pings you with re-engagement emails so you never miss a signal.",
     image: featureBrandMonitor,
-    bullets: ["Daily monitoring of your brand and competitor URLs", "AI scores each change for PR opportunity", "Instant, daily, or weekly email alerts"],
+    bullets: ["Google News mentions for brands, founders, competitors, products & keywords", "Sentiment + source breakdown with trend charts", "Instant priority alerts and daily / weekly digests"],
   },
   {
     eyebrow: "Contact Inbox",
