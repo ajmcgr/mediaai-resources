@@ -90,6 +90,8 @@ export const useCreateMonitor = () => {
       website_url: string;
       competitor_urls: string[];
       keywords: string[];
+      founder_names?: string[];
+      product_names?: string[];
       email_alerts: boolean;
       alert_frequency: AlertFrequency;
     }) => {
