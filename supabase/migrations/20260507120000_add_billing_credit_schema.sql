@@ -153,8 +153,8 @@ begin
 
   if profile_row.sub_active then
     monthly_allowance := case
-      when lower(coalesce(profile_row.plan_identifier, '')) in ('growth', 'both', 'media-pro', 'pro', 'enterprise') then 1000000
-      else 200000
+      when lower(coalesce(profile_row.plan_identifier, '')) in ('starter', 'journalist', 'creator') then 200000
+      else 1000000
     end;
   end if;
 
@@ -200,8 +200,8 @@ begin
   select * into profile_row from public.profiles where id = _user;
   if profile_row.sub_active then
     monthly_allowance := case
-      when lower(coalesce(profile_row.plan_identifier, '')) in ('growth', 'both', 'media-pro', 'pro', 'enterprise') then 1000000
-      else 200000
+      when lower(coalesce(profile_row.plan_identifier, '')) in ('starter', 'journalist', 'creator') then 200000
+      else 1000000
     end;
   end if;
 
