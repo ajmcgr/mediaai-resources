@@ -31,7 +31,7 @@ const Signup = () => {
         password,
         displayName,
         company,
-        redirectTo: `${window.location.origin}/app`,
+        redirectTo: `${window.location.origin}/chat`,
       },
     });
     setBusy(false);
