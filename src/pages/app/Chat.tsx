@@ -1107,13 +1107,15 @@ const Chat = () => {
                           )}
                         </td>
                         {cols.map((c) => {
-                          const v = r[c.key];
+                          const v = c.key === "authority" ? null : r[c.key as keyof Row];
                           return (
                             <td
                               key={String(c.key)}
                               className={`px-4 py-2.5 ${c.key === "email" ? "w-[280px] whitespace-nowrap overflow-hidden text-ellipsis" : ""}`}
                             >
-                              {c.key === "email" ? (
+                              {c.key === "authority" ? (
+                                <AuthorityBadge score={resolveAuthority(authorities.data, r.outlet)} />
+                              ) : c.key === "email" ? (
                                 (() => {
                                   const raw = typeof v === "string" ? v.trim().toLowerCase() : "";
                                   const valid = !!raw && !["null", "undefined", "-", "n/a"].includes(raw) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
