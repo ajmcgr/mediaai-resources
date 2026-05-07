@@ -1,5 +1,5 @@
-// Check a single brand monitor: fetch URLs, diff against last snapshot,
-// run AI evaluation, persist update, optionally send email.
+// Keyword Monitor — Google News based mention checker.
+// Triggered manually from the UI or by the daily cron via monitor-run-all.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const APP_URL = "https://trymedia.ai/monitor";
 
 interface Monitor {
   id: string;
@@ -18,15 +19,13 @@ interface Monitor {
   website_url: string;
   competitor_urls: string[];
   keywords: string[];
+  founder_names: string[];
+  product_names: string[];
   email_alerts: boolean;
   alert_frequency: string;
 }
 
-function env(name: string): string {
-  const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(`missing_env:${name}`);
-  return value;
-}
+type MentionType = "brand" | "competitor" | "founder" | "keyword" | "product";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -35,130 +34,152 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function sha256(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+function err(error: string, details?: unknown, status = 500) {
+  return json({ error, details: details ? String(details) : undefined }, status);
 }
 
-function htmlToText(html: string): string {
-  // strip script/style/nav/footer/header chunks then tags
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
-    .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
-    .replace(/<header[\s\S]*?<\/header>/gi, " ")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
+function decodeEntities(s: string): string {
+  return s
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
-async function fetchPage(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { "User-Agent": "MediaAI-Monitor/1.0 (+https://trymedia.ai)" },
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) throw new Error(`fetch ${url} -> ${res.status}`);
-  const html = await res.text();
-  return htmlToText(html).slice(0, 60_000);
+function stripTags(s: string): string {
+  return decodeEntities(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
-// crude line-level diff: returns added/changed lines
-function computeDiff(prev: string, next: string): string {
-  const norm = (s: string) =>
-    s.split(/(?<=[\.!?])\s+/).map((x) => x.trim()).filter(Boolean);
-  const prevSet = new Set(norm(prev));
-  const additions = norm(next).filter((l) => !prevSet.has(l) && l.length > 20);
-  return additions.slice(0, 40).join("\n");
+function pickTag(xml: string, tag: string): string | null {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const m = xml.match(re);
+  if (!m) return null;
+  let v = m[1].trim();
+  v = v.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "");
+  return v;
 }
 
-interface AiResult {
-  meaningful: boolean;
-  summary: string;
-  why_it_matters: string;
-  pr_score: number;
-  next_action: string;
-  pitch_angle: string;
-}
-
-async function aiEvaluate(opts: {
-  brand: string;
+interface NewsItem {
+  title: string;
   url: string;
-  url_kind: string;
-  keywords: string[];
-  diff: string;
-}): Promise<AiResult | null> {
-  const lovableApiKey = env("LOVABLE_API_KEY");
-  const sys =
-    "You are a PR analyst. Given a website diff for a tracked brand, decide if the change is a meaningful PR signal (launch, funding, hire, partnership, pricing change, new product, controversy, milestone). Ignore navigation, copy tweaks, footer/legal updates, dynamic counters. Respond ONLY with JSON.";
-  const user = `Brand: ${opts.brand}\nURL: ${opts.url} (${opts.url_kind})\nKeywords: ${opts.keywords.join(", ") || "(none)"}\nDIFF (new/changed sentences):\n${opts.diff.slice(0, 8000)}\n\nRespond with JSON: {"meaningful": boolean, "summary": string (<=160 chars), "why_it_matters": string (<=240 chars), "pr_score": integer 0-100, "next_action": string (<=180 chars), "pitch_angle": string (<=240 chars)}`;
+  publisher: string;
+  published_at: string | null;
+  snippet: string;
+  image_url: string | null;
+}
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!res.ok) {
-    console.error("AI gateway error", res.status, await res.text().catch(() => ""));
-    return null;
+function parseRss(xml: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = itemRegex.exec(xml))) {
+    const block = m[1];
+    const title = stripTags(pickTag(block, "title") ?? "");
+    const link = stripTags(pickTag(block, "link") ?? "");
+    const pubDate = pickTag(block, "pubDate");
+    const source = stripTags(pickTag(block, "source") ?? "");
+    const desc = pickTag(block, "description") ?? "";
+    const imgMatch = desc.match(/<img[^>]+src="([^"]+)"/i);
+    items.push({
+      title,
+      url: link,
+      publisher: source,
+      published_at: pubDate ? new Date(pubDate).toISOString() : null,
+      snippet: stripTags(desc).slice(0, 400),
+      image_url: imgMatch ? imgMatch[1] : null,
+    });
   }
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content ?? "{}";
+  return items;
+}
+
+async function googleNews(term: string): Promise<NewsItem[]> {
+  const q = encodeURIComponent(`"${term}"`);
+  const url = `https://news.google.com/rss/search?q=${q}+when:7d&hl=en-US&gl=US&ceid=US:en`;
   try {
-    const parsed = JSON.parse(content);
-    return {
-      meaningful: !!parsed.meaningful,
-      summary: String(parsed.summary ?? "").slice(0, 240),
-      why_it_matters: String(parsed.why_it_matters ?? "").slice(0, 400),
-      pr_score: Math.max(0, Math.min(100, Number(parsed.pr_score) || 0)),
-      next_action: String(parsed.next_action ?? "").slice(0, 280),
-      pitch_angle: String(parsed.pitch_angle ?? "").slice(0, 400),
-    };
-  } catch {
-    return null;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "MediaAI-KeywordMonitor/1.0 (+https://trymedia.ai)" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      console.error("MONITOR_GNEWS_FAIL", term, res.status);
+      return [];
+    }
+    const xml = await res.text();
+    return parseRss(xml).slice(0, 15);
+  } catch (e) {
+    console.error("MONITOR_GNEWS_ERR", term, (e as Error).message);
+    return [];
   }
 }
 
-async function sendAlertEmail(opts: {
+const POSITIVE_WORDS = [
+  "launch", "launches", "raises", "funding", "growth", "wins", "win",
+  "award", "partnership", "expands", "milestone", "record", "success",
+  "breakthrough", "acquires", "acquisition",
+];
+const NEGATIVE_WORDS = [
+  "lawsuit", "sued", "fails", "fail", "decline", "down", "loss", "losses",
+  "scandal", "fraud", "controversy", "fired", "lay off", "layoff", "layoffs",
+  "breach", "hack", "leak", "criticism", "complaint", "outage",
+];
+
+function sentimentOf(text: string): "positive" | "neutral" | "negative" {
+  const t = text.toLowerCase();
+  let pos = 0, neg = 0;
+  for (const w of POSITIVE_WORDS) if (t.includes(w)) pos++;
+  for (const w of NEGATIVE_WORDS) if (t.includes(w)) neg++;
+  if (neg > pos) return "negative";
+  if (pos > neg) return "positive";
+  return "neutral";
+}
+
+function hostFromUrl(u: string): string {
+  try { return new URL(u.startsWith("http") ? u : `https://${u}`).hostname.replace(/^www\./, ""); }
+  catch { return u; }
+}
+
+function buildTerms(m: Monitor): Array<{ term: string; type: MentionType }> {
+  const terms: Array<{ term: string; type: MentionType }> = [];
+  if (m.brand_name?.trim()) terms.push({ term: m.brand_name.trim(), type: "brand" });
+  for (const f of m.founder_names ?? []) if (f?.trim()) terms.push({ term: f.trim(), type: "founder" });
+  for (const c of m.competitor_urls ?? []) {
+    const host = hostFromUrl(c);
+    const name = host.split(".")[0];
+    if (name) terms.push({ term: name, type: "competitor" });
+  }
+  for (const k of m.keywords ?? []) if (k?.trim()) terms.push({ term: k.trim(), type: "keyword" });
+  for (const p of m.product_names ?? []) if (p?.trim()) terms.push({ term: p.trim(), type: "product" });
+  // dedupe by lowercase term
+  const seen = new Set<string>();
+  return terms.filter((t) => {
+    const k = t.term.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+async function sendInstantAlert(opts: {
   to: string;
   brand: string;
-  url: string;
-  result: AiResult;
+  mention: { title: string; url: string; publisher: string; mention_type: string; sentiment: string };
 }) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
-  if (!resendApiKey) return;
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")?.trim() ?? "";
+  if (!resendApiKey || !lovableApiKey) return;
 
-  const lovableApiKey = env("LOVABLE_API_KEY");
   const { renderBrandedEmail } = await import("../_shared/email-template.ts");
   const html = renderBrandedEmail({
-    preheader: `PR signal for ${opts.brand}`,
-    heading: `New PR signal: ${opts.brand}`,
+    preheader: `New mention for ${opts.brand}`,
+    heading: `New mention: ${opts.brand}`,
     body: `
-      <p style="margin:0 0 12px"><strong>${opts.result.summary}</strong></p>
-      <p style="margin:0 0 12px;color:#4e5052">${opts.result.why_it_matters}</p>
-      <p style="margin:0 0 8px"><strong>PR opportunity score:</strong> ${opts.result.pr_score}/100</p>
-      <p style="margin:0 0 8px"><strong>Suggested action:</strong> ${opts.result.next_action}</p>
-      <p style="margin:0 0 16px"><strong>Pitch angle:</strong> ${opts.result.pitch_angle}</p>
-      <p style="margin:0;font-size:13px;color:#9aa0a6">Source: <a href="${opts.url}">${opts.url}</a></p>
+      <p style="margin:0 0 12px"><strong>${opts.mention.title}</strong></p>
+      <p style="margin:0 0 8px;color:#4e5052">${opts.mention.publisher} · ${opts.mention.mention_type} · ${opts.mention.sentiment}</p>
+      <p style="margin:0;font-size:13px;color:#9aa0a6"><a href="${opts.mention.url}">${opts.mention.url}</a></p>
     `,
-    cta: { label: "Open Monitor", url: "https://trymedia.ai/monitor" },
+    cta: { label: "Open Keyword Monitor", url: APP_URL },
   });
 
   const r = await fetch(`${GATEWAY_URL}/emails`, {
@@ -171,144 +192,119 @@ async function sendAlertEmail(opts: {
     body: JSON.stringify({
       from: "Media AI <hello@trymedia.ai>",
       to: [opts.to],
-      subject: `PR signal — ${opts.brand}`,
+      subject: `New mention — ${opts.brand}`,
       html,
     }),
   });
-  if (!r.ok) console.error("alert email failed", r.status, await r.text().catch(() => ""));
-}
-
-async function checkOneUrl(
-  supa: any,
-  monitor: Monitor,
-  url: string,
-  url_kind: "brand" | "competitor",
-  userEmail: string | null,
-): Promise<{ url: string; status: string }> {
-  let text: string;
-  try {
-    text = await fetchPage(url);
-  } catch (e) {
-    return { url, status: `fetch_failed: ${(e as Error).message}` };
-  }
-  const hash = await sha256(text);
-
-  const { data: prev } = await supa
-    .from("monitor_snapshots")
-    .select("content_hash, text_content")
-    .eq("monitor_id", monitor.id)
-    .eq("url", url)
-    .order("fetched_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  await supa.from("monitor_snapshots").insert({
-    monitor_id: monitor.id,
-    url,
-    url_kind,
-    content_hash: hash,
-    text_content: text,
-  });
-
-  if (!prev) return { url, status: "first_snapshot" };
-  if (prev.content_hash === hash) return { url, status: "no_change" };
-
-  const diff = computeDiff(prev.text_content ?? "", text);
-  if (!diff || diff.length < 60) return { url, status: "trivial_change" };
-
-  const ai = await aiEvaluate({
-    brand: monitor.brand_name,
-    url,
-    url_kind,
-    keywords: monitor.keywords,
-    diff,
-  });
-  if (!ai || !ai.meaningful) return { url, status: "not_meaningful" };
-
-  let emailSent = false;
-  if (monitor.email_alerts && monitor.alert_frequency === "instant" && userEmail) {
-    try {
-      await sendAlertEmail({ to: userEmail, brand: monitor.brand_name, url, result: ai });
-      emailSent = true;
-    } catch (e) {
-      console.error("email send failed", e);
-    }
-  }
-
-  await supa.from("monitor_updates").insert({
-    monitor_id: monitor.id,
-    user_id: monitor.user_id,
-    url,
-    url_kind,
-    summary: ai.summary,
-    why_it_matters: ai.why_it_matters,
-    pr_score: ai.pr_score,
-    next_action: ai.next_action,
-    pitch_angle: ai.pitch_angle,
-    diff_excerpt: diff.slice(0, 4000),
-    email_sent: emailSent,
-  });
-
-  return { url, status: "update_recorded" };
+  if (r.ok) console.log("MONITOR_EMAIL_SENT", opts.brand, opts.to);
+  else console.error("MONITOR_EMAIL_FAIL", r.status, await r.text().catch(() => ""));
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
-
-  if (req.method !== "POST") {
-    return json({ error: "method_not_allowed" }, 405);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return err("method_not_allowed", undefined, 405);
 
   try {
-    const { monitor_id } = await req.json().catch(() => ({}));
-    if (!monitor_id) {
-      return json({ error: "monitor_id required" }, 400);
-    }
+    const body = await req.json().catch(() => ({}));
+    const monitor_id = body?.monitor_id as string | undefined;
+    if (!monitor_id) return err("monitor_id required", undefined, 400);
 
-    const supabaseUrl = env("SUPABASE_URL");
-    const serviceRole = env("SUPABASE_SERVICE_ROLE_KEY");
+    console.log("MONITOR_RUN_CHECK_STARTED", monitor_id);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRole) return err("missing_env", "SUPABASE envs not set");
     const supa = createClient(supabaseUrl, serviceRole);
-    const { data: monitor, error } = await supa
+
+    const { data: monitor, error: mErr } = await supa
       .from("brand_monitors")
       .select("*")
       .eq("id", monitor_id)
       .maybeSingle();
+    if (mErr) return err("db_error", mErr.message);
+    if (!monitor) return err("monitor_not_found", undefined, 404);
 
-    if (error || !monitor) {
-      return json({ error: "monitor not found" }, 404);
-    }
-
-    const { data: userRow } = await supa.auth.admin.getUserById(monitor.user_id);
+    const m = monitor as Monitor;
+    const { data: userRow } = await supa.auth.admin.getUserById(m.user_id);
     const userEmail = userRow?.user?.email ?? null;
 
-    const targets: Array<{ url: string; kind: "brand" | "competitor" }> = [
-      { url: monitor.website_url, kind: "brand" },
-      ...(monitor.competitor_urls ?? []).map((u: string) => ({ url: u, kind: "competitor" as const })),
-    ];
+    const terms = buildTerms(m);
+    let inserted = 0;
+    let lastError: string | null = null;
 
-    const results: Array<{ url: string; status: string }> = [];
-    for (const t of targets) {
-      try {
-        const r = await checkOneUrl(supa, monitor as Monitor, t.url, t.kind, userEmail);
-        results.push(r);
-      } catch (e) {
-        results.push({ url: t.url, status: `error: ${(e as Error).message}` });
+    for (const { term, type } of terms) {
+      const items = await googleNews(term);
+      for (const it of items) {
+        if (!it.url || !it.title) continue;
+        const sentiment = sentimentOf(it.title + " " + it.snippet);
+        const row = {
+          monitor_id: m.id,
+          user_id: m.user_id,
+          url: it.url,
+          url_kind: type === "competitor" ? "competitor" : "brand",
+          mention_type: type,
+          matched_keyword: term,
+          source: "google_news",
+          title: it.title,
+          publisher: it.publisher,
+          published_at: it.published_at,
+          image_url: it.image_url,
+          sentiment,
+          summary: it.title,
+          why_it_matters: null,
+          pr_score: null,
+          next_action: null,
+          pitch_angle: null,
+          email_sent: false,
+        };
+        const { error: insErr } = await supa
+          .from("monitor_updates")
+          .insert(row as never);
+        if (insErr) {
+          // duplicate (unique index) -> ignore
+          if (!String(insErr.message).toLowerCase().includes("duplicate")) {
+            lastError = insErr.message;
+            console.error("MONITOR_INSERT_ERR", insErr.message);
+          }
+          continue;
+        }
+        inserted++;
+
+        // instant priority alerts
+        if (
+          m.email_alerts &&
+          m.alert_frequency === "instant" &&
+          userEmail &&
+          (type === "founder" || type === "competitor" || sentiment === "negative")
+        ) {
+          try {
+            await sendInstantAlert({
+              to: userEmail,
+              brand: m.brand_name,
+              mention: { title: it.title, url: it.url, publisher: it.publisher, mention_type: type, sentiment },
+            });
+            await supa.from("monitor_updates")
+              .update({ email_sent: true } as never)
+              .eq("monitor_id", m.id).eq("url", it.url);
+          } catch (e) {
+            console.error("alert send failed", e);
+          }
+        }
       }
     }
 
-    await supa
-      .from("brand_monitors")
-      .update({ last_checked_at: new Date().toISOString() })
-      .eq("id", monitor.id);
+    const status = lastError ? "error" : (inserted > 0 ? "ok" : "no_results");
+    await supa.from("brand_monitors").update({
+      last_checked_at: new Date().toISOString(),
+      last_status: status,
+      last_error: lastError,
+      last_mentions_found: inserted,
+    } as never).eq("id", m.id);
 
-    return json({ ok: true, results });
+    console.log("MONITOR_RUN_CHECK_FINISHED", m.id, { inserted, status });
+    return json({ ok: true, inserted, status, terms_checked: terms.length });
   } catch (e) {
-    console.error("monitor-check error", e);
-    return json({ error: (e as Error).message }, 500);
+    console.error("monitor-check fatal", e);
+    return err("internal_error", (e as Error).message);
   }
 });
