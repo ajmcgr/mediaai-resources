@@ -886,9 +886,31 @@ const Chat = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
+        {sidebarCollapsed ? (
+          <div className="border-r border-border bg-white flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 m-2 rounded-md hover:bg-secondary text-muted-foreground"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(true)}
+              className="p-1 rounded-md hover:bg-secondary text-muted-foreground"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
           <div className="px-3 py-2 border-b border-border">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
