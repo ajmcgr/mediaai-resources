@@ -272,8 +272,32 @@ const Dashboard = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
+        {sidebarCollapsed ? (
+          <div className="border-r border-border bg-white flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 m-2 rounded-md hover:bg-secondary text-muted-foreground"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
         <aside className="w-64 border-r border-border bg-white flex flex-col flex-shrink-0 overflow-auto">
           <div className="p-3 space-y-1">
+            <div className="flex justify-end -mt-1 -mr-1 mb-1">
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-1 rounded-md hover:bg-secondary text-muted-foreground"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            </div>
             <button type="button" onClick={() => handleTab("journalists")}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "journalists" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
               <Users className="h-4 w-4" />Journalists
