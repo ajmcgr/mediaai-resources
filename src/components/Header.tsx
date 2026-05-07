@@ -53,24 +53,29 @@ const Header = () => {
                   variant="ghost"
                   className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
                 >
-                  <Link to="/chat">Chat</Link>
+                  <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
                 </Button>
                 <Button
                   asChild
                   variant="ghost"
                   className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
                 >
-                  <Link to="/database">Database</Link>
+                  <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
                 </Button>
-                {hasGrowth && (
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                  >
-                    <Link to="/monitor">Monitor</Link>
-                  </Button>
-                )}
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <Link to="/pricing">Inbox</Link>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
