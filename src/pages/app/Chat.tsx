@@ -29,6 +29,8 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
+import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
+import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
