@@ -369,6 +369,7 @@ const Dashboard = () => {
             </div>
           </div>
         </aside>
+        )}
 
         <main ref={scrollContainerRef} className="flex-1 min-w-0 overflow-auto flex flex-col">
           <div className="p-3 border-b border-border bg-white flex items-center gap-3 sticky top-0 z-10">
