@@ -998,6 +998,7 @@ const Chat = () => {
             </DropdownMenu>
           </div>
         </aside>
+        )}
 
         <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
