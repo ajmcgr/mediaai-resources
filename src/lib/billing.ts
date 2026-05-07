@@ -5,15 +5,24 @@ export type BillingInterval = "monthly" | "yearly";
 export type TopupPack = "small" | "medium" | "large";
 
 export const TOPUP_PACKS: Record<TopupPack, { tokens: number; priceUsd: number; label: string }> = {
-  small:  { tokens:  100_000, priceUsd: 10, label: "100k credits" },
-  medium: { tokens:  500_000, priceUsd: 40, label: "500k credits" },
-  large:  { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
+  small: { tokens: 100_000, priceUsd: 10, label: "100k credits" },
+  medium: { tokens: 500_000, priceUsd: 40, label: "500k credits" },
+  large: { tokens: 2_000_000, priceUsd: 120, label: "2M credits" },
 };
 
-type InvokeResponse = { url?: string; ok?: boolean; active?: boolean; tokens?: number; granted?: number; already?: boolean; recovered?: boolean };
+type InvokeResponse = {
+  url?: string;
+  ok?: boolean;
+  active?: boolean;
+  tokens?: number;
+  granted?: number;
+  already?: boolean;
+};
 
 async function authedInvoke(path: string, body: unknown) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error("NOT_AUTHENTICATED");
 
   const { data, error } = await supabase.functions.invoke(path, {
@@ -26,7 +35,11 @@ async function authedInvoke(path: string, body: unknown) {
   if (error) {
     const ctx = (error as { context?: Response }).context;
     let detail = "";
-    try { detail = ctx ? await ctx.clone().text() : ""; } catch { /* ignore */ }
+    try {
+      detail = ctx ? await ctx.clone().text() : "";
+    } catch {
+      /* ignore */
+    }
     throw new Error(detail || error.message || `Request failed: ${path}`);
   }
 
@@ -34,7 +47,9 @@ async function authedInvoke(path: string, body: unknown) {
 }
 
 export async function startCheckout(plan: PlanId, interval: BillingInterval = "monthly") {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
   const payload = {
     user_id: session.user.id,
@@ -53,22 +68,23 @@ export async function confirmCheckout(sessionId: string) {
 }
 
 export async function confirmTopup(sessionId: string | null) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
+
+  // Confirm only through dedicated endpoint.
+  // If session_id is missing, don't hard-fail UI; webhook can still grant credits.
   if (!sessionId) {
-    // Recover old Stripe success redirects that did not include CHECKOUT_SESSION_ID.
-    const data = await authedInvoke("create-topup", { action: "confirm" });
-    return {
-      ok: Boolean(data.ok),
-      tokens: Number(data.tokens ?? data.granted ?? 0),
-      already: Boolean(data.already),
-      recovered: Boolean(data.recovered),
-    };
+    return { ok: true, tokens: 0, already: true };
   }
+
   const data = await authedInvoke("confirm-topup", { session_id: sessionId });
+
   return {
     ok: Boolean(data.ok),
     tokens: Number(data.tokens ?? data.granted ?? 0),
     already: Boolean(data.already),
-    recovered: Boolean(data.recovered),
   };
 }
 
@@ -78,7 +94,9 @@ export async function syncSubscription() {
 }
 
 export async function startTopup(pack: TopupPack) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session?.user?.id || !session.user.email) throw new Error("NOT_AUTHENTICATED");
   const { url } = await authedInvoke("create-topup", {
     user_id: session.user.id,
