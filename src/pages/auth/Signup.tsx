@@ -25,16 +25,19 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app`,
-        data: { display_name: displayName, company },
+    const { data, error } = await supabase.functions.invoke("send-signup", {
+      body: {
+        email,
+        password,
+        displayName,
+        company,
+        redirectTo: `${window.location.origin}/app`,
       },
     });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error || error?.message || "Signup failed");
+    }
     toast.success("Check your email to confirm your account");
     navigate("/login");
   };
