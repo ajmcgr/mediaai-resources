@@ -342,9 +342,9 @@ const Dashboard = () => {
           </div>
 
           {tab === "journalists" ? (
-            <div className="min-w-[1140px]">
+            <div className="min-w-[1250px]">
               <div className="border-b border-border bg-secondary/40 sticky top-[57px] z-10">
-                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_110px_120px] text-xs font-medium text-muted-foreground">
                   <div className="px-3 py-3 flex items-center">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -352,7 +352,24 @@ const Dashboard = () => {
                       aria-label="Select all"
                     />
                   </div>
-                  {JOURNALIST_COLS.map((c) => <div key={c} className="px-3 py-3">{c}</div>)}
+                  {JOURNALIST_COLS.map((c) => {
+                    if (c === "Authority") {
+                      const SortIcon = authoritySort === "desc" ? ArrowDown : authoritySort === "asc" ? ArrowUp : ArrowUpDown;
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setAuthoritySort((s) => s === "none" ? "desc" : s === "desc" ? "asc" : "none")}
+                          className="px-3 py-3 flex items-center gap-1 hover:text-foreground text-left"
+                          title="Sort by Authority (Domain Rating)"
+                        >
+                          {c}
+                          <SortIcon className="h-3 w-3" />
+                        </button>
+                      );
+                    }
+                    return <div key={c} className="px-3 py-3">{c}</div>;
+                  })}
                 </div>
               </div>
               {journalists.isLoading ? (
@@ -364,7 +381,7 @@ const Dashboard = () => {
               ) : (
                 <>
                   {(allRows as any[]).map((r) => (
-                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <div key={r.id} className={`group grid grid-cols-[40px_minmax(180px,1.2fr)_minmax(240px,1.6fr)_150px_140px_160px_140px_160px_110px_120px] border-b border-border hover:bg-secondary/30 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
                       <div className="px-3 py-3 flex items-center">
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -386,6 +403,9 @@ const Dashboard = () => {
                       <EnrichCell value={r.titles} kind="journalist" id={r.id} field="titles" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.xhandle} kind="journalist" id={r.id} field="xhandle" name={r.name} outletDomain={r.outlet} row={r} />
                       <EnrichCell value={r.outlet} kind="journalist" id={r.id} field="outlet" name={r.name} outletDomain={r.outlet} row={r} />
+                      <div className="px-3 py-3 flex items-center">
+                        <AuthorityBadge score={resolveAuthority(authorities.data, r.outlet)} />
+                      </div>
                       <EnrichCell value={r.country} kind="journalist" id={r.id} field="country" name={r.name} outletDomain={r.outlet} row={r} />
                     </div>
                   ))}
