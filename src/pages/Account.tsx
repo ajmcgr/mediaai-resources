@@ -193,8 +193,7 @@ const Account = () => {
           ) : (
             <>
               <p className="text-sm text-muted-foreground mb-4">
-                You don't have an active subscription. Choose a plan to access the
-                journalist and creator database.
+                You don't have an active subscription.
               </p>
               <Button onClick={() => navigate("/pricing")}>View plans</Button>
             </>
