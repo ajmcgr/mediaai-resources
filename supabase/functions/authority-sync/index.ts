@@ -2,6 +2,7 @@
 // Deno edge function. Reads journalist outlets, normalizes to domains,
 // upserts into public.outlet_authority. Uses Ahrefs if AHREFS_API_TOKEN
 // is set, otherwise leaves existing rows untouched and logs misses.
+// v1.0.1 — trigger redeploy
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
