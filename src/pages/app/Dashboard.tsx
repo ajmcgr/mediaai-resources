@@ -45,7 +45,8 @@ const Cell = ({ children }: { children: React.ReactNode }) => (
 
 type FilterKey =
   | "name" | "email" | "category" | "country" | "xhandle" | "outlet" | "title" | "topics"
-  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min";
+  | "ig_followers_min" | "ig_engagement_min" | "youtube_subs_min"
+  | "authority_min" | "authority_max";
 
 const JOURNALIST_FILTERS: { key: FilterKey; label: string; icon: typeof UserIcon; placeholder?: string; inputType?: "text" | "number" }[] = [
   { key: "name", label: "Search by Names", icon: UserIcon },
