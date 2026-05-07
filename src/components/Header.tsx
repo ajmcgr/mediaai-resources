@@ -98,9 +98,11 @@ const Header = () => {
                       <div className="text-sm truncate">{user.email}</div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => navigate("/database")}>
-                      Dashboard
-                    </DropdownMenuItem>
+                    {hasGrowth && (
+                      <DropdownMenuItem onSelect={() => navigate("/database")}>
+                        Dashboard
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onSelect={() => navigate("/account")}>
                       Account & billing
                     </DropdownMenuItem>
