@@ -73,7 +73,7 @@ insert into public.outlet_authority (domain, outlet_name, authority_score, sourc
   ('elle.com',          'Elle',                90, 'manual'),
   ('gq.com',            'GQ',                  90, 'manual'),
   ('esquire.com',       'Esquire',             89, 'manual')
-on conflict (lower(domain)) do update
+on conflict (domain) do update
   set authority_score = excluded.authority_score,
       outlet_name     = excluded.outlet_name,
       source          = excluded.source,
