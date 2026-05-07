@@ -225,11 +225,6 @@ to authenticated
 using (id = auth.uid());
 
 drop policy if exists "Users can update own profile" on public.profiles;
-create policy "Users can update own profile"
-on public.profiles for update
-to authenticated
-using (id = auth.uid())
-with check (id = auth.uid());
 
 drop policy if exists "Users can read own topups" on public.topup_transactions;
 create policy "Users can read own topups"
@@ -250,7 +245,7 @@ to authenticated
 using (user_id = auth.uid());
 
 grant usage on schema public to anon, authenticated;
-grant select, update on public.profiles to authenticated;
+grant select on public.profiles to authenticated;
 grant select on public.topup_transactions to authenticated;
 grant select on public.chat_usage to authenticated;
 grant select on public.subscriptions to authenticated;
