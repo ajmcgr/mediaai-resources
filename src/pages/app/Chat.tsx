@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
+import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -385,6 +385,13 @@ const Chat = () => {
   const [lastQuery, setLastQuery] = useState<string>("");
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("chat.sidebarCollapsed") === "1";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("chat.sidebarCollapsed", sidebarCollapsed ? "1" : "0"); } catch {}
+  }, [sidebarCollapsed]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const autoPersistedWebRows = useRef<Set<string>>(new Set());
@@ -879,9 +886,31 @@ const Chat = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
+        {sidebarCollapsed ? (
+          <div className="border-r border-border bg-white flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 m-2 rounded-md hover:bg-secondary text-muted-foreground"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saved searches</span>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(true)}
+              className="p-1 rounded-md hover:bg-secondary text-muted-foreground"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
           <div className="px-3 py-2 border-b border-border">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
@@ -969,6 +998,7 @@ const Chat = () => {
             </DropdownMenu>
           </div>
         </aside>
+        )}
 
         <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
