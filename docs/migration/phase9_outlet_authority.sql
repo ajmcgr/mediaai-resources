@@ -6,15 +6,12 @@
 
 create table if not exists public.outlet_authority (
   id            bigserial primary key,
-  domain        text,
+  domain        text unique,
   outlet_name   text,
   authority_score integer not null check (authority_score between 0 and 100),
   source        text not null default 'manual',  -- ahrefs | manual
   updated_at    timestamptz not null default now()
 );
-
-create unique index if not exists outlet_authority_domain_uidx
-  on public.outlet_authority (lower(domain)) where domain is not null;
 
 create index if not exists outlet_authority_name_idx
   on public.outlet_authority (lower(outlet_name));
@@ -76,7 +73,7 @@ insert into public.outlet_authority (domain, outlet_name, authority_score, sourc
   ('elle.com',          'Elle',                90, 'manual'),
   ('gq.com',            'GQ',                  90, 'manual'),
   ('esquire.com',       'Esquire',             89, 'manual')
-on conflict (lower(domain)) do update
+on conflict (domain) do update
   set authority_score = excluded.authority_score,
       outlet_name     = excluded.outlet_name,
       source          = excluded.source,
