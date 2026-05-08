@@ -114,11 +114,11 @@ Deno.serve(async (req) => {
     const actionLink = `https://trymedia.ai/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=%2Freset-password`;
 
     const html = renderBrandedEmail({
-      preheader: "Reset your Media password",
-      heading: "Reset your password",
-      body: `Thanks for using Media. Click the button below to choose a new password. This link expires in 1 hour.<br/><br/><span style="font-size:12px;color:#9aa0a6;word-break:break-all;">Or paste this link: ${escapeHtml(actionLink)}</span>`,
-      cta: { label: "Reset password", url: actionLink },
-      footerNote: "If you didn't request this email, you can safely ignore it.",
+      preheader: "Reset your Media AI password",
+      heading: "Reset your Media AI password",
+      body: `Click the button below to choose a new password for your Media AI account. This link expires in 1 hour.<br/><br/><span style="font-size:12px;color:#9aa0a6;word-break:break-all;">Or paste this link: ${escapeHtml(actionLink)}</span>`,
+      cta: { label: "Choose new password", url: actionLink },
+      footerNote: "If you didn't request a password reset, you can safely ignore this email.",
     });
 
     const sendRes = await fetch("https://api.resend.com/emails", {

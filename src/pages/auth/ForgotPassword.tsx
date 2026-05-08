@@ -15,7 +15,7 @@ const ForgotPassword = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.functions.invoke("send-password-reset-v2", {
+    const { error } = await supabase.functions.invoke("send-password-reset", {
       body: { email },
     });
     setBusy(false);
