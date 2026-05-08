@@ -665,7 +665,7 @@ const Index = () => {
       {/* COMPARISON */}
       <section className="px-6 py-16">
         <div className="max-w-5xl mx-auto">
-          <p className="text-center text-xs font-medium tracking-[0.2em] text-muted-foreground mb-10">Compared to other PR & Influencer Marketing platforms</p>
+          <p className="text-center text-xs font-medium tracking-wide text-muted-foreground mb-10">Compared to other PR & Influencer Marketing platforms</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
