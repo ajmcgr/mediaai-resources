@@ -15,12 +15,8 @@ const ForgotPassword = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    // Always send users to the production reset page so links work from any environment
-    const origin = window.location.hostname.includes("lovable.app")
-      ? "https://trymedia.ai"
-      : window.location.origin;
     const { error } = await supabase.functions.invoke("send-password-reset", {
-      body: { email, redirectTo: `${origin}/reset-password` },
+      body: { email },
     });
     setBusy(false);
     if (error) return toast.error(error.message);
