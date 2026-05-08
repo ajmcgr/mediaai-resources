@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       options: { redirectTo: safeRedirectTo },
     });
 
-    if (linkErr || !linkData?.properties?.action_link) {
+    if (linkErr || (!linkData?.properties?.hashed_token && !linkData?.properties?.action_link)) {
       console.warn("generateLink signup failed:", linkErr?.message);
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
@@ -87,7 +87,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const actionLink = linkData.properties.action_link;
+    const hashedToken = linkData.properties.hashed_token;
+    const actionLink = hashedToken
+      ? `${APP_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=signup&next=${encodeURIComponent("/chat")}`
+      : linkData.properties.action_link;
     const name = displayName ? String(displayName).split(" ")[0] : "there";
 
     const html = renderBrandedEmail({
