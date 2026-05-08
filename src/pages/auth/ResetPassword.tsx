@@ -14,16 +14,36 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase puts type=recovery in the URL hash on the email link
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
-      setReady(true);
-    } else {
-      // Also check session — user may already be in recovery state
-      supabase.auth.getSession().then(({ data }) => {
-        setReady(!!data.session);
-      });
-    }
+    const prepareRecoverySession = async () => {
+      const url = new URL(window.location.href);
+      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const code = url.searchParams.get("code");
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (!error) {
+          window.history.replaceState(null, "", "/reset-password");
+          setReady(true);
+          return;
+        }
+      }
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error) {
+          window.history.replaceState(null, "", "/reset-password");
+          setReady(true);
+          return;
+        }
+      }
+
+      const { data } = await supabase.auth.getSession();
+      setReady(!!data.session);
+    };
+
+    prepareRecoverySession();
   }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
