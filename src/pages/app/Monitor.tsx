@@ -182,29 +182,32 @@ const Monitor = () => {
   const splitList = (s: string) =>
     s.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!form.brand_name.trim()) {
       toast.error("Brand or topic name is required");
       return;
     }
+    const payload = {
+      brand_name: form.brand_name.trim(),
+      website_url: form.website_url.trim() || `https://${form.brand_name.trim().toLowerCase().replace(/\s+/g, "")}.com`,
+      competitor_urls: splitList(form.competitor_urls),
+      keywords: splitList(form.keywords),
+      founder_names: splitList(form.founder_names),
+      product_names: splitList(form.product_names),
+      email_alerts: form.email_alerts,
+      alert_frequency: form.alert_frequency,
+    };
     try {
-      await createMon.mutateAsync({
-        brand_name: form.brand_name.trim(),
-        website_url: form.website_url.trim() || `https://${form.brand_name.trim().toLowerCase().replace(/\s+/g, "")}.com`,
-        competitor_urls: splitList(form.competitor_urls),
-        keywords: splitList(form.keywords),
-        founder_names: splitList(form.founder_names),
-        product_names: splitList(form.product_names),
-        email_alerts: form.email_alerts,
-        alert_frequency: form.alert_frequency,
-      });
-      toast.success("Keyword monitor added");
+      if (editingId) {
+        await updateMon.mutateAsync({ id: editingId, patch: payload as Partial<BrandMonitor> });
+        toast.success("Monitor updated");
+      } else {
+        await createMon.mutateAsync(payload);
+        toast.success("Keyword monitor added");
+      }
       setOpen(false);
-      setForm({
-        brand_name: "", website_url: "", competitor_urls: "", keywords: "",
-        founder_names: "", product_names: "",
-        email_alerts: true, alert_frequency: "daily",
-      });
+      setEditingId(null);
+      setForm(emptyForm);
     } catch (e) {
       toast.error((e as Error).message);
     }
