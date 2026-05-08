@@ -4,7 +4,7 @@
 //   centered logo header with subtle divider, heading + body text,
 //   primary blue CTA button, optional footer note above the card divider.
 
-const LOGO_URL = "https://trymedia.ai/email-logo.png";
+const LOGO_URL = "https://trymedia.ai/email-logo-media.png";
 const BRAND_BLUE = "#1675e2";
 const PAGE_BG = "#f4f6f9";
 const CARD_BG = "#ffffff";
@@ -40,8 +40,8 @@ export function renderBrandedEmail(opts: BrandedEmailOptions): string {
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${CARD_BG};border-radius:14px;overflow:hidden;border:1px solid ${BORDER};">
             <!-- Centered logo header -->
             <tr>
-              <td align="center" style="padding:36px 32px 28px;border-bottom:1px solid ${DIVIDER};">
-                <img src="${LOGO_URL}" alt="Media AI" height="34" style="height:34px;width:auto;display:inline-block;border:0;outline:none;text-decoration:none;" />
+              <td align="center" style="padding:34px 32px 26px;border-bottom:1px solid ${DIVIDER};">
+                <img src="${LOGO_URL}" alt="Media AI" width="180" style="width:180px;max-width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;" />
               </td>
             </tr>
             <!-- Body -->

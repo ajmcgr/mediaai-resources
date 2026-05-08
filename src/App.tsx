@@ -1,13 +1,15 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PaidRoute from "@/components/PaidRoute";
 import RecoveryRedirect from "@/components/RecoveryRedirect";
+import { supabase } from "@/integrations/supabase/client";
 import Root from "./pages/Root";
 import Index from "./pages/Index";
 import ToolsHub from "./pages/ToolsHub";
@@ -60,6 +62,29 @@ const TopupSuccessRedirect = () => {
   return <Navigate to={`/chat?${params.toString()}`} replace />;
 };
 
+const AuthConfirm = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+
+  useEffect(() => {
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type") === "signup" ? "signup" : null;
+    const next = params.get("next") || "/chat";
+
+    if (!tokenHash || !type) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error }) => {
+      navigate(error ? "/login" : next, { replace: true });
+    });
+  }, [navigate, params]);
+
+  return null;
+};
+
 
 const App = () => (
   <HelmetProvider>
@@ -76,6 +101,7 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
 
               {/* Public marketing/billing */}
               <Route path="/pricing" element={<Pricing />} />

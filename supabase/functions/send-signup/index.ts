@@ -11,6 +11,18 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_ADDRESS = "Media <hello@trymedia.ai>";
+const APP_URL = "https://trymedia.ai";
+
+function getSafeRedirectTo(value: unknown): string {
+  if (typeof value !== "string") return `${APP_URL}/chat`;
+
+  try {
+    const url = new URL(value);
+    return url.origin === APP_URL ? url.toString() : `${APP_URL}/chat`;
+  } catch {
+    return `${APP_URL}/chat`;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -57,15 +69,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    const safeRedirectTo = getSafeRedirectTo(redirectTo);
+
     // Generate confirmation link
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "signup",
       email,
       password,
-      options: { redirectTo },
+      options: { redirectTo: safeRedirectTo },
     });
 
-    if (linkErr || !linkData?.properties?.action_link) {
+    if (linkErr || (!linkData?.properties?.hashed_token && !linkData?.properties?.action_link)) {
       console.warn("generateLink signup failed:", linkErr?.message);
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
@@ -73,7 +87,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const actionLink = linkData.properties.action_link;
+    const hashedToken = linkData.properties.hashed_token;
+    const actionLink = hashedToken
+      ? `${APP_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=signup&next=${encodeURIComponent("/chat")}`
+      : linkData.properties.action_link;
     const name = displayName ? String(displayName).split(" ")[0] : "there";
 
     const html = renderBrandedEmail({
