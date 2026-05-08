@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import GoogleIcon from "@/components/GoogleIcon";
 
+const APP_URL = "https://trymedia.ai";
+
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,13 +30,13 @@ const Signup = () => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    const { error } = await supabase.functions.invoke("send-signup-confirmation", {
+    const { error } = await supabase.functions.invoke("send-signup", {
       body: {
         email: trimmedEmail,
         password,
         displayName,
         company,
-        redirectTo: `${window.location.origin}/chat`,
+        redirectTo: `${APP_URL}/chat`,
       },
     });
 
@@ -67,7 +69,7 @@ const Signup = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/chat")}`,
+        redirectTo: `${APP_URL}/chat`,
       },
     });
     if (error) toast.error(error.message);
