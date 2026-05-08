@@ -27,13 +27,21 @@ Deno.serve(async (req) => {
       return response({ error: "password must be at least 8 characters" }, 400);
     }
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!lovableApiKey || !resendApiKey || !supabaseUrl || !serviceRole) {
-      return response({ error: "Server not configured" }, 500);
+    const missingConfig = [
+      ["RESEND_API_KEY", resendApiKey],
+      ["SUPABASE_URL", supabaseUrl],
+      ["SUPABASE_SERVICE_ROLE_KEY", serviceRole],
+    ]
+      .filter(([, value]) => !value)
+      .map(([name]) => name);
+
+    if (missingConfig.length > 0) {
+      console.error("send-signup missing configuration:", missingConfig);
+      return response({ error: "Server not configured", missing: missingConfig }, 500);
     }
 
     const admin = createClient(supabaseUrl, serviceRole, {
@@ -74,12 +82,11 @@ Deno.serve(async (req) => {
       footerNote: "If you didn't create an account, you can safely ignore this email.",
     });
 
-    const sendRes = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    const sendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-        "X-Connection-Api-Key": resendApiKey,
+        Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
         from: FROM_ADDRESS,
