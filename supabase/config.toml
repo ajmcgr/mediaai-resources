@@ -28,7 +28,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.nylas-auth-start]
-verify_jwt = false
+verify_jwt = true
 
 [functions.nylas-auth-callback]
 verify_jwt = false
