@@ -79,7 +79,12 @@ const AuthConfirm = () => {
     }
 
     supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error }) => {
-      navigate(error ? "/login" : next, { replace: true });
+      if (error) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      navigate(type === "recovery" ? "/reset-password" : next, { replace: true });
     });
   }, [navigate, params]);
 
