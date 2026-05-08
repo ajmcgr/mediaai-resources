@@ -25,19 +25,40 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("send-signup", {
+
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const { error } = await supabase.functions.invoke("send-signup-confirmation", {
       body: {
-        email,
+        email: trimmedEmail,
         password,
         displayName,
         company,
         redirectTo: `${window.location.origin}/chat`,
       },
     });
+
     setBusy(false);
-    if (error || (data as any)?.error) {
-      return toast.error((data as any)?.error || error?.message || "Signup failed");
+
+    if (error) {
+      const ctx = (error as { context?: Response }).context;
+      let detail = "";
+      try {
+        detail = ctx ? await ctx.clone().text() : "";
+      } catch {
+        // ignore
+      }
+
+      let parsed: { error?: string } | null = null;
+      try {
+        parsed = detail ? (JSON.parse(detail) as { error?: string }) : null;
+      } catch {
+        // ignore
+      }
+
+      return toast.error(parsed?.error || error.message || "Could not create account");
     }
+
     toast.success("Check your email to confirm your account");
     navigate("/login");
   };
@@ -45,7 +66,9 @@ const Signup = () => {
   const handleGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/chat` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/chat")}`,
+      },
     });
     if (error) toast.error(error.message);
   };
@@ -83,7 +106,14 @@ const Signup = () => {
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Creating account…" : "Create account"}
@@ -92,7 +122,9 @@ const Signup = () => {
 
         <p className="mt-6 text-sm text-muted-foreground text-center">
           Already have an account?{" "}
-          <Link to="/login" className="text-foreground underline">Sign in</Link>
+          <Link to="/login" className="text-foreground underline">
+            Sign in
+          </Link>
         </p>
       </main>
     </div>
