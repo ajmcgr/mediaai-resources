@@ -104,12 +104,14 @@ Deno.serve(async (req) => {
       options: { redirectTo },
     });
 
-    if (error || !data?.properties?.action_link) {
+    const tokenHash = data?.properties?.hashed_token;
+
+    if (error || !tokenHash) {
       console.warn("generateLink failed:", error?.message);
       return respondOk();
     }
 
-    const actionLink = data.properties.action_link;
+    const actionLink = `https://trymedia.ai/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=%2Freset-password`;
 
     const html = renderBrandedEmail({
       preheader: "Reset your Media password",
