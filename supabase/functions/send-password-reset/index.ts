@@ -111,11 +111,11 @@ Deno.serve(async (req) => {
       return respondOk();
     }
 
-    const actionLink = `https://trymedia.ai/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=%2Freset-password`;
+    const actionLink = `https://trymedia.ai/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
 
     const html = renderBrandedEmail({
       preheader: "Reset your Media AI password",
-      heading: "Reset your Media AI password",
+      heading: "Reset your password",
       body: `Click the button below to choose a new password for your Media AI account. This link expires in 1 hour.<br/><br/><span style="font-size:12px;color:#9aa0a6;word-break:break-all;">Or paste this link: ${escapeHtml(actionLink)}</span>`,
       cta: { label: "Choose new password", url: actionLink },
       footerNote: "If you didn't request a password reset, you can safely ignore this email.",
