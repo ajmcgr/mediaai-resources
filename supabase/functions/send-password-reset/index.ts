@@ -9,7 +9,6 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_ADDRESS = "Media <hello@trymedia.ai>";
 
 Deno.serve(async (req) => {
@@ -26,13 +25,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY || !RESEND_API_KEY || !SUPABASE_URL || !SERVICE_ROLE) {
-      return new Response(JSON.stringify({ error: "Server not configured" }), {
+    const missing = [
+      ["RESEND_API_KEY", RESEND_API_KEY],
+      ["SUPABASE_URL", SUPABASE_URL],
+      ["SUPABASE_SERVICE_ROLE_KEY", SERVICE_ROLE],
+    ].filter(([, v]) => !v).map(([k]) => k);
+    if (missing.length) {
+      console.error("send-password-reset missing config:", missing);
+      return new Response(JSON.stringify({ error: "Server not configured", missing }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -70,12 +74,11 @@ Deno.serve(async (req) => {
       footerNote: "If you didn't request this email, you can safely ignore it.",
     });
 
-    const sendRes = await fetch(`${GATEWAY_URL}/emails`, {
+    const sendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: FROM_ADDRESS,
