@@ -299,10 +299,19 @@ function parseIntent(q: string): Intent {
 
 // ---------- Plan caps ----------
 
+function normalizePlanIdentifier(plan: string | null | undefined): string {
+  return (plan ?? "").toLowerCase().trim().replace(/[\s_]+/g, "-");
+}
+
+function isGrowthOrHigherPlan(plan: string | null | undefined): boolean {
+  const p = normalizePlanIdentifier(plan);
+  return ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p) || p.includes("growth");
+}
+
 function capForPlan(plan: string | null | undefined): number {
-  const p = (plan ?? "").toLowerCase();
+  const p = normalizePlanIdentifier(plan);
   // free=50, starter=100, growth/pro/enterprise=unlimited (large sentinel for in-memory ranking)
-  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 100_000;
+  if (isGrowthOrHigherPlan(p)) return 100_000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
@@ -1313,9 +1322,9 @@ async function hybridSearch(
 ): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
-  const planNorm = (plan ?? "").toLowerCase();
+  const planNorm = normalizePlanIdentifier(plan);
   const isStarter = planNorm === "starter";
-  const isGrowthOrHigher = ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(planNorm);
+  const isGrowthOrHigher = isGrowthOrHigherPlan(planNorm);
   // Plan caps: free=50 total, starter=100 total, growth+=unlimited (large sentinel)
   const maxTotalForPlan = planLimit; // 50 / 100 / 100_000
   const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
@@ -1331,7 +1340,7 @@ async function hybridSearch(
   const safeOffset = Math.max(0, offset);
   const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
   const requestedLimit = Math.max(1, Math.min(
-    limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+    isGrowthOrHigher ? pageDefault : (limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault),
     perPageCap,
     remainingBudget,
   ));
@@ -1829,7 +1838,8 @@ if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
-    const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
+    const profilePlan = profile?.plan_identifier as string | null;
+    const plan = profile?.sub_active || isGrowthOrHigherPlan(profilePlan) ? profilePlan : null;
 
     const body = await req.json();
     const { messages, model } = body;
