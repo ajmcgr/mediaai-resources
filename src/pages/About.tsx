@@ -73,7 +73,7 @@ const About = () => {
             <img
               src={alexPhoto}
               alt="Alex MacGregor"
-              className="w-20 h-20 rounded-md object-cover mb-4"
+              className="w-28 h-28 object-cover mb-4"
             />
             <p className="font-medium mb-1">— Alex MacGregor</p>
             <p className="text-muted-foreground mb-3">Founder, Media AI</p>
