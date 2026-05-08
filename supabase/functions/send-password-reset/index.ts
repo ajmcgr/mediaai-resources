@@ -60,7 +60,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, redirectTo } = await req.json();
+    const { email } = await req.json();
+    // Always use production reset page; ignore client-supplied redirectTo
+    const redirectTo = "https://trymedia.ai/reset-password";
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "email is required" }), {
         status: 400,
