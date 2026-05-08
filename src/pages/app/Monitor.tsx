@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Plus, Trash2, RefreshCw, Bell, BellOff, Database, MessageSquare, ExternalLink,
+  Plus, Pencil, Trash2, RefreshCw, Bell, BellOff, Database, MessageSquare, ExternalLink,
   Globe, CalendarClock, Mail, Users, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,9 +77,10 @@ const Monitor = () => {
   const runCheck = useRunMonitorCheck();
 
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [range, setRange] = useState<7 | 30>(7);
   const [debugFor, setDebugFor] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const emptyForm = {
     brand_name: "",
     website_url: "",
     competitor_urls: "",
@@ -88,7 +89,29 @@ const Monitor = () => {
     product_names: "",
     email_alerts: true,
     alert_frequency: "daily" as AlertFrequency,
-  });
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setOpen(true);
+  };
+
+  const openEdit = (m: BrandMonitor) => {
+    setEditingId(m.id);
+    setForm({
+      brand_name: m.brand_name ?? "",
+      website_url: m.website_url ?? "",
+      competitor_urls: (m.competitor_urls ?? []).join(", "),
+      keywords: (m.keywords ?? []).join(", "),
+      founder_names: (m.founder_names ?? []).join(", "),
+      product_names: (m.product_names ?? []).join(", "),
+      email_alerts: m.email_alerts,
+      alert_frequency: m.alert_frequency,
+    });
+    setOpen(true);
+  };
 
   const monitorById = useMemo(() => {
     const map = new Map<string, BrandMonitor>();
@@ -159,29 +182,32 @@ const Monitor = () => {
   const splitList = (s: string) =>
     s.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!form.brand_name.trim()) {
       toast.error("Brand or topic name is required");
       return;
     }
+    const payload = {
+      brand_name: form.brand_name.trim(),
+      website_url: form.website_url.trim() || `https://${form.brand_name.trim().toLowerCase().replace(/\s+/g, "")}.com`,
+      competitor_urls: splitList(form.competitor_urls),
+      keywords: splitList(form.keywords),
+      founder_names: splitList(form.founder_names),
+      product_names: splitList(form.product_names),
+      email_alerts: form.email_alerts,
+      alert_frequency: form.alert_frequency,
+    };
     try {
-      await createMon.mutateAsync({
-        brand_name: form.brand_name.trim(),
-        website_url: form.website_url.trim() || `https://${form.brand_name.trim().toLowerCase().replace(/\s+/g, "")}.com`,
-        competitor_urls: splitList(form.competitor_urls),
-        keywords: splitList(form.keywords),
-        founder_names: splitList(form.founder_names),
-        product_names: splitList(form.product_names),
-        email_alerts: form.email_alerts,
-        alert_frequency: form.alert_frequency,
-      });
-      toast.success("Keyword monitor added");
+      if (editingId) {
+        await updateMon.mutateAsync({ id: editingId, patch: payload as Partial<BrandMonitor> });
+        toast.success("Monitor updated");
+      } else {
+        await createMon.mutateAsync(payload);
+        toast.success("Keyword monitor added");
+      }
       setOpen(false);
-      setForm({
-        brand_name: "", website_url: "", competitor_urls: "", keywords: "",
-        founder_names: "", product_names: "",
-        email_alerts: true, alert_frequency: "daily",
-      });
+      setEditingId(null);
+      setForm(emptyForm);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -270,12 +296,10 @@ const Monitor = () => {
                   <span className="inline-flex items-center gap-1.5"><Users className="h-3 w-3" />Competitor tracking</span>
                 </div>
               </div>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" />Add monitor</Button>
-                </DialogTrigger>
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
+                <Button size="sm" className="gap-1.5" onClick={openCreate}><Plus className="h-4 w-4" />Add monitor</Button>
                 <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>Add a keyword monitor</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{editingId ? "Edit keyword monitor" : "Add a keyword monitor"}</DialogTitle></DialogHeader>
                   <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                     <div>
                       <Label>Brand or topic name</Label>
@@ -322,8 +346,10 @@ const Monitor = () => {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCreate} disabled={createMon.isPending}>
-                      {createMon.isPending ? "Adding…" : "Add monitor"}
+                    <Button onClick={handleSubmit} disabled={createMon.isPending || updateMon.isPending}>
+                      {editingId
+                        ? (updateMon.isPending ? "Saving…" : "Save changes")
+                        : (createMon.isPending ? "Adding…" : "Add monitor")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -445,6 +471,14 @@ const Monitor = () => {
                           >
                             <RefreshCw className={`h-3.5 w-3.5 mr-1 ${runCheck.isPending ? "animate-spin" : ""}`} />Run check
                           </Button>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(m)}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Edit monitor"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => setDebugFor(debugFor === m.id ? null : m.id)}
