@@ -11,6 +11,18 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_ADDRESS = "Media <hello@trymedia.ai>";
+const APP_URL = "https://trymedia.ai";
+
+function getSafeRedirectTo(value: unknown): string {
+  if (typeof value !== "string") return `${APP_URL}/chat`;
+
+  try {
+    const url = new URL(value);
+    return url.origin === APP_URL ? url.toString() : `${APP_URL}/chat`;
+  } catch {
+    return `${APP_URL}/chat`;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -57,12 +69,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const safeRedirectTo = getSafeRedirectTo(redirectTo);
+
     // Generate confirmation link
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "signup",
       email,
       password,
-      options: { redirectTo },
+      options: { redirectTo: safeRedirectTo },
     });
 
     if (linkErr || !linkData?.properties?.action_link) {
