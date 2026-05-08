@@ -9,7 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const APP_URL = "https://trymedia.ai/monitor";
 
 interface Monitor {
@@ -167,8 +166,7 @@ async function sendInstantAlert(opts: {
   mention: { title: string; url: string; publisher: string; mention_type: string; sentiment: string };
 }) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")?.trim() ?? "";
-  if (!resendApiKey || !lovableApiKey) return;
+  if (!resendApiKey) return;
 
   const { renderBrandedEmail } = await import("../_shared/email-template.ts");
   const html = renderBrandedEmail({
@@ -182,12 +180,11 @@ async function sendInstantAlert(opts: {
     cta: { label: "Open Keyword Monitor", url: APP_URL },
   });
 
-  const r = await fetch(`${GATEWAY_URL}/emails`, {
+  const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${lovableApiKey}`,
-      "X-Connection-Api-Key": resendApiKey,
+      Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
       from: "Media AI <hello@trymedia.ai>",
