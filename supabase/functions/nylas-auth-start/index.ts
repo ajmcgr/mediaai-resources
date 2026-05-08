@@ -29,7 +29,7 @@ const json = (req: Request, body: Record<string, unknown>, status = 200) => {
 
 const requiredEnv = (name: string) => {
   const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(`${name} missing`);
+  if (!value) throw new Error(`Server is missing required secret: ${name}`);
   return value;
 };
 
@@ -47,7 +47,7 @@ serve(async (req) => {
     const NYLAS_API_URI = normalizeNylasApiUri(Deno.env.get("NYLAS_API_URI"));
     const SUPABASE_URL = requiredEnv("SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")?.trim() || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")?.trim();
-    if (!SUPABASE_ANON_KEY) throw new Error("SUPABASE_ANON_KEY missing");
+    if (!SUPABASE_ANON_KEY) throw new Error("Server is missing required secret: SUPABASE_ANON_KEY");
 
     const auth = req.headers.get("Authorization");
     if (!auth?.startsWith("Bearer ")) return json(req, { error: "unauthorized" }, 401);
@@ -69,6 +69,8 @@ serve(async (req) => {
     return json(req, { url: url.toString() });
   } catch (e) {
     console.error("nylas-auth-start error", e);
-    return json(req, { error: e instanceof Error ? e.message : "error" }, 500);
+    const message = e instanceof Error ? e.message : "error";
+    const status = message.startsWith("Server is missing required secret:") ? 503 : 500;
+    return json(req, { error: message }, status);
   }
 });
