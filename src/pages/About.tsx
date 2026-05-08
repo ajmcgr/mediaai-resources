@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import alexPhoto from "@/assets/alex-macgregor.png";
 import { Helmet } from "react-helmet-async";
 
 const About = () => {
@@ -69,6 +70,11 @@ const About = () => {
           </p>
 
           <div className="pt-8">
+            <img
+              src={alexPhoto}
+              alt="Alex MacGregor"
+              className="w-20 h-20 rounded-full object-cover mb-4"
+            />
             <p className="font-medium mb-1">— Alex MacGregor</p>
             <p className="text-muted-foreground mb-3">Founder, Media AI</p>
             <a
