@@ -1838,7 +1838,8 @@ if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
-    const plan = profile?.sub_active ? (profile?.plan_identifier as string | null) : null;
+    const profilePlan = profile?.plan_identifier as string | null;
+    const plan = profile?.sub_active || isGrowthOrHigherPlan(profilePlan) ? profilePlan : null;
 
     const body = await req.json();
     const { messages, model } = body;
