@@ -2,7 +2,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "relax-loc-pagination-008";
+const CHAT_VERSION = "growth-page-cap-009";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
