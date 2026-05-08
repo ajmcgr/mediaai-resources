@@ -1324,13 +1324,14 @@ async function hybridSearch(
   else intent.count = Math.min(intent.count, planLimit);
   const target = intent.count;
 
-  // Per-page request limit: default 100, cap at 100, never overshoot remaining plan budget.
-  const pageDefault = 100;
+  // Per-page request limit. Starter/free hard-cap = 100. Growth+ can request up to 1000 per page.
+  const perPageCap = isGrowthOrHigher ? 1000 : 100;
+  const pageDefault = isGrowthOrHigher ? 500 : 100;
   const safeOffset = Math.max(0, offset);
   const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
   const requestedLimit = Math.max(1, Math.min(
     limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
-    100,
+    perPageCap,
     remainingBudget,
   ));
   const maxTotal = maxTotalForPlan;
