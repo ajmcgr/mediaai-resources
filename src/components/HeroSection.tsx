@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Star, Users, Zap, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import heroToolsImage from "@/assets/brand/hero.png";
 
 const HeroSection = () => {
@@ -55,34 +55,14 @@ const HeroSection = () => {
           </div>
 
           {/* Social Proof */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-white/80">
-            <div className="flex items-center space-x-2">
-              <div className="flex -space-x-2">
-                {[1, 2, 3].map((i) => (
-                  <div 
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center"
-                  >
-                    <Users className="w-4 h-4 text-white" />
-                  </div>
-                ))}
-              </div>
-              <span className="text-sm">2,847 users this month</span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <div className="flex text-yellow-300">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-              <span className="text-sm">PR & Social Media pros love us</span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Zap className="w-4 h-4 text-yellow-300" />
-              <span className="text-sm">Always free • No signup required</span>
-            </div>
+          <div className="w-full">
+            <div
+              className="senja-embed"
+              data-id="20a2f52c-c242-49a6-a8e6-38e737f40524"
+              data-mode="shadow"
+              data-lazyload="false"
+              style={{ display: "block", width: "100%" }}
+            />
           </div>
         </div>
       </div>
