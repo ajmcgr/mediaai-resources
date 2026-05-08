@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+
 
 interface DemoRequest {
   name: string;
@@ -54,13 +54,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
 
-    const body = await req.json().catch(() => null);
-    const parsed = validate(body);
+    const reqBody = await req.json().catch(() => null);
+    const parsed = validate(reqBody);
     if (!parsed.ok) {
       return new Response(JSON.stringify({ error: parsed.error }), {
         status: 400,
@@ -69,7 +67,7 @@ Deno.serve(async (req) => {
     }
     const { name, email, company, role, teamSize, message } = parsed.data;
 
-    const body = `
+    const htmlBody = `
       <p><strong>Name:</strong> ${escapeHtml(name)}</p>
       <p><strong>Email:</strong> ${escapeHtml(email)}</p>
       <p><strong>Company:</strong> ${escapeHtml(company)}</p>
@@ -81,15 +79,14 @@ Deno.serve(async (req) => {
     const html = renderBrandedEmail({
       preheader: `Demo request from ${company}`,
       heading: "New demo request",
-      body,
+      body: htmlBody,
     });
 
-    const response = await fetch(`${GATEWAY_URL}/emails`, {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: "Media AI <hello@trymedia.ai>",
