@@ -1322,9 +1322,9 @@ async function hybridSearch(
 ): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null }; sources: { database: number; web: number } }> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
-  const planNorm = (plan ?? "").toLowerCase();
+  const planNorm = normalizePlanIdentifier(plan);
   const isStarter = planNorm === "starter";
-  const isGrowthOrHigher = ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(planNorm);
+  const isGrowthOrHigher = isGrowthOrHigherPlan(planNorm);
   // Plan caps: free=50 total, starter=100 total, growth+=unlimited (large sentinel)
   const maxTotalForPlan = planLimit; // 50 / 100 / 100_000
   const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
@@ -1340,7 +1340,7 @@ async function hybridSearch(
   const safeOffset = Math.max(0, offset);
   const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
   const requestedLimit = Math.max(1, Math.min(
-    limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+    isGrowthOrHigher ? pageDefault : (limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault),
     perPageCap,
     remainingBudget,
   ));
