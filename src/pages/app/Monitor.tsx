@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Plus, Trash2, RefreshCw, Bell, BellOff, Database, MessageSquare, ExternalLink,
+  Plus, Pencil, Trash2, RefreshCw, Bell, BellOff, Database, MessageSquare, ExternalLink,
   Globe, CalendarClock, Mail, Users, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
