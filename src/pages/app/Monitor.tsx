@@ -296,12 +296,10 @@ const Monitor = () => {
                   <span className="inline-flex items-center gap-1.5"><Users className="h-3 w-3" />Competitor tracking</span>
                 </div>
               </div>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" />Add monitor</Button>
-                </DialogTrigger>
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
+                <Button size="sm" className="gap-1.5" onClick={openCreate}><Plus className="h-4 w-4" />Add monitor</Button>
                 <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>Add a keyword monitor</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{editingId ? "Edit keyword monitor" : "Add a keyword monitor"}</DialogTitle></DialogHeader>
                   <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                     <div>
                       <Label>Brand or topic name</Label>
@@ -348,8 +346,10 @@ const Monitor = () => {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCreate} disabled={createMon.isPending}>
-                      {createMon.isPending ? "Adding…" : "Add monitor"}
+                    <Button onClick={handleSubmit} disabled={createMon.isPending || updateMon.isPending}>
+                      {editingId
+                        ? (updateMon.isPending ? "Saving…" : "Save changes")
+                        : (createMon.isPending ? "Adding…" : "Add monitor")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
