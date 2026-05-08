@@ -77,9 +77,10 @@ const Monitor = () => {
   const runCheck = useRunMonitorCheck();
 
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [range, setRange] = useState<7 | 30>(7);
   const [debugFor, setDebugFor] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const emptyForm = {
     brand_name: "",
     website_url: "",
     competitor_urls: "",
@@ -88,7 +89,29 @@ const Monitor = () => {
     product_names: "",
     email_alerts: true,
     alert_frequency: "daily" as AlertFrequency,
-  });
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setOpen(true);
+  };
+
+  const openEdit = (m: BrandMonitor) => {
+    setEditingId(m.id);
+    setForm({
+      brand_name: m.brand_name ?? "",
+      website_url: m.website_url ?? "",
+      competitor_urls: (m.competitor_urls ?? []).join(", "),
+      keywords: (m.keywords ?? []).join(", "),
+      founder_names: (m.founder_names ?? []).join(", "),
+      product_names: (m.product_names ?? []).join(", "),
+      email_alerts: m.email_alerts,
+      alert_frequency: m.alert_frequency,
+    });
+    setOpen(true);
+  };
 
   const monitorById = useMemo(() => {
     const map = new Map<string, BrandMonitor>();
