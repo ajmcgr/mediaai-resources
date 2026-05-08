@@ -299,10 +299,19 @@ function parseIntent(q: string): Intent {
 
 // ---------- Plan caps ----------
 
+function normalizePlanIdentifier(plan: string | null | undefined): string {
+  return (plan ?? "").toLowerCase().trim().replace(/[\s_]+/g, "-");
+}
+
+function isGrowthOrHigherPlan(plan: string | null | undefined): boolean {
+  const p = normalizePlanIdentifier(plan);
+  return ["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p) || p.includes("growth");
+}
+
 function capForPlan(plan: string | null | undefined): number {
-  const p = (plan ?? "").toLowerCase();
+  const p = normalizePlanIdentifier(plan);
   // free=50, starter=100, growth/pro/enterprise=unlimited (large sentinel for in-memory ranking)
-  if (["growth", "both", "media-pro", "pro", "enterprise", "admin"].includes(p)) return 100_000;
+  if (isGrowthOrHigherPlan(p)) return 100_000;
   if (["starter"].includes(p)) return 100;
   return 50;
 }
