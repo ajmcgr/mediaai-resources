@@ -373,22 +373,14 @@ const Index = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
             <PrimaryCTA />
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                <img src={avatar1} alt="" className="h-10 w-10 rounded-full border-2 border-background object-cover" />
-                <img src={avatar2} alt="" className="h-10 w-10 rounded-full border-2 border-background object-cover" />
-                <img src={avatar3} alt="" className="h-10 w-10 rounded-full border-2 border-background object-cover" />
-              </div>
-              <div className="text-left">
-                <div className="flex items-center gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">PR & Social Media pros love us :)</p>
-              </div>
-              
-            </div>
+            <div
+              className="senja-embed"
+              data-id="20a2f52c-c242-49a6-a8e6-38e737f40524"
+              data-mode="shadow"
+              data-lazyload="false"
+              style={{ display: "block" }}
+            />
+
           </div>
 
           
