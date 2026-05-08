@@ -78,13 +78,18 @@ const AuthConfirm = () => {
       return;
     }
 
+    if (type === "recovery") {
+      navigate(`/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`, { replace: true });
+      return;
+    }
+
     supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error }) => {
       if (error) {
         navigate("/login", { replace: true });
         return;
       }
 
-      navigate(type === "recovery" ? "/reset-password" : next, { replace: true });
+      navigate(next, { replace: true });
     });
   }, [navigate, params]);
 
