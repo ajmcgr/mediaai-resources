@@ -395,13 +395,23 @@ ${corpus}`;
           { role: "system", content: "Return only a single JSON object. No markdown." },
           { role: "user", content: prompt },
         ],
+        max_completion_tokens: 8192,
       }),
     });
-    if (!r.ok) return {};
+    if (!r.ok) {
+      const errText = await r.text().catch(() => "");
+      console.error("LOVABLE_AI_GATEWAY_ERROR", r.status, errText.slice(0, 500));
+      return {};
+    }
     const j = await r.json();
+    const finish = j.choices?.[0]?.finish_reason;
     const txt = j.choices?.[0]?.message?.content ?? "";
+    if (finish && finish !== "stop") console.warn("LOVABLE_AI_FINISH_REASON", finish, "len", txt.length);
     const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return {};
+    if (!m) {
+      console.warn("LOVABLE_AI_NO_JSON", "finish", finish, "preview", txt.slice(0, 300));
+      return {};
+    }
     const parsed = JSON.parse(m[0]);
     const out: Record<string, unknown> = {};
     const numericFields = new Set(["ig_followers", "youtube_subscribers", "ig_engagement_rate"]);
