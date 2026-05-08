@@ -15,7 +15,7 @@ const ForgotPassword = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.functions.invoke("send-password-reset", {
+    const { error } = await supabase.functions.invoke("send-password-reset-v2", {
       body: { email },
     });
     setBusy(false);
@@ -47,7 +47,9 @@ const ForgotPassword = () => {
         )}
 
         <p className="mt-6 text-sm text-center">
-          <Link to="/login" className="text-muted-foreground hover:text-foreground">Back to sign in</Link>
+          <Link to="/login" className="text-muted-foreground hover:text-foreground">
+            Back to sign in
+          </Link>
         </p>
       </main>
     </div>
