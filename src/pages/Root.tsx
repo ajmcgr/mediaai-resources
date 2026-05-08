@@ -5,8 +5,10 @@ import Index from "./Index";
 
 const Root = () => {
   const { user, loading } = useAuth();
+
   if (loading) return <FullscreenSpinner />;
-  if (user) return <Navigate to="/database" replace />;
+  if (user) return <Navigate to="/chat" replace />;
+
   return <Index />;
 };
 
