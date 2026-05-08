@@ -1802,8 +1802,25 @@ if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: { user } } = await userClient.auth.getUser();
-    console.log("CHAT_FN_AUTH", { userId: user?.id, email: user?.email });
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    let userId: string | undefined;
+    let userEmail: string | undefined;
+    try {
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (!claimsErr && claimsData?.claims?.sub) {
+        userId = claimsData.claims.sub as string;
+        userEmail = claimsData.claims.email as string | undefined;
+      }
+    } catch (e) {
+      console.log("CHAT_FN_GETCLAIMS_ERR", String(e));
+    }
+    if (!userId) {
+      const { data: { user: u } } = await userClient.auth.getUser();
+      userId = u?.id;
+      userEmail = u?.email;
+    }
+    const user = userId ? { id: userId, email: userEmail } : null;
+    console.log("CHAT_FN_AUTH", { userId, email: userEmail });
     if (!user)
       return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
