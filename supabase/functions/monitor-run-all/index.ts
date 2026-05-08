@@ -10,7 +10,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const APP_URL = "https://trymedia.ai/monitor";
 
 async function sendDigest(opts: {
@@ -20,8 +19,7 @@ async function sendDigest(opts: {
   mentions: Array<{ title: string; url: string; publisher: string | null; mention_type: string | null; sentiment: string | null }>;
 }) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim() ?? "";
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")?.trim() ?? "";
-  if (!resendApiKey || !lovableApiKey) return false;
+  if (!resendApiKey) return false;
 
   const { renderBrandedEmail } = await import("../_shared/email-template.ts");
   const items = opts.mentions.slice(0, 8).map((m) => `
@@ -41,12 +39,11 @@ async function sendDigest(opts: {
     cta: { label: "Open Keyword Monitor", url: APP_URL },
   });
 
-  const r = await fetch(`${GATEWAY_URL}/emails`, {
+  const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${lovableApiKey}`,
-      "X-Connection-Api-Key": resendApiKey,
+      Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
       from: "Media AI <hello@trymedia.ai>",
