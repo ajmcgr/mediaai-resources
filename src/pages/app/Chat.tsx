@@ -598,7 +598,7 @@ const Chat = () => {
     setLastQuery(inputValue);
     try {
       const chatRes = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 500 : 100, offset: 0 },
+        body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
       });
       const { data, error } = chatRes;
       if (error) {
@@ -663,7 +663,7 @@ const Chat = () => {
       const pag = results.pagination;
       const nextOffset = (pag.next_offset ?? (pag.offset + pag.limit)) as number;
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: lastQuery }], limit: hasGrowth ? 500 : 100, offset: nextOffset },
+        body: { messages: [{ role: "user", content: lastQuery }], limit: hasGrowth ? 100000 : 100, offset: nextOffset },
       });
       if (error) throw error;
       if (data?.usage) applyServerUsage(data.usage);
