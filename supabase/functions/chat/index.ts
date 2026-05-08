@@ -2,7 +2,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "growth-page-cap-009";
+const CHAT_VERSION = "growth-uncapped-010";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
