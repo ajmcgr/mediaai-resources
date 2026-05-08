@@ -473,6 +473,14 @@ const Monitor = () => {
                           </Button>
                           <button
                             type="button"
+                            onClick={() => openEdit(m)}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Edit monitor"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => setDebugFor(debugFor === m.id ? null : m.id)}
                             className="text-muted-foreground hover:text-foreground"
                             title="Debug info"
