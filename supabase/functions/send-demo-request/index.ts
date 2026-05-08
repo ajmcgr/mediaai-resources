@@ -1,4 +1,47 @@
-import { renderBrandedEmail } from "../_shared/email-template.ts";
+
+// ===== Inlined branded email template =====
+const _LOGO_URL = "https://trymedia.ai/email-logo-media.png";
+const _BRAND_BLUE = "#1675e2";
+const _PAGE_BG = "#f4f6f9";
+const _CARD_BG = "#ffffff";
+const _BORDER = "#e6e8ec";
+const _DIVIDER = "#eef0f3";
+const _HEADING = "#101214";
+const _BODY_TEXT = "#4e5052";
+const _MUTED = "#9aa0a6";
+
+interface BrandedEmailOptions {
+  preheader?: string;
+  heading: string;
+  body: string;
+  cta?: { label: string; url: string };
+  footerNote?: string;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function renderBrandedEmail(opts: BrandedEmailOptions): string {
+  const { preheader = "", heading, body, cta, footerNote } = opts;
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>${escapeHtml(heading)}</title></head>
+<body style="margin:0;padding:0;background:${_PAGE_BG};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#22252a;-webkit-font-smoothing:antialiased;">
+${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>` : ""}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${_PAGE_BG};padding:48px 16px;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${_CARD_BG};border-radius:14px;overflow:hidden;border:1px solid ${_BORDER};">
+<tr><td align="center" style="padding:34px 32px 26px;border-bottom:1px solid ${_DIVIDER};"><img src="${_LOGO_URL}" alt="Media AI" width="180" style="width:180px;max-width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;" /></td></tr>
+<tr><td style="padding:36px 40px ${cta || footerNote ? "32px" : "40px"};">
+<h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;font-weight:700;color:${_HEADING};">${heading}</h1>
+<div style="font-size:15px;line-height:1.6;color:${_BODY_TEXT};margin:0 0 ${cta ? "28px" : "0"};">${body}</div>
+${cta ? `<div><a href="${escapeHtml(cta.url)}" style="display:inline-block;background:${_BRAND_BLUE};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 24px;border-radius:8px;">${escapeHtml(cta.label)}</a></div>` : ""}
+</td></tr>
+${footerNote ? `<tr><td align="center" style="padding:20px 32px 28px;border-top:1px solid ${_DIVIDER};"><p style="margin:0;font-size:13px;color:${_MUTED};line-height:1.5;">${footerNote}</p></td></tr>` : ""}
+</table>
+<p style="margin:18px 0 0;font-size:12px;color:${_MUTED};">© ${new Date().getFullYear()} Media AI · trymedia.ai</p>
+</td></tr></table></body></html>`;
+}
+// ===== End inlined template =====
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
