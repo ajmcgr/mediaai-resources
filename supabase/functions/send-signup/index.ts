@@ -13,6 +13,7 @@ const FROM_ADDRESS = "Media <hello@trymedia.ai>";
 const CONFIRM_REDIRECT_URL = "https://trymedia.ai/chat";
 
 Deno.serve(async (req) => {
+  console.log("send-signup invoked", req.method, new Date().toISOString());
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
