@@ -55,13 +55,15 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (error || !data?.properties?.action_link) {
+    const tokenHash = data?.properties?.hashed_token;
+
+    if (error || !data?.properties?.action_link || !tokenHash) {
       const message = error?.message ?? "Could not create signup link";
       const status = /already registered|already been registered|user already/i.test(message) ? 409 : 400;
       return response({ error: message }, status);
     }
 
-    const actionLink = data.properties.action_link;
+    const actionLink = `https://trymedia.ai/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=signup&next=%2Fchat`;
     const firstName = typeof displayName === "string" && displayName.trim() ? displayName.trim().split(/\s+/)[0] : "";
 
     const html = renderBrandedEmail({
