@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { renderBrandedEmail, escapeHtml } from "../_shared/email-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,8 +10,7 @@ const corsHeaders = {
 };
 
 const FROM_ADDRESS = "Media <hello@trymedia.ai>";
-const CONFIRM_REDIRECT_URL = "https://trymedia.ai/auth/callback?next=%2Fchat";
-const LOGO_URL = "https://trymedia.ai/media-logo-email.png";
+const CONFIRM_REDIRECT_URL = "https://trymedia.ai/chat";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,11 +27,12 @@ Deno.serve(async (req) => {
       return response({ error: "password must be at least 8 characters" }, 400);
     }
 
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!resendApiKey || !supabaseUrl || !serviceRole) {
+    if (!lovableApiKey || !resendApiKey || !supabaseUrl || !serviceRole) {
       return response({ error: "Server not configured" }, 500);
     }
 
@@ -71,11 +72,12 @@ Deno.serve(async (req) => {
       footerNote: "If you didn't create an account, you can safely ignore this email.",
     });
 
-    const sendRes = await fetch("https://api.resend.com/emails", {
+    const sendRes = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": resendApiKey,
       },
       body: JSON.stringify({
         from: FROM_ADDRESS,
