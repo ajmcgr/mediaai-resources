@@ -3,10 +3,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const NYLAS_API_URI = Deno.env.get("NYLAS_API_URI") ?? "https://api.us.nylas.com";
+const normalizeNylasApiUri = (value: string | undefined) => {
+  let uri = (value?.trim() || "https://api.us.nylas.com").replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(uri)) uri = `https://${uri}`;
+  return uri.replace(/\/v3$/i, "");
+};
+
+const NYLAS_API_URI = normalizeNylasApiUri(Deno.env.get("NYLAS_API_URI"));
 const NYLAS_CLIENT_SECRET = Deno.env.get("NYLAS_CLIENT_SECRET")!;
 
 async function nylas(path: string, init: RequestInit = {}) {

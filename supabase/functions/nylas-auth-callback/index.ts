@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const normalizeNylasApiUri = (value: string | undefined) => {
+  let uri = (value?.trim() || "https://api.us.nylas.com").replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(uri)) uri = `https://${uri}`;
+  return uri.replace(/\/v3$/i, "");
+};
+
 const html = (msg: string, ok: boolean) => `<!doctype html><html><body style="font-family:system-ui;padding:40px;text-align:center">
 <h2>${ok ? "Inbox connected" : "Connection failed"}</h2>
 <p>${msg}</p>
@@ -14,7 +20,7 @@ serve(async (req) => {
   try {
     const NYLAS_CLIENT_ID = Deno.env.get("NYLAS_CLIENT_ID")!;
     const NYLAS_CLIENT_SECRET = Deno.env.get("NYLAS_CLIENT_SECRET")!;
-    const NYLAS_API_URI = Deno.env.get("NYLAS_API_URI") ?? "https://api.us.nylas.com";
+    const NYLAS_API_URI = normalizeNylasApiUri(Deno.env.get("NYLAS_API_URI"));
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
