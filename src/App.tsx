@@ -69,7 +69,8 @@ const AuthConfirm = () => {
 
   useEffect(() => {
     const tokenHash = params.get("token_hash");
-    const type = params.get("type") === "signup" ? "signup" : null;
+    const requestedType = params.get("type");
+    const type = requestedType === "signup" || requestedType === "recovery" ? requestedType : null;
     const next = params.get("next") || "/chat";
 
     if (!tokenHash || !type) {
