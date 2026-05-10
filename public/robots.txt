@@ -6,5 +6,6 @@ Disallow: /monitor
 Disallow: /account
 Disallow: /billing
 Disallow: /auth/
+Disallow: /shared/
 
 Sitemap: https://trymedia.ai/sitemap.xml
