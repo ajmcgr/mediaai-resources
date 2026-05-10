@@ -742,6 +742,7 @@ const ToolTemplate = () => {
       title,
       description,
       `PR tools, ${currentTool.category.toLowerCase()}, journalism, media outreach`,
+      `https://trymedia.ai/tools/${slug}`,
     );
 
     if (currentTool.faqs.length > 0) {
