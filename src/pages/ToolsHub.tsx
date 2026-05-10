@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import Layout from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,15 @@ const ToolsHub = () => {
 
   return (
     <Layout>
+      <Helmet>
+        <title>Free PR & Social Media Tools — Media AI</title>
+        <meta name="description" content="24 free tools for PR & social media managers: beat matcher, pitch helper, subject line tester, list segmenter and more." />
+        <link rel="canonical" href="https://trymedia.ai/tools" />
+        <meta property="og:url" content="https://trymedia.ai/tools" />
+        <meta property="og:title" content="Free PR & Social Media Tools — Media AI" />
+        <meta property="og:description" content="24 free tools for PR & social media managers: beat matcher, pitch helper, subject line tester, list segmenter and more." />
+      </Helmet>
+
       {/* Hero Section */}
       <section className="bg-hero-gradient py-16">
         <div className="container mx-auto px-4">
