@@ -8,6 +8,10 @@ const About = () => {
       <Helmet>
         <title>About — Media AI</title>
         <meta name="description" content="Our story: building a lean, AI-first media database that prizes speed, accuracy, and transparency." />
+        <link rel="canonical" href="https://trymedia.ai/about" />
+        <meta property="og:url" content="https://trymedia.ai/about" />
+        <meta property="og:title" content="About — Media AI" />
+        <meta property="og:description" content="Our story: building a lean, AI-first media database that prizes speed, accuracy, and transparency." />
       </Helmet>
 
       <article className="container mx-auto px-4 py-16 max-w-3xl">

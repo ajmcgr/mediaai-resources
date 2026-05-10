@@ -353,7 +353,8 @@ const Index = () => {
           name="description"
           content="Find the right journalists and creators for your stories, campaigns, and projects in seconds. AI-powered media database with verified emails and socials."
         />
-        <link rel="canonical" href="https://resources.trymedia.ai/" />
+        <link rel="canonical" href="https://trymedia.ai/" />
+        <meta property="og:url" content="https://trymedia.ai/" />
       </Helmet>
 
       <Header />

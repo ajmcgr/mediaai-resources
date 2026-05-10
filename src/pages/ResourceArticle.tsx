@@ -363,9 +363,12 @@ const ResourceArticle = () => {
   // SEO and structured data
   useEffect(() => {
     if (article) {
+      const canonical = `https://trymedia.ai/resources/${slug}`;
       updatePageSEO(
         article.metaTitle,
-        article.metaDescription
+        article.metaDescription,
+        undefined,
+        canonical,
       );
 
       // Add Article structured data
@@ -374,13 +377,19 @@ const ResourceArticle = () => {
         "@type": "Article",
         "headline": article.title,
         "description": article.metaDescription,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonical },
         "author": {
           "@type": "Organization",
-          "name": "Media AI"
+          "name": "Media AI",
+          "url": "https://trymedia.ai/",
         },
         "publisher": {
           "@type": "Organization",
-          "name": "Media AI"
+          "name": "Media AI",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://trymedia.ai/lovable-uploads/db4c262d-1134-420a-aa62-f166622f7c49.png",
+          },
         },
         "datePublished": new Date().toISOString(),
         "dateModified": new Date().toISOString()

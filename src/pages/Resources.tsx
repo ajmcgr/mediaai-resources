@@ -285,7 +285,8 @@ const Resources = () => {
     updatePageSEO(
       "Free PR & Social Media Resources Hub | Media AI",
       "Expert guides and templates for PR professionals. Build media lists, craft pitches, measure coverage, and scale your PR strategy.",
-      "PR resources, media list building, pitch templates, PR measurement, crisis communications, influencer marketing, press releases"
+      "PR resources, media list building, pitch templates, PR measurement, crisis communications, influencer marketing, press releases",
+      "https://trymedia.ai/resources",
     );
 
     // Add structured data

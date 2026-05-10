@@ -136,7 +136,8 @@ const Pricing = () => {
           name="description"
           content="Simple plans for the Media AI chat assistant and journalist/creator database. Monthly or yearly. 1-month free trial."
         />
-        <link rel="canonical" href="https://resources.trymedia.ai/pricing" />
+        <link rel="canonical" href="https://trymedia.ai/pricing" />
+        <meta property="og:url" content="https://trymedia.ai/pricing" />
       </Helmet>
 
       <Header />
