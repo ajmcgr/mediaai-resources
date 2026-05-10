@@ -34,6 +34,7 @@ import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
 import RequestDemo from "./pages/RequestDemo";
+import SharedList from "./pages/SharedList";
 
 const queryClient = new QueryClient();
 
@@ -45,7 +46,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo",
+  "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo", "shared",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -117,6 +118,7 @@ const App = () => (
               {/* Public marketing/billing */}
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/request-demo" element={<RequestDemo />} />
+              <Route path="/shared/:token" element={<SharedList />} />
               <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
 
               {/* Authenticated (any plan) */}

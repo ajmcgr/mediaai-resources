@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import { toast } from "@/hooks/use-toast";
+import { ShareListDialog } from "./ShareListDialog";
 
 export const ListsSheet = () => {
   const { user } = useAuth();
@@ -103,10 +104,11 @@ export const ListsSheet = () => {
                   </button>
                   {activeId === l.id && (
                     <div className="px-3 pb-3 space-y-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExport}>
                           <Download className="h-3.5 w-3.5" />Export CSV
                         </Button>
+                        <ShareListDialog listId={l.id} listName={l.name} />
                         <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive"
                           onClick={() => deleteList.mutate(l.id)}>
                           <Trash2 className="h-3.5 w-3.5" />Delete
