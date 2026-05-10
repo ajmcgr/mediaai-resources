@@ -264,7 +264,7 @@ const FEATURE_BLOCKS = [
     eyebrow: "Seamless Export",
     body: "Whether you need a shortlist of potential candidates or a comprehensive database, our export feature helps you stay organized and productive.",
     image: featureExport,
-    bullets: ["Export to CSV, Excel, or PDF", "Share contacts with your team via link or email", "One-click sync to keep lists fresh"],
+    bullets: ["Export to CSV, Excel, or .xls", "Share contacts with your team via link or email", "One-click sync to keep lists fresh"],
   },
   {
     eyebrow: "Keyword Monitor",
