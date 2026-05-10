@@ -20,6 +20,7 @@ import featureAiChat from "@/assets/home/feature-ai-chat.jpg";
 import audiencesImg from "@/assets/home/audiences-v2.jpg";
 import featureSearch from "@/assets/home/feature-search-v2.jpg";
 import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
+import featureMediaLists from "@/assets/home/feature-media-lists.jpg";
 import featureContactInbox from "@/assets/home/feature-contact-inbox.jpg";
 import featureExport from "@/assets/home/feature-export-v2.jpg";
 import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
@@ -246,6 +247,12 @@ const FEATURE_BLOCKS = [
     body: "Effortlessly explore a rich database of creators and journalists, handpicked for their expertise and credibility. Whether you're seeking creative talent for a campaign or a journalist to amplify your story.",
     image: heroProductDiscover,
     bullets: ["Access to a growing network of professionals", "Streamlined interface for intuitive browsing", "Discover fresh talent for topics or industries"],
+  },
+  {
+    eyebrow: "Media Lists",
+    body: "Build curated media lists straight from chat or search results. Save shortlists for each launch, keep them updated as contacts change, and share them with teammates, clients, or collaborators with a single link.",
+    image: featureMediaLists,
+    bullets: ["Save journalists and creators into named lists in one click", "Share any list via public link, email, or X / LinkedIn / WhatsApp", "Recipients get a clean, branded read-only view — no login required"],
   },
   {
     eyebrow: "Search and Filter",
