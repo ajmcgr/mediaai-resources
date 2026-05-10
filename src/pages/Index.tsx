@@ -348,7 +348,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Find Any Journalist or Creator Email. Instantly. — Media AI</title>
+        <title>Media — Find Any Journalist or Creator Email</title>
         <meta
           name="description"
           content="Find the right journalists and creators for your stories, campaigns, and projects in seconds. AI-powered media database with verified emails and socials."
