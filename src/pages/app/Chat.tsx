@@ -72,7 +72,8 @@ const JOURNALIST_COLS: { key: keyof Row | "authority"; label: string }[] = [
 ];
 const CREATOR_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
-  { key: "ig_handle", label: "Handle" },
+  { key: "ig_handle", label: "Instagram" },
+  { key: "youtube_url", label: "YouTube" },
   { key: "ig_followers", label: "Followers" },
   { key: "category", label: "Topic" },
   { key: "email", label: "Email" },
