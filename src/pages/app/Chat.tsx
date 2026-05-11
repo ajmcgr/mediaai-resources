@@ -232,7 +232,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           name: row.name,
           outlet: row.outlet,
           title: row.titles,
-          category: row.category ?? row.topics,
+          category: row.topics ?? row.category,
           country: row.country,
           email: row.email,
           linkedin_url: row.linkedin_url,
