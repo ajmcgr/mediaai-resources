@@ -763,12 +763,12 @@ function preferredTopicLabel(row: { category?: unknown; topics?: unknown; displa
   const displayText = typeof row.display_topic === "string" ? row.display_topic.trim() : String(row.display_topic ?? "").trim();
   const topicsText = stringifyTopics(row.topics);
   const categoryText = typeof row.category === "string" ? row.category.trim() : String(row.category ?? "").trim();
+  const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
+
+  if (requested.length) return requested[0];
 
   if (displayText) return displayText;
   if (topicsText) return topicsText;
-
-  const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
-  if (requested.length) return requested[0];
 
   return categoryText || null;
 }
