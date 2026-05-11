@@ -13,13 +13,9 @@ export function normalizeDomain(input?: string | null): string | null {
   if (!input) return null;
   let s = String(input).trim().toLowerCase();
   if (!s) return null;
-  // strip protocol
   s = s.replace(/^https?:\/\//, "");
-  // strip path
   s = s.split("/")[0];
-  // strip www.
   s = s.replace(/^www\./, "");
-  // bare names like "TechCrunch" => not a domain
   if (!s.includes(".")) return null;
   return s;
 }
@@ -27,6 +23,42 @@ export function normalizeDomain(input?: string | null): string | null {
 export function normalizeOutletName(input?: string | null): string | null {
   if (!input) return null;
   return String(input).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// Strip leading "the " for tolerant matching
+function stripThe(s: string): string {
+  return s.replace(/^the\s+/i, "").trim();
+}
+
+/**
+ * Generate candidate outlet-name lookups from a possibly composite outlet string.
+ * Examples:
+ *   "Sun, Sun - Sports Desk, Sun - Tennis"  -> ["sun"]
+ *   "Sports Illustrated, Beaver County Times" -> ["sports illustrated", "beaver county times"]
+ *   "The Boston Globe" -> ["the boston globe", "boston globe"]
+ */
+export function outletNameCandidates(input?: string | null): string[] {
+  if (!input) return [];
+  const out = new Set<string>();
+  // split composites on commas, semicolons, slashes, pipes
+  const parts = String(input).split(/[,;|/]+/);
+  for (const raw of parts) {
+    // also strip section suffixes like " - Sports Desk"
+    const base = raw.split(/\s[-–—]\s/)[0];
+    const n = normalizeOutletName(base);
+    if (!n) continue;
+    out.add(n);
+    const stripped = normalizeOutletName(stripThe(n));
+    if (stripped && stripped !== n) out.add(stripped);
+  }
+  // also include the whole-string normalized form
+  const whole = normalizeOutletName(input);
+  if (whole) {
+    out.add(whole);
+    const w2 = normalizeOutletName(stripThe(whole));
+    if (w2) out.add(w2);
+  }
+  return [...out].filter((s) => s.length >= 3);
 }
 
 /**
@@ -37,15 +69,17 @@ export function normalizeOutletName(input?: string | null): string | null {
 export function useOutletAuthorities(outlets: Array<string | null | undefined>) {
   const norm = Array.from(new Set(outlets.map((o) => o ?? "").filter(Boolean)));
   const domains = Array.from(new Set(norm.map(normalizeDomain).filter((d): d is string => !!d)));
-  const names = Array.from(new Set(norm.map(normalizeOutletName).filter((n): n is string => !!n)));
+  const nameSet = new Set<string>();
+  for (const o of norm) for (const c of outletNameCandidates(o)) nameSet.add(c);
+  const names = [...nameSet];
 
   return useQuery({
     queryKey: ["outlet-authority", domains.sort().join("|"), names.sort().join("|")],
     enabled: domains.length + names.length > 0,
-    staleTime: 1000 * 60 * 60, // 1h
+    staleTime: 1000 * 60 * 60,
     queryFn: async () => {
       console.log("AUTHORITY_LOOKUP_STARTED", { domains: domains.length, names: names.length });
-      const map = new Map<string, OutletAuthority>(); // key = domain or name
+      const map = new Map<string, OutletAuthority>();
       try {
         if (domains.length) {
           const { data, error } = await supabase
@@ -58,14 +92,23 @@ export function useOutletAuthorities(outlets: Array<string | null | undefined>) 
           }
         }
         if (names.length) {
-          // case-insensitive name match
-          const { data, error } = await supabase
-            .from("outlet_authority")
-            .select("domain,outlet_name,authority_score,source")
-            .or(names.map((n) => `outlet_name.ilike.${n}`).join(","));
-          if (error) throw error;
-          for (const row of data ?? []) {
-            if (row.outlet_name) map.set(`n:${row.outlet_name.toLowerCase()}`, row as OutletAuthority);
+          // batch in chunks to keep URL length sane
+          const chunkSize = 60;
+          for (let i = 0; i < names.length; i += chunkSize) {
+            const chunk = names.slice(i, i + chunkSize);
+            const { data, error } = await supabase
+              .from("outlet_authority")
+              .select("domain,outlet_name,authority_score,source")
+              .or(chunk.map((n) => `outlet_name.ilike.${n}`).join(","));
+            if (error) throw error;
+            for (const row of data ?? []) {
+              if (row.outlet_name) {
+                const k = row.outlet_name.toLowerCase();
+                map.set(`n:${k}`, row as OutletAuthority);
+                const k2 = stripThe(k);
+                if (k2 !== k) map.set(`n:${k2}`, row as OutletAuthority);
+              }
+            }
           }
         }
         console.log("AUTHORITY_LOOKUP_SUCCESS", { found: map.size });
@@ -88,9 +131,8 @@ export function resolveAuthority(
     const hit = map.get(`d:${d}`);
     if (hit) return hit.authority_score;
   }
-  const n = normalizeOutletName(outlet);
-  if (n) {
-    const hit = map.get(`n:${n}`);
+  for (const cand of outletNameCandidates(outlet)) {
+    const hit = map.get(`n:${cand}`);
     if (hit) return hit.authority_score;
   }
   if (outlet) console.debug("AUTHORITY_LOOKUP_MISSING", { outlet });
