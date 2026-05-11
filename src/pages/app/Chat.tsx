@@ -44,6 +44,7 @@ type Row = {
   title: string | null;
   category: string | null;
   topics?: string | null;
+  display_topic?: string | null;
   country: string | null;
   email: string | null;
   ig_handle?: string | null;
@@ -105,6 +106,8 @@ const TOPIC_FALLBACK_ALIASES: Array<{ trigger: string; terms: string[] }> = [
   { trigger: "real estate", terms: ["real estate", "property", "realty", "housing"] },
   { trigger: "beauty", terms: ["beauty", "makeup", "skincare"] },
   { trigger: "gaming", terms: ["gaming", "games", "esports"] },
+  { trigger: "football", terms: ["football", "soccer", "premier league", "fifa", "world cup"] },
+  { trigger: "sports", terms: ["sports", "sport", "football", "soccer", "athletics"] },
   { trigger: "travel", terms: ["travel", "tourism", "destination"] },
 ];
 
@@ -201,6 +204,28 @@ function rowPersistenceKey(row: Row) {
   return String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}|${row.title}`);
 }
 
+function inferredTopicFromQuery(query: string): string | null {
+  const normalized = ` ${normalizeQuery(query)} `;
+  for (const { trigger, terms } of TOPIC_FALLBACK_ALIASES) {
+    if (normalized.includes(` ${trigger} `) || terms.some((term) => normalized.includes(` ${term} `))) return trigger;
+  }
+  return null;
+}
+
+function topicValue(row: Row, query = ""): string | null {
+  const display = String(row.display_topic ?? "").trim();
+  if (display) return display;
+  const topics = String(row.topics ?? "").trim();
+  if (topics) return topics;
+  const category = String(row.category ?? "").trim();
+  const inferred = inferredTopicFromQuery(query);
+  if (inferred) {
+    const hay = normalizeQuery([row.title, row.outlet, row.reason, category].filter(Boolean).join(" "));
+    if (!category || TOPIC_FALLBACK_ALIASES.some(({ trigger, terms }) => trigger === inferred && terms.some((term) => hay.includes(term)))) return inferred;
+  }
+  return category || null;
+}
+
 function shouldAutoPersistRow(kind: "journalists" | "creators", row: Row) {
   if (row.source !== "exa" || !row.name) return false;
   if (kind === "journalists") return !!(row.email || row.outlet || row.title);
@@ -234,6 +259,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           outlet: row.outlet,
           title: row.titles,
           category: row.category,
+          display_topic: row.topics ?? row.category,
           topics: row.topics ?? null,
           country: row.country,
           email: row.email,
@@ -264,6 +290,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           outlet: row.outlet,
           title: row.titles,
           category: row.category,
+          display_topic: row.topics ?? row.category,
           topics: row.topics ?? null,
           country: row.country,
           email: row.email,
@@ -305,6 +332,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
           outlet: row.type,
           title: row.bio,
           category: row.category,
+          display_topic: row.category,
           country: null,
           email: row.email,
           ig_handle: row.ig_handle,
@@ -336,6 +364,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
           outlet: row.type,
           title: row.bio,
           category: row.category,
+          display_topic: row.category,
           country: null,
           email: row.email,
           ig_handle: row.ig_handle,
@@ -857,7 +886,7 @@ const Chat = () => {
             className="gap-1.5"
             disabled={!results?.rows.length}
             onClick={() => {
-              const rows = (results?.rows ?? []) as Record<string, unknown>[];
+              const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
               if (!rows.length) return;
               const headers = Object.keys(rows[0]);
               downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
@@ -1143,7 +1172,7 @@ const Chat = () => {
                           const v = c.key === "authority"
                             ? null
                             : c.key === "category"
-                              ? ((r.topics && String(r.topics).trim()) ? r.topics : r.category)
+                              ? topicValue(r, lastQuery)
                               : r[c.key as keyof Row];
                           return (
                             <td

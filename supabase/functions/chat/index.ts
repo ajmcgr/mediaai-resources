@@ -96,7 +96,9 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   ],
   travel: ["travel", "tourism", "destination"],
   gaming: ["gaming", "games", "esports"],
-  sports: ["sports", "athletics"],
+  football: ["football", "soccer", "premier league", "epl", "fifa", "world cup"],
+  soccer: ["soccer", "football", "premier league", "epl", "fifa", "world cup"],
+  sports: ["sports", "sport", "athletics", "football", "soccer"],
   music: ["music", "musician"],
   film: ["film", "movie", "cinema", "entertainment"],
   business: ["business", "enterprise", "b2b"],
@@ -636,6 +638,7 @@ export type Row = {
   outlet: string | null;
   title: string | null;
   category: string | null;
+  display_topic?: string | null;
   country: string | null;
   location?: string | null;
   city?: string | null;
@@ -707,6 +710,7 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
     outlet: (r.outlet as string) ?? null,
     title: (r.titles as string) ?? null,
     category: (r.category as string) ?? null,
+    display_topic: preferredTopicLabel(r),
     country: (r.country as string) ?? null,
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
@@ -732,6 +736,7 @@ async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Ro
     outlet: (r.type as string) ?? null,
     title: null,
     category: (r.category as string) ?? null,
+    display_topic: preferredTopicLabel(r),
     country: null,
     email: (r.email as string) ?? null,
     ig_handle: (r.ig_handle as string) ?? null,
@@ -754,8 +759,23 @@ function stringifyTopics(value: unknown): string | null {
   return String(value);
 }
 
+function preferredTopicLabel(row: { category?: unknown; topics?: unknown; display_topic?: unknown }, intent?: Intent): string | null {
+  const displayText = typeof row.display_topic === "string" ? row.display_topic.trim() : String(row.display_topic ?? "").trim();
+  const topicsText = stringifyTopics(row.topics);
+  const categoryText = typeof row.category === "string" ? row.category.trim() : String(row.category ?? "").trim();
+  const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
+
+  if (requested.length) return requested[0];
+
+  if (displayText) return displayText;
+  if (topicsText) return topicsText;
+
+  return categoryText || null;
+}
+
 function journalistRow(r: Record<string, unknown>): Row {
   const bio = (r.bio as string) ?? null;
+  const topics = stringifyTopics(r.topics);
   return {
     source: "database" as const,
     source_id: r.id as number,
@@ -764,12 +784,13 @@ function journalistRow(r: Record<string, unknown>): Row {
     outlet: (r.outlet as string) ?? null,
     title: (r.titles as string) ?? null,
     category: (r.category as string) ?? null,
+    display_topic: preferredTopicLabel(r),
     country: (r.country as string) ?? null,
     location: (r.location as string) ?? null,
     city: (r.city as string) ?? null,
     region: (r.region as string) ?? null,
     bio,
-    topics: stringifyTopics(r.topics),
+    topics,
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
     xhandle: (r.xhandle as string) ?? null,
@@ -779,6 +800,7 @@ function journalistRow(r: Record<string, unknown>): Row {
 
 function creatorRow(r: Record<string, unknown>): Row {
   const bio = (r.bio as string) ?? null;
+  const topics = stringifyTopics(r.topics);
   return {
     source: "database" as const,
     source_id: r.id as number,
@@ -787,12 +809,13 @@ function creatorRow(r: Record<string, unknown>): Row {
     outlet: (r.type as string) ?? null,
     title: null,
     category: (r.category as string) ?? null,
+    display_topic: preferredTopicLabel(r),
     country: (r.country as string) ?? null,
     location: (r.location as string) ?? null,
     city: (r.city as string) ?? null,
     region: (r.region as string) ?? null,
     bio,
-    topics: stringifyTopics(r.topics),
+    topics,
     email: (r.email as string) ?? null,
     ig_handle: (r.ig_handle as string) ?? null,
     ig_followers: (r.ig_followers as number) ?? null,
@@ -1076,6 +1099,7 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
         outlet: host || null,
         title: titleStr || null,
         category: intent.topics[0] ?? null,
+        display_topic: preferredTopicLabel({ category: intent.topics[0] ?? null, topics: intent.topics }, intent),
         country: null,
         bio: webText,
         topics: intent.topics,
@@ -1124,6 +1148,7 @@ function dedupe(rows: Row[]): Row[] {
         outlet: winner.outlet ?? loser.outlet,
         title: winner.title ?? loser.title,
         category: winner.category ?? loser.category,
+        display_topic: preferredTopicLabel(winner) ?? preferredTopicLabel(loser),
         country: winner.country ?? loser.country,
         source_url: winner.source_url ?? loser.source_url,
         reason: winner.reason ?? loser.reason,
@@ -1147,7 +1172,8 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     const out = (r.outlet ?? "").toLowerCase();
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
-    const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
+    const topicsText = (Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "")).toLowerCase();
+    const hay = [name, cat, topicsText, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
     const locHay = [
       cnt,
       (r.location ?? "").toLowerCase(),
@@ -1161,6 +1187,9 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     let topicMatched = false;
     for (const t of intent.topics) {
       if (cat.includes(t)) {
+        s += 50;
+        topicMatched = true;
+      } else if (topicsText.includes(t)) {
         s += 50;
         topicMatched = true;
       } else if (ttl.includes(t)) {
@@ -1975,6 +2004,7 @@ async function hybridSearch(
             outlet: host || null,
             title: titleStr || null,
             category: intent.topics[0] ?? null,
+            display_topic: preferredTopicLabel({ category: intent.topics[0] ?? null, topics: intent.topics }, intent),
             country: null,
             bio: webText,
             topics: intent.topics,
@@ -2046,7 +2076,9 @@ async function hybridSearch(
   const ranked = rankRows(combined, intent).filter((r) => isValidRow(r, intent));
   // Cap total available rows to plan budget for paging.
   const totalEstimated = Math.min(ranked.length, maxTotalForPlan);
-  const paged = ranked.slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated));
+  const paged = ranked
+    .slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated))
+    .map((row) => ({ ...row, display_topic: preferredTopicLabel(row, intent) }));
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
   const returned = paged.length;
