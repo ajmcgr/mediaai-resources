@@ -106,6 +106,8 @@ const TOPIC_FALLBACK_ALIASES: Array<{ trigger: string; terms: string[] }> = [
   { trigger: "real estate", terms: ["real estate", "property", "realty", "housing"] },
   { trigger: "beauty", terms: ["beauty", "makeup", "skincare"] },
   { trigger: "gaming", terms: ["gaming", "games", "esports"] },
+  { trigger: "football", terms: ["football", "soccer", "premier league", "fifa", "world cup"] },
+  { trigger: "sports", terms: ["sports", "sport", "football", "soccer", "athletics"] },
   { trigger: "travel", terms: ["travel", "tourism", "destination"] },
 ];
 
@@ -202,12 +204,25 @@ function rowPersistenceKey(row: Row) {
   return String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}|${row.title}`);
 }
 
-function topicValue(row: Row): string | null {
+function inferredTopicFromQuery(query: string): string | null {
+  const normalized = ` ${normalizeQuery(query)} `;
+  for (const { trigger, terms } of TOPIC_FALLBACK_ALIASES) {
+    if (normalized.includes(` ${trigger} `) || terms.some((term) => normalized.includes(` ${term} `))) return trigger;
+  }
+  return null;
+}
+
+function topicValue(row: Row, query = ""): string | null {
   const display = String(row.display_topic ?? "").trim();
   if (display) return display;
   const topics = String(row.topics ?? "").trim();
   if (topics) return topics;
   const category = String(row.category ?? "").trim();
+  const inferred = inferredTopicFromQuery(query);
+  if (inferred) {
+    const hay = normalizeQuery([row.title, row.outlet, row.reason, category].filter(Boolean).join(" "));
+    if (!category || TOPIC_FALLBACK_ALIASES.some(({ trigger, terms }) => trigger === inferred && terms.some((term) => hay.includes(term)))) return inferred;
+  }
   return category || null;
 }
 
