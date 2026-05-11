@@ -804,7 +804,7 @@ function creatorRow(r: Record<string, unknown>): Row {
     name: (r.name as string) ?? null,
     outlet: (r.type as string) ?? null,
     title: null,
-    category: (r.category as string) ?? null,
+    category: preferredTopicLabel(r),
     country: (r.country as string) ?? null,
     location: (r.location as string) ?? null,
     city: (r.city as string) ?? null,
