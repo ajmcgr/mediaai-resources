@@ -232,18 +232,25 @@ const EXAMPLE_SEARCHES = [
   "Find startup podcasts in London",
 ];
 
+function formatTopicLabel(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.length <= 4) return trimmed.toUpperCase(); // AI, NFL, UK, etc.
+  return trimmed.replace(/\b([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 function topicValue(row: Row, query = ""): string | null {
   const display = String(row.display_topic ?? "").trim();
-  if (display) return display;
+  if (display) return formatTopicLabel(display);
   const topics = String(row.topics ?? "").trim();
-  if (topics) return topics;
+  if (topics) return formatTopicLabel(topics);
   const category = String(row.category ?? "").trim();
   const inferred = inferredTopicFromQuery(query);
   if (inferred) {
     const hay = normalizeQuery([row.title, row.outlet, row.reason, category].filter(Boolean).join(" "));
-    if (!category || TOPIC_FALLBACK_ALIASES.some(({ trigger, terms }) => trigger === inferred && terms.some((term) => hay.includes(term)))) return inferred;
+    if (!category || TOPIC_FALLBACK_ALIASES.some(({ trigger, terms }) => trigger === inferred && terms.some((term) => hay.includes(term)))) return formatTopicLabel(inferred);
   }
-  return category || null;
+  return category ? formatTopicLabel(category) : null;
 }
 
 function shouldAutoPersistRow(kind: "journalists" | "creators", row: Row) {
