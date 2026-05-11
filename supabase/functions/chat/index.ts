@@ -2,7 +2,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "growth-uncapped-010";
+const CHAT_VERSION = "growth-uncapped-011";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,7 +47,8 @@ const tools: Tool[] = [
     type: "function",
     function: {
       name: "hybrid_search",
-      description: "Search journalists/creators across the internal database AND the public web (Exa) in parallel. Pass the user's raw natural-language query.",
+      description:
+        "Search journalists/creators across the internal database AND the public web (Exa) in parallel. Pass the user's raw natural-language query.",
       parameters: {
         type: "object",
         properties: { q: { type: "string", description: "Raw user query, verbatim" } },
@@ -60,7 +61,17 @@ const tools: Tool[] = [
 // ---------- Intent parsing ----------
 
 const TOPIC_SYNONYMS: Record<string, string[]> = {
-  tech: ["tech", "technology", "artificial intelligence", "ai", "software", "saas", "startup", "startups", "innovation"],
+  tech: [
+    "tech",
+    "technology",
+    "artificial intelligence",
+    "ai",
+    "software",
+    "saas",
+    "startup",
+    "startups",
+    "innovation",
+  ],
   technology: ["technology", "tech", "artificial intelligence", "ai", "software", "saas", "innovation"],
   ai: ["ai", "artificial intelligence", "ml", "machine learning", "technology", "tech"],
   fintech: ["fintech", "finance", "financial", "banking", "crypto", "payments"],
@@ -69,7 +80,20 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
   health: ["health", "wellness", "fitness", "medical", "healthcare"],
   beauty: ["beauty", "makeup", "skincare", "cosmetics"],
   fashion: ["fashion", "style", "apparel"],
-  food: ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"],
+  food: [
+    "food",
+    "restaurant",
+    "restaurants",
+    "dining",
+    "chef",
+    "cooking",
+    "f&b",
+    "hospitality",
+    "beverage",
+    "drink",
+    "grocery",
+    "agriculture",
+  ],
   travel: ["travel", "tourism", "destination"],
   gaming: ["gaming", "games", "esports"],
   sports: ["sports", "athletics"],
@@ -85,16 +109,50 @@ const TOPIC_SYNONYMS: Record<string, string[]> = {
 };
 
 const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }> = {
-  uk: { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "british", "england", "scotland", "wales", "london"] },
-  "united kingdom": { canonical: "United Kingdom", variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "england", "london"] },
+  uk: {
+    canonical: "United Kingdom",
+    variants: [
+      "united kingdom",
+      "uk",
+      "u.k.",
+      "great britain",
+      "britain",
+      "british",
+      "england",
+      "scotland",
+      "wales",
+      "london",
+    ],
+  },
+  "united kingdom": {
+    canonical: "United Kingdom",
+    variants: ["united kingdom", "uk", "u.k.", "great britain", "britain", "england", "london"],
+  },
   us: { canonical: "United States", variants: ["united states", "usa", "u.s.", "america", "american"] },
   usa: { canonical: "United States", variants: ["united states", "usa", "america"] },
   "united states": { canonical: "United States", variants: ["united states", "usa", "america"] },
   canada: { canonical: "Canada", variants: ["canada", "canadian"] },
   australia: { canonical: "Australia", variants: ["australia", "australian"] },
-  germany: { canonical: "Germany", variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg", "leipzig"] },
+  germany: {
+    canonical: "Germany",
+    variants: ["germany", "deutschland", "berlin", "frankfurt", "munich", "hamburg", "leipzig"],
+  },
   france: { canonical: "France", variants: ["france", "french"] },
-  india: { canonical: "India", variants: ["india", "new delhi", "delhi", "mumbai", "bangalore", "bengaluru", "kolkata", "chennai", "hyderabad", "pune"] },
+  india: {
+    canonical: "India",
+    variants: [
+      "india",
+      "new delhi",
+      "delhi",
+      "mumbai",
+      "bangalore",
+      "bengaluru",
+      "kolkata",
+      "chennai",
+      "hyderabad",
+      "pune",
+    ],
+  },
   singapore: { canonical: "Singapore", variants: ["singapore", "sg"] },
   japan: { canonical: "Japan", variants: ["japan", "japanese"] },
   china: { canonical: "China", variants: ["china", "chinese"] },
@@ -109,14 +167,42 @@ const COUNTRY_SYNONYMS: Record<string, { canonical: string; variants: string[] }
 };
 
 const JOURNALIST_WORDS = [
-  "journalist", "journalists", "reporter", "reporters", "editor", "editors",
-  "writer", "writers", "correspondent", "correspondents", "columnist", "columnists",
-  "contributor", "contributors", "media contact", "press contact",
+  "journalist",
+  "journalists",
+  "reporter",
+  "reporters",
+  "editor",
+  "editors",
+  "writer",
+  "writers",
+  "correspondent",
+  "correspondents",
+  "columnist",
+  "columnists",
+  "contributor",
+  "contributors",
+  "media contact",
+  "press contact",
 ];
 const CREATOR_WORDS = [
-  "creator", "creators", "influencer", "influencers", "youtuber", "youtubers",
-  "tiktoker", "tiktokers", "instagrammer", "instagrammers", "blogger", "bloggers",
-  "podcaster", "podcasters", "streamer", "streamers", "kol", "kols",
+  "creator",
+  "creators",
+  "influencer",
+  "influencers",
+  "youtuber",
+  "youtubers",
+  "tiktoker",
+  "tiktokers",
+  "instagrammer",
+  "instagrammers",
+  "blogger",
+  "bloggers",
+  "podcaster",
+  "podcasters",
+  "streamer",
+  "streamers",
+  "kol",
+  "kols",
 ];
 
 const PLATFORM_MAP: Record<string, string[]> = {
@@ -129,10 +215,46 @@ const PLATFORM_MAP: Record<string, string[]> = {
 };
 
 const STOPWORDS = new Set([
-  "a", "an", "the", "in", "at", "on", "of", "for", "to", "with", "from", "by",
-  "and", "or", "is", "are", "be", "who", "that", "find", "me", "show", "list",
-  "any", "all", "some", "please", "best", "top", "based", "located", "near",
-  "get", "give", "need", "want", "looking", "search", "covering", "about",
+  "a",
+  "an",
+  "the",
+  "in",
+  "at",
+  "on",
+  "of",
+  "for",
+  "to",
+  "with",
+  "from",
+  "by",
+  "and",
+  "or",
+  "is",
+  "are",
+  "be",
+  "who",
+  "that",
+  "find",
+  "me",
+  "show",
+  "list",
+  "any",
+  "all",
+  "some",
+  "please",
+  "best",
+  "top",
+  "based",
+  "located",
+  "near",
+  "get",
+  "give",
+  "need",
+  "want",
+  "looking",
+  "search",
+  "covering",
+  "about",
 ]);
 
 // Extra location keywords with cities
@@ -198,7 +320,9 @@ function parseIntent(q: string): Intent {
   }
 
   const emailRequired =
-    /\bwith (an? )?email\b|\bhas email\b|\bemail only\b|\bcontactable\b|\bverified email\b|\bwith emails?\b/i.test(lower);
+    /\bwith (an? )?email\b|\bhas email\b|\bemail only\b|\bcontactable\b|\bverified email\b|\bwith emails?\b/i.test(
+      lower,
+    );
 
   // Kind detection
   const hasJournalist = JOURNALIST_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower));
@@ -210,7 +334,10 @@ function parseIntent(q: string): Intent {
   else kind = "both";
 
   // Locations - merge country synonyms + extras
-  const allLocs: Record<string, { canonical: string; variants: string[] }> = { ...COUNTRY_SYNONYMS, ...EXTRA_LOCATIONS };
+  const allLocs: Record<string, { canonical: string; variants: string[] }> = {
+    ...COUNTRY_SYNONYMS,
+    ...EXTRA_LOCATIONS,
+  };
   const countries = new Set<string>();
   const locationTerms = new Set<string>();
   let countryCanonical: string | null = null;
@@ -219,7 +346,10 @@ function parseIntent(q: string): Intent {
     const re = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
     if (re.test(working)) {
       const entry = allLocs[key];
-      for (const v of entry.variants) { countries.add(v); locationTerms.add(v); }
+      for (const v of entry.variants) {
+        countries.add(v);
+        locationTerms.add(v);
+      }
       if (!countryCanonical) countryCanonical = entry.canonical;
       working = working.replace(new RegExp(re.source, "gi"), " ");
     }
@@ -227,18 +357,29 @@ function parseIntent(q: string): Intent {
 
   // Free-form city/state catch (e.g. "New York", "San Francisco", "Yorkshire", "Palm Beach").
   // We only add to locationTerms if the user used "in <City>", "from <City>", "based in <City>".
-  const cityMatch = lower.match(/\b(?:in|from|based in|located in|near)\s+([a-z][a-z\s]{1,30}?)(?:\s+(?:with|who|that|covering|from|for|and|or)\b|[,.?!]|\s*$)/i);
+  const cityMatch = lower.match(
+    /\b(?:in|from|based in|located in|near)\s+([a-z][a-z\s]{1,30}?)(?:\s+(?:with|who|that|covering|from|for|and|or)\b|[,.?!]|\s*$)/i,
+  );
   if (cityMatch && cityMatch[1]) {
     const city = cityMatch[1].trim().toLowerCase().replace(/\s+/g, " ");
-    if (city.length >= 2 && city.length <= 40 && !["the","a","an","email","emails","followers"].includes(city)) {
+    if (city.length >= 2 && city.length <= 40 && !["the", "a", "an", "email", "emails", "followers"].includes(city)) {
       locationTerms.add(city);
       // Common US state aliases to broaden
-      if (city === "new york") { locationTerms.add("ny"); locationTerms.add("new york city"); locationTerms.add("nyc"); }
-      if (city === "los angeles") { locationTerms.add("la"); locationTerms.add("california"); }
-      if (city === "san francisco") { locationTerms.add("sf"); locationTerms.add("california"); }
+      if (city === "new york") {
+        locationTerms.add("ny");
+        locationTerms.add("new york city");
+        locationTerms.add("nyc");
+      }
+      if (city === "los angeles") {
+        locationTerms.add("la");
+        locationTerms.add("california");
+      }
+      if (city === "san francisco") {
+        locationTerms.add("sf");
+        locationTerms.add("california");
+      }
     }
   }
-
 
   // Topics
   const topics = new Set<string>();
@@ -252,7 +393,28 @@ function parseIntent(q: string): Intent {
 
   // Outlets
   const outlets: string[] = [];
-  const knownOutlets = ["forbes", "techcrunch", "wired", "bloomberg", "reuters", "guardian", "ft", "wsj", "nyt", "verge", "engadget", "mashable", "vogue", "elle", "espn", "cnn", "bbc", "business insider", "fast company", "axios"];
+  const knownOutlets = [
+    "forbes",
+    "techcrunch",
+    "wired",
+    "bloomberg",
+    "reuters",
+    "guardian",
+    "ft",
+    "wsj",
+    "nyt",
+    "verge",
+    "engadget",
+    "mashable",
+    "vogue",
+    "elle",
+    "espn",
+    "cnn",
+    "bbc",
+    "business insider",
+    "fast company",
+    "axios",
+  ];
   for (const o of knownOutlets) {
     if (new RegExp(`\\b${o}\\b`, "i").test(lower)) outlets.push(o);
   }
@@ -266,7 +428,10 @@ function parseIntent(q: string): Intent {
   const minFollowers = parseFollowers(lower);
 
   // Free terms
-  const tokens = working.split(/[^a-z0-9]+/i).map((t) => t.trim()).filter(Boolean);
+  const tokens = working
+    .split(/[^a-z0-9]+/i)
+    .map((t) => t.trim())
+    .filter(Boolean);
   const freeTerms: string[] = [];
   const allRoleWords = new Set([...JOURNALIST_WORDS, ...CREATOR_WORDS]);
   for (const t of tokens) {
@@ -300,7 +465,10 @@ function parseIntent(q: string): Intent {
 // ---------- Plan caps ----------
 
 function normalizePlanIdentifier(plan: string | null | undefined): string {
-  return (plan ?? "").toLowerCase().trim().replace(/[\s_]+/g, "-");
+  return (plan ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, "-");
 }
 
 function isGrowthOrHigherPlan(plan: string | null | undefined): boolean {
@@ -320,43 +488,135 @@ function capForPlan(plan: string | null | undefined): number {
 // Used when a row has blank country/city/region but its outlet/domain implies a country.
 const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
   "United States": [
-    "techcrunch", "wired.com", "bloomberg", "cnbc", "wsj.com", "wall street journal",
-    "nytimes", "new york times", "business insider", "the verge", "theverge",
-    "venturebeat", "ars technica", "arstechnica", "forbes", "axios", "fast company",
-    "fastcompany", "cnet", "zdnet", "gizmodo", "mashable", "engadget", "recode",
-    "the information", "protocol.com", "buzzfeed", "vox.com", "washingtonpost",
-    "usatoday", "latimes", "nbcnews", "abcnews", "cbsnews", "npr.org", "politico",
-    "huffpost", "time.com", "newsweek", "atlantic", "wired",
-    "mit technology review", "technologyreview.com", "the org", "theorg",
-    "muck rack", "muckrack", "help a reporter", "helpareporter", "presscontact",
+    "techcrunch",
+    "wired.com",
+    "bloomberg",
+    "cnbc",
+    "wsj.com",
+    "wall street journal",
+    "nytimes",
+    "new york times",
+    "business insider",
+    "the verge",
+    "theverge",
+    "venturebeat",
+    "ars technica",
+    "arstechnica",
+    "forbes",
+    "axios",
+    "fast company",
+    "fastcompany",
+    "cnet",
+    "zdnet",
+    "gizmodo",
+    "mashable",
+    "engadget",
+    "recode",
+    "the information",
+    "protocol.com",
+    "buzzfeed",
+    "vox.com",
+    "washingtonpost",
+    "usatoday",
+    "latimes",
+    "nbcnews",
+    "abcnews",
+    "cbsnews",
+    "npr.org",
+    "politico",
+    "huffpost",
+    "time.com",
+    "newsweek",
+    "atlantic",
+    "wired",
+    "mit technology review",
+    "technologyreview.com",
+    "the org",
+    "theorg",
+    "muck rack",
+    "muckrack",
+    "help a reporter",
+    "helpareporter",
+    "presscontact",
   ],
   "United Kingdom": [
-    "bbc.co.uk", "bbc.com", "theguardian", "guardian.co.uk", "ft.com", "financial times",
-    "telegraph.co.uk", "thetimes.co.uk", "independent.co.uk", "dailymail",
-    "wired.co.uk", "techcrunch.co.uk", "metro.co.uk", "sky.com", "skynews",
-    "press gazette", "pressgazette", "the sun", "the mirror",
+    "bbc.co.uk",
+    "bbc.com",
+    "theguardian",
+    "guardian.co.uk",
+    "ft.com",
+    "financial times",
+    "telegraph.co.uk",
+    "thetimes.co.uk",
+    "independent.co.uk",
+    "dailymail",
+    "wired.co.uk",
+    "techcrunch.co.uk",
+    "metro.co.uk",
+    "sky.com",
+    "skynews",
+    "press gazette",
+    "pressgazette",
+    "the sun",
+    "the mirror",
   ],
-  "Japan": [
-    "nikkei", "coinpost", "bitcoinmagazine.jp", "coindesk.jp", "asahi.com",
-    "japantimes", "mainichi.jp", "yomiuri", "kyodonews", "nhk.or.jp",
+  Japan: [
+    "nikkei",
+    "coinpost",
+    "bitcoinmagazine.jp",
+    "coindesk.jp",
+    "asahi.com",
+    "japantimes",
+    "mainichi.jp",
+    "yomiuri",
+    "kyodonews",
+    "nhk.or.jp",
   ],
-  "India": [
-    "indianexpress", "timesofindia", "business standard", "business-standard",
-    "ndtv.com", "moneycontrol", "thehindu", "hindustantimes", "livemint",
-    "economictimes", "firstpost", "scroll.in", "thewire.in", "yourstory",
-    "inc42", "entrackr",
+  India: [
+    "indianexpress",
+    "timesofindia",
+    "business standard",
+    "business-standard",
+    "ndtv.com",
+    "moneycontrol",
+    "thehindu",
+    "hindustantimes",
+    "livemint",
+    "economictimes",
+    "firstpost",
+    "scroll.in",
+    "thewire.in",
+    "yourstory",
+    "inc42",
+    "entrackr",
   ],
-  "Germany": [
-    "spiegel.de", "zeit.de", "faz.net", "handelsblatt", "sueddeutsche",
-    "welt.de", "bild.de", "t-online.de", "heise.de", "golem.de", "wired.de",
+  Germany: [
+    "spiegel.de",
+    "zeit.de",
+    "faz.net",
+    "handelsblatt",
+    "sueddeutsche",
+    "welt.de",
+    "bild.de",
+    "t-online.de",
+    "heise.de",
+    "golem.de",
+    "wired.de",
   ],
-  "France": [
-    "lemonde.fr", "lefigaro.fr", "liberation.fr", "lesechos.fr", "leparisien",
-    "france24", "rfi.fr", "challenges.fr", "lexpress.fr",
+  France: [
+    "lemonde.fr",
+    "lefigaro.fr",
+    "liberation.fr",
+    "lesechos.fr",
+    "leparisien",
+    "france24",
+    "rfi.fr",
+    "challenges.fr",
+    "lexpress.fr",
   ],
-  "Singapore": ["straitstimes", "channelnewsasia", "cna", "businesstimes.com.sg", "techinasia"],
-  "Australia": ["smh.com.au", "theaustralian", "news.com.au", "abc.net.au", "afr.com"],
-  "Canada": ["cbc.ca", "theglobeandmail", "nationalpost", "thestar.com", "ctvnews"],
+  Singapore: ["straitstimes", "channelnewsasia", "cna", "businesstimes.com.sg", "techinasia"],
+  Australia: ["smh.com.au", "theaustralian", "news.com.au", "abc.net.au", "afr.com"],
+  Canada: ["cbc.ca", "theglobeandmail", "nationalpost", "thestar.com", "ctvnews"],
 };
 
 // All known country canonicals — used to detect "explicit wrong country" rejections.
@@ -364,7 +624,6 @@ const KNOWN_COUNTRY_CANONICALS = new Set<string>([
   ...Object.values(COUNTRY_SYNONYMS).map((c) => c.canonical.toLowerCase()),
   ...Object.values(EXTRA_LOCATIONS).map((c) => c.canonical.toLowerCase()),
 ]);
-
 
 // ---------- Unified row ----------
 
@@ -431,7 +690,8 @@ function buildSearchTerms(intent: Intent): string[] {
 }
 
 async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise<Row[]> {
-  const { data, error } = await admin.from("journalist")
+  const { data, error } = await admin
+    .from("journalist")
     .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
@@ -455,7 +715,8 @@ async function fetchBroadJournalists(admin: AdminClient, limit: number): Promise
 }
 
 async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Row[]> {
-  const { data, error } = await admin.from("creators")
+  const { data, error } = await admin
+    .from("creators")
     .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
     .order("id", { ascending: true })
     .limit(limit);
@@ -481,7 +742,13 @@ async function fetchBroadCreators(admin: AdminClient, limit: number): Promise<Ro
 }
 
 function stringifyTopics(value: unknown): string | null {
-  if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean).join(" ") || null;
+  if (Array.isArray(value))
+    return (
+      value
+        .map((item) => String(item ?? "").trim())
+        .filter(Boolean)
+        .join(" ") || null
+    );
   if (typeof value === "string") return value.trim() || null;
   if (value == null) return null;
   return String(value);
@@ -580,12 +847,7 @@ async function runJournalistQuery(
   return [];
 }
 
-async function runCreatorQuery(
-  admin: AdminClient,
-  terms: string[],
-  fields: string[],
-  limit: number,
-): Promise<Row[]> {
+async function runCreatorQuery(admin: AdminClient, terms: string[], fields: string[], limit: number): Promise<Row[]> {
   const cleanedTerms = uniqueTerms(terms);
   if (!cleanedTerms.length) return [];
 
@@ -616,17 +878,24 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     ...intent.countries.slice(0, 4),
   ]);
   const allTerms = buildSearchTerms(intent);
-  const fields = ["name", "email", "outlet", "titles", "topics", "country", "location", "city", "region", "category", "xhandle", "bio"];
+  const fields = [
+    "name",
+    "email",
+    "outlet",
+    "titles",
+    "topics",
+    "country",
+    "location",
+    "city",
+    "region",
+    "category",
+    "xhandle",
+    "bio",
+  ];
 
-  const primary = await runJournalistQuery(
-    admin,
-    primaryTerms.length ? primaryTerms : allTerms,
-    fields,
-    limit,
-  );
-  const secondary = primaryTerms.join("|") === allTerms.join("|")
-    ? []
-    : await runJournalistQuery(admin, allTerms, fields, limit);
+  const primary = await runJournalistQuery(admin, primaryTerms.length ? primaryTerms : allTerms, fields, limit);
+  const secondary =
+    primaryTerms.join("|") === allTerms.join("|") ? [] : await runJournalistQuery(admin, allTerms, fields, limit);
 
   // No silent broad fallback — strict-filters-004 requires the table to be filtered, not flooded with random rows.
   return dedupe([...primary, ...secondary]);
@@ -634,24 +903,26 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const limit = Math.max(1000, Math.min(6000, intent.count * 50));
-  const primaryTerms = uniqueTerms([
-    ...intent.topics,
-    ...intent.freeTerms,
-    ...intent.outlets,
-    intent.countryCanonical,
-  ]);
+  const primaryTerms = uniqueTerms([...intent.topics, ...intent.freeTerms, ...intent.outlets, intent.countryCanonical]);
   const allTerms = buildSearchTerms(intent);
-  const fields = ["name", "category", "topics", "country", "location", "city", "region", "email", "bio", "ig_handle", "youtube_url", "type"];
+  const fields = [
+    "name",
+    "category",
+    "topics",
+    "country",
+    "location",
+    "city",
+    "region",
+    "email",
+    "bio",
+    "ig_handle",
+    "youtube_url",
+    "type",
+  ];
 
-  const primary = await runCreatorQuery(
-    admin,
-    primaryTerms.length ? primaryTerms : allTerms,
-    fields,
-    limit,
-  );
-  const secondary = primaryTerms.join("|") === allTerms.join("|")
-    ? []
-    : await runCreatorQuery(admin, allTerms, fields, limit);
+  const primary = await runCreatorQuery(admin, primaryTerms.length ? primaryTerms : allTerms, fields, limit);
+  const secondary =
+    primaryTerms.join("|") === allTerms.join("|") ? [] : await runCreatorQuery(admin, allTerms, fields, limit);
 
   return dedupe([...primary, ...secondary]);
 }
@@ -664,12 +935,17 @@ function pickEmailFromText(text: string, name?: string | null): string | null {
   const matches = text?.match(new RegExp(EMAIL_RE.source, "gi")) ?? [];
   if (!matches.length) return null;
   if (name) {
-    const tokens = name.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    const tokens = name
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 2);
     for (const m of matches) {
       if (tokens.some((t) => m.toLowerCase().includes(t))) return m;
     }
   }
-  const filtered = matches.filter((m) => !/^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster)@/i.test(m));
+  const filtered = matches.filter(
+    (m) => !/^(info|hello|contact|support|press|admin|noreply|no-reply|sales|hr|webmaster)@/i.test(m),
+  );
   return filtered[0] ?? null;
 }
 
@@ -691,16 +967,23 @@ function extractNameGuess(title: string, text: string, author?: string): string 
 
 function isJunkWebResult(r: { title?: string; url?: string; text?: string }, intent: Intent): boolean {
   const blob = `${r.title ?? ""} ${r.url ?? ""} ${r.text ?? ""}`.toLowerCase();
-  if (/neural runner|runner game|github\.com|npmjs\.com|chromewebstore|app store|play\.google\.com/.test(blob)) return true;
+  if (/neural runner|runner game|github\.com|npmjs\.com|chromewebstore|app store|play\.google\.com/.test(blob))
+    return true;
   const hasTopic = !intent.topics.length || intent.topics.some((t) => blob.includes(t));
   const hasRole = /journalist|reporter|editor|writer|correspondent|columnist|contributor|author|byline/.test(blob);
-  const hasOutletSignal = /bbc|guardian|wired|techcrunch|verge|forbes|bloomberg|reuters|financial times|ft\.com|muckrack|pressgazette|journalism|publication|news/.test(blob);
+  const hasOutletSignal =
+    /bbc|guardian|wired|techcrunch|verge|forbes|bloomberg|reuters|financial times|ft\.com|muckrack|pressgazette|journalism|publication|news/.test(
+      blob,
+    );
   const hasProfileSignal = /author|profile|staff|contributors|substack|linkedin\.com|muckrack/.test(blob);
   const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(blob);
   return !(hasTopic || hasRole || hasOutletSignal || hasProfileSignal || hasEmail);
 }
 
-async function exaSearchOnce(query: string, numResults: number): Promise<Array<{ title?: string; url: string; author?: string; text?: string; highlights?: string[] }>> {
+async function exaSearchOnce(
+  query: string,
+  numResults: number,
+): Promise<Array<{ title?: string; url: string; author?: string; text?: string; highlights?: string[] }>> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];
   try {
@@ -771,12 +1054,20 @@ async function searchExa(intent: Intent, target: number): Promise<Row[]> {
       if (!url) continue;
       if (isJunkWebResult(it, intent)) continue;
       let host = "";
-      try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+      try {
+        host = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        /* ignore */
+      }
       const titleStr = it.title ?? "";
       const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
       const nameGuess = extractNameGuess(titleStr, blob, it.author);
       const email = pickEmailFromText(blob, nameGuess);
-      const webText = (it.highlights?.[0] || it.text?.slice(0, 180) || `Matched on the open web — query: "${reasons[qi]}"`).trim();
+      const webText = (
+        it.highlights?.[0] ||
+        it.text?.slice(0, 180) ||
+        `Matched on the open web — query: "${reasons[qi]}"`
+      ).trim();
       rows.push({
         source: "exa",
         source_table: intent.kind === "creators" ? "creators" : "journalist",
@@ -825,7 +1116,7 @@ function dedupe(rows: Row[]): Row[] {
 
     const existing = keys.map((k) => seen.get(k)).find(Boolean) as Row | undefined;
     if (existing) {
-      const winner = existing.source === "database" ? existing : (r.source === "database" ? r : existing);
+      const winner = existing.source === "database" ? existing : r.source === "database" ? r : existing;
       const loser = winner === existing ? r : existing;
       const merged: Row = {
         ...winner,
@@ -857,24 +1148,46 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
     const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
-    const locHay = [cnt, (r.location ?? "").toLowerCase(), (r.city ?? "").toLowerCase(), (r.region ?? "").toLowerCase(), (r.bio ?? "").toLowerCase()].join(" | ");
+    const locHay = [
+      cnt,
+      (r.location ?? "").toLowerCase(),
+      (r.city ?? "").toLowerCase(),
+      (r.region ?? "").toLowerCase(),
+      (r.bio ?? "").toLowerCase(),
+    ].join(" | ");
     const outletHay = `${out} ${(r.source_url ?? "").toLowerCase()}`;
 
     // Topic
     let topicMatched = false;
     for (const t of intent.topics) {
-      if (cat.includes(t)) { s += 50; topicMatched = true; }
-      else if (ttl.includes(t)) { s += 25; topicMatched = true; }
-      else if (out.includes(t)) { s += 10; topicMatched = true; }
-      else if (hay.includes(t)) { s += 5; topicMatched = true; }
+      if (cat.includes(t)) {
+        s += 50;
+        topicMatched = true;
+      } else if (ttl.includes(t)) {
+        s += 25;
+        topicMatched = true;
+      } else if (out.includes(t)) {
+        s += 10;
+        topicMatched = true;
+      } else if (hay.includes(t)) {
+        s += 5;
+        topicMatched = true;
+      }
     }
 
     // Location: explicit (+100) or inferred outlet/domain (+70)
     let locMatched = false;
     for (const c of intent.locationTerms) {
-      if (locHay.includes(c)) { s += 100; locMatched = true; break; }
+      if (locHay.includes(c)) {
+        s += 100;
+        locMatched = true;
+        break;
+      }
     }
-    if (!locMatched && inferredOutlets.some((o) => outletHay.includes(o))) { s += 70; locMatched = true; }
+    if (!locMatched && inferredOutlets.some((o) => outletHay.includes(o))) {
+      s += 70;
+      locMatched = true;
+    }
 
     // Free terms
     for (const t of intent.freeTerms) {
@@ -901,20 +1214,35 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (!cnt.includes(wanted) && !intent.locationTerms.some((t) => cnt.includes(t))) {
         for (const known of KNOWN_COUNTRY_CANONICALS) {
           if (known === wanted) continue;
-          if (cnt === known || cnt.includes(known)) { s -= 100; break; }
+          if (cnt === known || cnt.includes(known)) {
+            s -= 100;
+            break;
+          }
         }
       }
     }
 
     // Topic mismatch penalty for populated unrelated category
     if (intent.topics.length && cat && !topicMatched) {
-      const unrelated = ["cars","automotive","auto","tv","television","sports","sport","entertainment","movies","music","gaming"];
+      const unrelated = [
+        "cars",
+        "automotive",
+        "auto",
+        "tv",
+        "television",
+        "sports",
+        "sport",
+        "entertainment",
+        "movies",
+        "music",
+        "gaming",
+      ];
       if (unrelated.some((u) => cat.includes(u))) s -= 100;
     }
 
     return s;
   };
-  return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => (b.score! - a.score!));
+  return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => b.score! - a.score!);
 }
 
 function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
@@ -935,9 +1263,49 @@ function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {
   return rankRows(picked, intent).slice(0, target);
 }
 
-const EXCLUDED_TOPIC_TERMS = ["cars", "automotive", "auto", "tv", "television", "sports", "sport", "espn", "entertainment", "movies", "music", "gaming", "crypto", "cryptocurrency", "blockchain", "web3"];
-const STRICT_FINANCE_TERMS = ["finance", "financial", "business", "markets", "economy", "banking", "fintech", "investing", "stocks"];
-const STRICT_FOOD_TERMS = ["food", "restaurant", "restaurants", "dining", "chef", "cooking", "f&b", "hospitality", "beverage", "drink", "grocery", "agriculture"];
+const EXCLUDED_TOPIC_TERMS = [
+  "cars",
+  "automotive",
+  "auto",
+  "tv",
+  "television",
+  "sports",
+  "sport",
+  "espn",
+  "entertainment",
+  "movies",
+  "music",
+  "gaming",
+  "crypto",
+  "cryptocurrency",
+  "blockchain",
+  "web3",
+];
+const STRICT_FINANCE_TERMS = [
+  "finance",
+  "financial",
+  "business",
+  "markets",
+  "economy",
+  "banking",
+  "fintech",
+  "investing",
+  "stocks",
+];
+const STRICT_FOOD_TERMS = [
+  "food",
+  "restaurant",
+  "restaurants",
+  "dining",
+  "chef",
+  "cooking",
+  "f&b",
+  "hospitality",
+  "beverage",
+  "drink",
+  "grocery",
+  "agriculture",
+];
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -970,14 +1338,20 @@ function matchesAnyTerm(hay: string, terms: string[]): boolean {
 
 export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
   const fieldHay = (values: unknown[]) => values.map(normalizeSearchText).filter(Boolean).join(" | ");
-  const locationFieldHay = (values: unknown[]) => values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
-  const rowTopicsText = (r: Row) => Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "");
+  const locationFieldHay = (values: unknown[]) =>
+    values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
+  const rowTopicsText = (r: Row) => (Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? ""));
   const locationHayOf = (r: Row) => locationFieldHay([r.country, r.location, r.city, r.region, r.bio]);
   const outletHayOf = (r: Row) => normalizeSearchText([r.outlet, r.source_url].filter(Boolean).join(" "));
   const topicHayOf = (r: Row) => fieldHay([r.category, r.title, r.outlet, r.bio, rowTopicsText(r)]);
   const categoryTopicHayOf = (r: Row) => fieldHay([r.category, rowTopicsText(r)]);
-  const topicTerms = (intent.topic === "food" || intent.topics.includes("food")) ? STRICT_FOOD_TERMS : intent.topics;
-  const matchKind = (r: Row) => intent.kind === "journalists" ? r.source_table === "journalist" : intent.kind === "creators" ? r.source_table === "creators" : true;
+  const topicTerms = intent.topic === "food" || intent.topics.includes("food") ? STRICT_FOOD_TERMS : intent.topics;
+  const matchKind = (r: Row) =>
+    intent.kind === "journalists"
+      ? r.source_table === "journalist"
+      : intent.kind === "creators"
+        ? r.source_table === "creators"
+        : true;
 
   // Tier 2 inferred outlets for the user's target country.
   const inferredOutlets = intent.countryCanonical
@@ -1025,10 +1399,11 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
     }
     return matchesAnyTerm(topicHayOf(r), topicTerms);
   };
-  const hasSubstringFalsePositive = (r: Row) => intent.locationTerms.some((term) => {
-    const cleaned = normalizeSearchText(term);
-    return cleaned && locationHayOf(r).includes(cleaned) && !matchesAnyTerm(locationHayOf(r), [cleaned]);
-  });
+  const hasSubstringFalsePositive = (r: Row) =>
+    intent.locationTerms.some((term) => {
+      const cleaned = normalizeSearchText(term);
+      return cleaned && locationHayOf(r).includes(cleaned) && !matchesAnyTerm(locationHayOf(r), [cleaned]);
+    });
   const afterKind = rows.filter(matchKind);
   const afterLocation = afterKind.filter(matchLocation);
   const afterTopic = afterLocation.filter(matchTopic);
@@ -1056,11 +1431,17 @@ function norm(value: string | null | undefined): string {
 
 const INVALID_OUTLET_RE = /(cannot extract|i'?m sorry|unable to|unknown|there is no specific outlet)/i;
 const BAD_HOST_RE = /(test55\.|\.cach3\.com)/i;
-const BAD_EXA_HOST_RE = /(linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com|tiktok\.com|youtube\.com|wikipedia\.org|medium\.com|substack\.com|reddit\.com|pinterest\.com)/i;
-const NON_PERSON_NAME_RE = /\b(news|media|sport|sports|team|official|developers?|press|staff|desk|editorial|channel|podcast|youtube|blog|magazine|times|daily|group)\b/i;
+const BAD_EXA_HOST_RE =
+  /(linkedin\.com|x\.com|twitter\.com|facebook\.com|instagram\.com|tiktok\.com|youtube\.com|wikipedia\.org|medium\.com|substack\.com|reddit\.com|pinterest\.com)/i;
+const NON_PERSON_NAME_RE =
+  /\b(news|media|sport|sports|team|official|developers?|press|staff|desk|editorial|channel|podcast|youtube|blog|magazine|times|daily|group)\b/i;
 
 function hostOf(u: string | null | undefined): string {
-  try { return u ? new URL(u).hostname.toLowerCase() : ""; } catch { return ""; }
+  try {
+    return u ? new URL(u).hostname.toLowerCase() : "";
+  } catch {
+    return "";
+  }
 }
 
 function letterCount(s: string): number {
@@ -1092,19 +1473,21 @@ export function isValidRow(row: Row, intent: Intent): boolean {
   // location requirement for exa rows: explicit hay match OR inferred outlet/host match
   if (row.source === "exa" && intent.locationTerms.length) {
     const hayLoc = [row.country, row.location, row.city, row.region, row.bio, row.source_url, row.title, row.outlet]
-      .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
+      .map((x) => (x == null ? "" : String(x)))
+      .join(" | ")
+      .toLowerCase();
     const ok = intent.locationTerms.some((t) => hayLoc.includes(String(t).toLowerCase()));
     const inferredList = intent.countryCanonical ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []) : [];
-    const okInferred = inferredList.length
-      ? inferredList.some((o) => hayLoc.includes(o.toLowerCase()))
-      : false;
+    const okInferred = inferredList.length ? inferredList.some((o) => hayLoc.includes(o.toLowerCase())) : false;
     if (!ok && !okInferred) return false;
   }
   // topic requirement for exa rows
   if (row.source === "exa" && intent.topics.length) {
     const topicsArr = Array.isArray(row.topics) ? row.topics.join(" ") : (row.topics ?? "");
     const hayTop = [row.category, row.title, row.outlet, row.bio, topicsArr]
-      .map((x) => (x == null ? "" : String(x))).join(" | ").toLowerCase();
+      .map((x) => (x == null ? "" : String(x)))
+      .join(" | ")
+      .toLowerCase();
     const ok = intent.topics.some((t) => hayTop.includes(String(t).toLowerCase()));
     if (!ok) return false;
   }
@@ -1282,16 +1665,25 @@ async function persistWebRows(
   const webRows = rows.filter((row) => row.source === "exa");
   if (!webRows.length) return { considered: 0, saved: 0 };
 
-  const candidates = (kind === "journalists"
-    ? webRows.filter((row) => row.name && (row.email || row.outlet || row.title) && ((row.score ?? 0) >= 8 || !!row.email))
-    : webRows.filter((row) => row.name && (row.email || row.ig_handle || row.youtube_url || row.outlet) && ((row.score ?? 0) >= 8 || !!row.email)))
-    .slice(0, 75);
+  const candidates = (
+    kind === "journalists"
+      ? webRows.filter(
+          (row) => row.name && (row.email || row.outlet || row.title) && ((row.score ?? 0) >= 8 || !!row.email),
+        )
+      : webRows.filter(
+          (row) =>
+            row.name &&
+            (row.email || row.ig_handle || row.youtube_url || row.outlet) &&
+            ((row.score ?? 0) >= 8 || !!row.email),
+        )
+  ).slice(0, 75);
 
   if (!candidates.length) return { considered: 0, saved: 0 };
 
-  const existingKeys = kind === "journalists"
-    ? await loadExistingJournalistKeys(admin, candidates)
-    : await loadExistingCreatorKeys(admin, candidates);
+  const existingKeys =
+    kind === "journalists"
+      ? await loadExistingJournalistKeys(admin, candidates)
+      : await loadExistingCreatorKeys(admin, candidates);
 
   const localKeys = new Set<string>();
   const insertable: Row[] = [];
@@ -1304,9 +1696,8 @@ async function persistWebRows(
     insertable.push(row);
   }
 
-  const saved = kind === "journalists"
-    ? await insertJournalistRows(admin, insertable)
-    : await insertCreatorRows(admin, insertable);
+  const saved =
+    kind === "journalists" ? await insertJournalistRows(admin, insertable) : await insertCreatorRows(admin, insertable);
 
   return { considered: candidates.length, saved };
 }
@@ -1319,7 +1710,21 @@ async function hybridSearch(
   plan: string | null,
   limitOverride: number | null = null,
   offset = 0,
-): Promise<{ rows: Row[]; debug: Record<string, unknown>; intent: Intent; cap: number; pagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null }; sources: { database: number; web: number } }> {
+): Promise<{
+  rows: Row[];
+  debug: Record<string, unknown>;
+  intent: Intent;
+  cap: number;
+  pagination: {
+    limit: number;
+    offset: number;
+    total_estimated: number;
+    returned: number;
+    has_more: boolean;
+    next_offset: number | null;
+  };
+  sources: { database: number; web: number };
+}> {
   const intent = parseIntent(q);
   const planLimit = capForPlan(plan);
   const planNorm = normalizePlanIdentifier(plan);
@@ -1339,17 +1744,32 @@ async function hybridSearch(
   const pageDefault = isGrowthOrHigher ? 100_000 : 100;
   const safeOffset = Math.max(0, offset);
   const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
-  const requestedLimit = Math.max(1, Math.min(
-    isGrowthOrHigher ? pageDefault : (limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault),
-    perPageCap,
-    remainingBudget,
-  ));
+  const requestedLimit = Math.max(
+    1,
+    Math.min(
+      isGrowthOrHigher ? pageDefault : limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+      perPageCap,
+      remainingBudget,
+    ),
+  );
   const maxTotal = maxTotalForPlan;
 
   const debug: Record<string, unknown> = {
     version: CHAT_VERSION,
     original: q,
-    intent: { kind: intent.kind, topic: intent.topic, topics: intent.topics, location: intent.location, countries: intent.countries, countryCanonical: intent.countryCanonical, locationTerms: intent.locationTerms, outlets: intent.outlets, freeTerms: intent.freeTerms, count: intent.count, emailRequired: intent.emailRequired },
+    intent: {
+      kind: intent.kind,
+      topic: intent.topic,
+      topics: intent.topics,
+      location: intent.location,
+      countries: intent.countries,
+      countryCanonical: intent.countryCanonical,
+      locationTerms: intent.locationTerms,
+      outlets: intent.outlets,
+      freeTerms: intent.freeTerms,
+      count: intent.count,
+      emailRequired: intent.emailRequired,
+    },
     plan,
     cap: planLimit,
     target,
@@ -1402,8 +1822,7 @@ async function hybridSearch(
     return (r.ig_followers ?? 0) >= intent.minFollowers;
   };
   const matchTopic = (r: Row) => filterRules.rejectionReason(r) !== "topic_mismatch";
-  const matchSupplementalFilters = (r: Row) =>
-    matchOutlet(r) && matchEmail(r) && matchPlatform(r) && matchFollowers(r);
+  const matchSupplementalFilters = (r: Row) => matchOutlet(r) && matchEmail(r) && matchPlatform(r) && matchFollowers(r);
 
   const dbRawCandidates = dedupe([...jRows, ...cRows]);
   const dbAfterKind = dbRawCandidates.filter(matchKind);
@@ -1489,7 +1908,9 @@ async function hybridSearch(
     const diag = strictFilterDiagnostics(rawCandidates, intent);
     const dbRowsAll = rawCandidates.filter((r) => r.source === "database");
     debug.db_explicit_us_count = dbRowsAll.filter((r) => diag.matchExplicitLocation(r)).length;
-    debug.db_inferred_us_count = dbRowsAll.filter((r) => !diag.matchExplicitLocation(r) && diag.matchInferredLocation(r)).length;
+    debug.db_inferred_us_count = dbRowsAll.filter(
+      (r) => !diag.matchExplicitLocation(r) && diag.matchInferredLocation(r),
+    ).length;
   }
 
   // ----- Fallback expansion: if strict rows < 100, run broader Exa queries -----
@@ -1499,8 +1920,9 @@ async function hybridSearch(
   if (rankedStrictRows.length < 100) {
     const country = intent.countryCanonical ?? "";
     const rawQ = intent.raw || "";
-    const isTech = intent.topics.some((t) => ["tech", "technology", "ai", "software", "saas"].includes(String(t).toLowerCase()))
-      || /tech|technology|software|ai|startup|cyber|gadget/i.test(rawQ);
+    const isTech =
+      intent.topics.some((t) => ["tech", "technology", "ai", "software", "saas"].includes(String(t).toLowerCase())) ||
+      /tech|technology|software|ai|startup|cyber|gadget/i.test(rawQ);
     const isUS = intent.countryCanonical === "United States";
 
     const broadQueries = [
@@ -1508,14 +1930,16 @@ async function hybridSearch(
       ...(intent.topics.includes("food") ? [`${rawQ} food writer ${country}`.trim()] : []),
       ...(intent.topic ? [`${rawQ} ${intent.topic} writer ${country}`.trim()] : []),
       `${rawQ} reporter ${country}`.trim(),
-      ...(isTech && isUS ? [
-        "technology journalist United States email",
-        "tech reporter United States",
-        "AI reporter United States",
-        "startup journalist United States",
-        "cybersecurity journalist United States",
-        "technology editor United States",
-      ] : []),
+      ...(isTech && isUS
+        ? [
+            "technology journalist United States email",
+            "tech reporter United States",
+            "AI reporter United States",
+            "startup journalist United States",
+            "cybersecurity journalist United States",
+            "technology editor United States",
+          ]
+        : []),
     ].filter((q, i, arr) => q && arr.indexOf(q) === i);
     exaQueriesRun = broadQueries;
 
@@ -1529,12 +1953,20 @@ async function hybridSearch(
           if (!url) continue;
           if (isJunkWebResult(it, intent)) continue;
           let host = "";
-          try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+          try {
+            host = new URL(url).hostname.replace(/^www\./, "");
+          } catch {
+            /* ignore */
+          }
           const titleStr = it.title ?? "";
           const blob = `${it.text ?? ""} ${(it.highlights ?? []).join(" ")}`;
           const nameGuess = extractNameGuess(titleStr, blob, it.author);
           const email = pickEmailFromText(blob, nameGuess);
-          const webText = (it.highlights?.[0] || it.text?.slice(0, 180) || `Broad match — query: "${broadQueries[qi]}"`).trim();
+          const webText = (
+            it.highlights?.[0] ||
+            it.text?.slice(0, 180) ||
+            `Broad match — query: "${broadQueries[qi]}"`
+          ).trim();
           broadRows.push({
             source: "exa",
             source_table: intent.kind === "creators" ? "creators" : "journalist",
@@ -1571,7 +2003,9 @@ async function hybridSearch(
       .filter(matchSupplementalFilters);
 
     const strictKeys = new Set(
-      rankedStrictRows.map((r) => `${r.source}|${r.source_url ?? ""}|${(r.email ?? "").toLowerCase()}|${(r.name ?? "").toLowerCase()}`),
+      rankedStrictRows.map(
+        (r) => `${r.source}|${r.source_url ?? ""}|${(r.email ?? "").toLowerCase()}|${(r.name ?? "").toLowerCase()}`,
+      ),
     );
     const newBroad = broadFiltered.filter((r) => {
       const k = `${r.source}|${r.source_url ?? ""}|${(r.email ?? "").toLowerCase()}|${(r.name ?? "").toLowerCase()}`;
@@ -1628,15 +2062,28 @@ async function hybridSearch(
   debug.next_offset = nextOffset;
   debug.returned = returned;
   debug.maxTotalForPlan = maxTotalForPlan;
-  if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
-    debug.response_message = paged.length === 0
-      ? "No exact finance journalists in Germany found."
-      : `Found ${paged.length} finance journalists in Germany.`;
+  if (
+    (intent.topic === "finance" || intent.topics.includes("finance")) &&
+    intent.countryCanonical === "Germany" &&
+    intent.kind === "journalists"
+  ) {
+    debug.response_message =
+      paged.length === 0
+        ? "No exact finance journalists in Germany found."
+        : `Found ${paged.length} finance journalists in Germany.`;
   }
   if (paged.length === 0) {
-    if ((intent.topic === "food" || intent.topics.includes("food")) && intent.countryCanonical === "India" && intent.kind === "journalists") {
+    if (
+      (intent.topic === "food" || intent.topics.includes("food")) &&
+      intent.countryCanonical === "India" &&
+      intent.kind === "journalists"
+    ) {
       debug.empty_state_message = "No exact food journalists in India found.";
-    } else if ((intent.topic === "finance" || intent.topics.includes("finance")) && intent.countryCanonical === "Germany" && intent.kind === "journalists") {
+    } else if (
+      (intent.topic === "finance" || intent.topics.includes("finance")) &&
+      intent.countryCanonical === "Germany" &&
+      intent.kind === "journalists"
+    ) {
       debug.empty_state_message = "No exact finance journalists in Germany found.";
     } else {
       const filterParts: string[] = [];
@@ -1671,7 +2118,14 @@ async function hybridSearch(
     debug,
     intent,
     cap: planLimit,
-    pagination: { limit: requestedLimit, offset: safeOffset, total_estimated: totalEstimated, returned, has_more: hasMore, next_offset: nextOffset },
+    pagination: {
+      limit: requestedLimit,
+      offset: safeOffset,
+      total_estimated: totalEstimated,
+      returned,
+      has_more: hasMore,
+      next_offset: nextOffset,
+    },
     sources: { database: dbReturned, web: webReturned },
   };
 }
@@ -1680,7 +2134,14 @@ async function loadUsageSummary(
   admin: AdminClient,
   userId: string,
   userClient?: AdminClient,
-): Promise<UsageSummary & { ledger_purchased: number; profile_credits: number; rpc_remaining: number | null; rpc_credits: number | null }> {
+): Promise<
+  UsageSummary & {
+    ledger_purchased: number;
+    profile_credits: number;
+    rpc_remaining: number | null;
+    rpc_credits: number | null;
+  }
+> {
   const period = new Date().toISOString().slice(0, 7);
   const [profileResult, usageResult, topupResult, summaryResult] = await Promise.all([
     admin.from("profiles").select("chat_credits, sub_active, plan_identifier").eq("id", userId).maybeSingle(),
@@ -1694,11 +2155,17 @@ async function loadUsageSummary(
   if (topupResult.error) console.warn("[chat.topup_lookup_failed]", topupResult.error.message);
   if (summaryResult.error) console.warn("[chat.usage_summary_rpc_failed]", summaryResult.error.message);
 
-  const profile = profileResult.data as { chat_credits?: number | string | null; sub_active?: boolean | null; plan_identifier?: string | null } | null;
+  const profile = profileResult.data as {
+    chat_credits?: number | string | null;
+    sub_active?: boolean | null;
+    plan_identifier?: string | null;
+  } | null;
   const plan = String(profile?.plan_identifier ?? "").toLowerCase();
   const subActive = profile?.sub_active === true;
   const allowance = subActive
-    ? (["growth", "both", "media-pro", "pro", "enterprise"].includes(plan) ? 1_000_000 : 200_000)
+    ? ["growth", "both", "media-pro", "pro", "enterprise"].includes(plan)
+      ? 1_000_000
+      : 200_000
     : 20_000;
   const used = finiteNumber((usageResult.data as { tokens_used?: number | string } | null)?.tokens_used ?? 0);
   const profileCredits = finiteNumber(profile?.chat_credits ?? 0);
@@ -1710,9 +2177,10 @@ async function loadUsageSummary(
     : 0;
   const overflowUsed = Math.max(used - allowance, 0);
   const ledgerCredits = Math.max(ledgerPurchased - overflowUsed, 0);
-  const rpcRow = !summaryResult.error && Array.isArray(summaryResult.data) && summaryResult.data[0]
-    ? summaryResult.data[0] as Record<string, unknown>
-    : null;
+  const rpcRow =
+    !summaryResult.error && Array.isArray(summaryResult.data) && summaryResult.data[0]
+      ? (summaryResult.data[0] as Record<string, unknown>)
+      : null;
   const rpcRemaining = rpcRow ? finiteNumber(rpcRow.remaining ?? 0) : null;
   const rpcCredits = rpcRow ? finiteNumber(rpcRow.credits ?? 0) : null;
   const credits = Math.max(profileCredits, ledgerCredits, rpcCredits ?? 0);
@@ -1721,10 +2189,17 @@ async function loadUsageSummary(
   const remaining = Math.max(monthlyRemaining + Math.max(credits, 0), rpcRemaining ?? 0);
 
   return {
-    allowance, used, credits, remaining,
-    period_ym: period, sub_active: subActive, plan_identifier: profile?.plan_identifier ?? null,
-    ledger_purchased: ledgerPurchased, profile_credits: profileCredits,
-    rpc_remaining: rpcRemaining, rpc_credits: rpcCredits,
+    allowance,
+    used,
+    credits,
+    remaining,
+    period_ym: period,
+    sub_active: subActive,
+    plan_identifier: profile?.plan_identifier ?? null,
+    ledger_purchased: ledgerPurchased,
+    profile_credits: profileCredits,
+    rpc_remaining: rpcRemaining,
+    rpc_credits: rpcCredits,
   };
 }
 
@@ -1737,7 +2212,12 @@ function latestUserQuery(messages: unknown): string {
   return "";
 }
 
-async function recordUsage(admin: AdminClient, userId: string, tokens: number, fallbackRemaining: number): Promise<number> {
+async function recordUsage(
+  admin: AdminClient,
+  userId: string,
+  tokens: number,
+  fallbackRemaining: number,
+): Promise<number> {
   try {
     const { data: rec } = await admin.rpc("chat_usage_record", { _user: userId, _tokens: tokens });
     if (typeof rec === "number") return rec;
@@ -1767,11 +2247,14 @@ async function databaseOnlyResponse(
   return new Response(
     JSON.stringify({
       warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-      content: typeof result.debug.response_message === "string"
-        ? result.debug.response_message
-        : rows.length === 0
-          ? (typeof result.debug.empty_state_message === "string" ? result.debug.empty_state_message : "No exact matches found. Try removing location or topic.")
-          : `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
+      content:
+        typeof result.debug.response_message === "string"
+          ? result.debug.response_message
+          : rows.length === 0
+            ? typeof result.debug.empty_state_message === "string"
+              ? result.debug.empty_state_message
+              : "No exact matches found. Try removing location or topic."
+            : `Found ${rows.length} relevant results: ${result.sources.database} from your database and ${result.sources.web} from the web.`,
       results: {
         kind,
         rows,
@@ -1796,239 +2279,308 @@ async function databaseOnlyResponse(
 
 // ---------- Handler ----------
 
-if (Deno.env.get("DENO_TESTING") !== "true") Deno.serve(async (req) => {
-  console.log("CHAT_FN_REQUEST_START", {
-    method: req.method,
-    url: req.url,
-    hasAuth: !!req.headers.get("Authorization"),
-  });
-  if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
-
-  try {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader)
-      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    let userId: string | undefined;
-    let userEmail: string | undefined;
-    try {
-      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-      if (!claimsErr && claimsData?.claims?.sub) {
-        userId = claimsData.claims.sub as string;
-        userEmail = claimsData.claims.email as string | undefined;
-      }
-    } catch (e) {
-      console.log("CHAT_FN_GETCLAIMS_ERR", String(e));
-    }
-    if (!userId) {
-      const { data: { user: u } } = await userClient.auth.getUser();
-      userId = u?.id;
-      userEmail = u?.email;
-    }
-    const user = userId ? { id: userId, email: userEmail } : null;
-    console.log("CHAT_FN_AUTH", { userId, email: userEmail });
-    if (!user)
-      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
-    const { data: profile } = await admin.from("profiles").select("plan_identifier,sub_active").eq("id", user.id).maybeSingle();
-    const profilePlan = profile?.plan_identifier as string | null;
-    const plan = profile?.sub_active || isGrowthOrHigherPlan(profilePlan) ? profilePlan : null;
-
-    const body = await req.json();
-    const { messages, model } = body;
-    const reqLimit = Number.isFinite(Number(body?.limit)) ? Math.max(1, Math.floor(Number(body.limit))) : null;
-    const reqOffset = Number.isFinite(Number(body?.offset)) ? Math.max(0, Math.floor(Number(body.offset))) : 0;
-    if (!Array.isArray(messages))
-      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const userQuery = latestUserQuery(messages);
-
-    let summary: Awaited<ReturnType<typeof loadUsageSummary>>;
-    try {
-      summary = await loadUsageSummary(admin, user.id, userClient);
-    } catch (error) {
-      console.warn("[chat.usage_fallback_beta_allowance]", error instanceof Error ? error.message : String(error));
-      summary = {
-        allowance: 20_000,
-        used: 0,
-        remaining: 20_000,
-        credits: 0,
-        period_ym: new Date().toISOString().slice(0, 7),
-        sub_active: false,
-        plan_identifier: null,
-        beta_credit_bypass: true,
-        ledger_purchased: 0,
-        profile_credits: 0,
-        rpc_remaining: null,
-        rpc_credits: null,
-      };
-    }
-    const allowance = summary.allowance;
-    const usedSoFar = summary.used;
-    const creditsRemaining = allowance - usedSoFar;
-    const remaining = Math.max(creditsRemaining, 0);
-    const creditDebug = {
-      user_id: user.id,
-      plan,
-      monthly_allowance: allowance,
-      credits_used: usedSoFar,
-      credits_remaining: creditsRemaining,
-      profile_credits: summary.profile_credits,
-      ledger_purchased: summary.ledger_purchased,
-      rpc_remaining: summary.rpc_remaining,
-      rpc_credits: summary.rpc_credits,
-      sub_active: summary.sub_active,
-    };
-    const monthlyAllowance = allowance;
-    const monthlyUsed = usedSoFar;
-    const monthlyRemaining = monthlyAllowance - monthlyUsed;
-    const topupCredits = Math.max(
-      Number(summary.credits ?? 0),
-      Number(summary.profile_credits ?? 0),
-      Number(summary.ledger_purchased ?? 0),
-    );
-    const totalAvailable =
-      Math.max(0, monthlyRemaining || 0) +
-      Math.max(0, topupCredits || 0);
-
-    console.log("CREDIT_VALUES", {
-      monthlyAllowance,
-      monthlyUsed,
-      monthlyRemaining,
-      topupCredits,
-      totalAvailable,
+if (Deno.env.get("DENO_TESTING") !== "true")
+  Deno.serve(async (req) => {
+    console.log("CHAT_FN_REQUEST_START", {
+      method: req.method,
+      url: req.url,
+      hasAuth: !!req.headers.get("Authorization"),
     });
-    console.log("[chat.credit_check]", creditDebug);
+    if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
 
-    if (totalAvailable <= 0) {
-      return new Response(
-        JSON.stringify({
-          error: "No chat credits remaining",
-          debug: { monthlyRemaining, topupCredits, totalAvailable },
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    summary.remaining = remaining;
+    try {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      if (!authHeader)
+        return new Response(JSON.stringify({ error: "Not authenticated" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
-    // Self-heal: if ledger has more credits than profile column, sync it.
-    if (summary.ledger_purchased > summary.profile_credits && summary.credits > summary.profile_credits) {
-      try {
-        await admin.from("profiles").update({ chat_credits: summary.credits }).eq("id", user.id);
-      } catch (e) { console.warn("[chat.profile_credit_sync_failed]", e); }
-    }
-
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) {
-      console.warn("[chat.provider_fallback] missing_openai_key");
-      return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "missing_openai_key", {}, reqLimit, reqOffset);
-    }
-
-    const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
-
-    let lastKind: Intent["kind"] | null = null;
-    let lastRows: Row[] = [];
-    let lastQuery = "";
-    let lastDebug: Record<string, unknown> = {};
-    let lastIntent: Intent | null = null;
-    let lastPagination: { limit: number; offset: number; total_estimated: number; returned: number; has_more: boolean; next_offset: number | null } | null = null;
-    let lastSources: { database: number; web: number } = { database: 0, web: 0 };
-    let totalTokens = 0;
-
-    for (let i = 0; i < 3; i++) {
-      const r = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: model || "gpt-4o-mini", messages: convo, tools, tool_choice: "auto" }),
+      const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
-      if (!r.ok) {
-        const text = await r.text();
-        console.error("openai_error", { status: r.status, body: text.slice(0, 500) });
-        return databaseOnlyResponse(admin, user.id, userQuery, plan, summary, "model_provider_error", {
-          provider_status: r.status,
-          provider_error: text.slice(0, 500),
-        }, reqLimit, reqOffset);
-      }
-      const data = await r.json();
-      totalTokens += Number(data?.usage?.total_tokens ?? 0);
-      const msg = data.choices?.[0]?.message;
-      if (!msg) break;
-
-      if (msg.tool_calls?.length) {
-        convo.push(msg);
-        for (const tc of msg.tool_calls) {
-          let parsed: Record<string, unknown> = {};
-          try { parsed = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
-          const q = userQuery || String(parsed.q ?? "");
-          const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
-          lastKind = result.intent.kind;
-          lastRows = result.rows;
-          lastQuery = q;
-          lastDebug = result.debug;
-          lastIntent = result.intent;
-          lastPagination = result.pagination;
-          lastSources = result.sources;
-          convo.push({
-            role: "tool",
-            tool_call_id: tc.id,
-            content: JSON.stringify({
-              count: result.rows.length,
-              requested: result.intent.count,
-              from_database: result.sources.database,
-              from_web: result.sources.web,
-              kind: result.intent.kind,
-              has_more: result.pagination.has_more,
-            }),
-          });
-        }
-        continue;
-      }
-
-      let remainingAfter = Math.max(remaining - totalTokens, 0);
+      const token = authHeader.replace(/^Bearer\s+/i, "");
+      let userId: string | undefined;
+      let userEmail: string | undefined;
       try {
-        remainingAfter = await recordUsage(admin, user.id, totalTokens, remainingAfter);
-      } catch (_) { /* handled in recordUsage */ }
+        const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+        if (!claimsErr && claimsData?.claims?.sub) {
+          userId = claimsData.claims.sub as string;
+          userEmail = claimsData.claims.email as string | undefined;
+        }
+      } catch (e) {
+        console.log("CHAT_FN_GETCLAIMS_ERR", String(e));
+      }
+      if (!userId) {
+        const {
+          data: { user: u },
+        } = await userClient.auth.getUser();
+        userId = u?.id;
+        userEmail = u?.email;
+      }
+      const user = userId ? { id: userId, email: userEmail } : null;
+      console.log("CHAT_FN_AUTH", { userId, email: userEmail });
+      if (!user)
+        return new Response(JSON.stringify({ error: "Not authenticated" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
-      const responseContent = typeof lastDebug.response_message === "string"
-        ? lastDebug.response_message
-        : lastRows.length === 0 && typeof lastDebug.empty_state_message === "string"
-          ? lastDebug.empty_state_message
-          : (msg.content ?? "");
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("plan_identifier,sub_active")
+        .eq("id", user.id)
+        .maybeSingle();
+      const profilePlan = profile?.plan_identifier as string | null;
+      const plan = profile?.sub_active || isGrowthOrHigherPlan(profilePlan) ? profilePlan : null;
+
+      const body = await req.json();
+      const { messages, model } = body;
+      const reqLimit = Number.isFinite(Number(body?.limit)) ? Math.max(1, Math.floor(Number(body.limit))) : null;
+      const reqOffset = Number.isFinite(Number(body?.offset)) ? Math.max(0, Math.floor(Number(body.offset))) : 0;
+      if (!Array.isArray(messages))
+        return new Response(JSON.stringify({ error: "messages required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      const userQuery = latestUserQuery(messages);
+
+      let summary: Awaited<ReturnType<typeof loadUsageSummary>>;
+      try {
+        summary = await loadUsageSummary(admin, user.id, userClient);
+      } catch (error) {
+        console.warn("[chat.usage_fallback_beta_allowance]", error instanceof Error ? error.message : String(error));
+        summary = {
+          allowance: 20_000,
+          used: 0,
+          remaining: 20_000,
+          credits: 0,
+          period_ym: new Date().toISOString().slice(0, 7),
+          sub_active: false,
+          plan_identifier: null,
+          beta_credit_bypass: true,
+          ledger_purchased: 0,
+          profile_credits: 0,
+          rpc_remaining: null,
+          rpc_credits: null,
+        };
+      }
+      const allowance = summary.allowance;
+      const usedSoFar = summary.used;
+      const creditsRemaining = allowance - usedSoFar;
+      const remaining = Math.max(creditsRemaining, 0);
+      const creditDebug = {
+        user_id: user.id,
+        plan,
+        monthly_allowance: allowance,
+        credits_used: usedSoFar,
+        credits_remaining: creditsRemaining,
+        profile_credits: summary.profile_credits,
+        ledger_purchased: summary.ledger_purchased,
+        rpc_remaining: summary.rpc_remaining,
+        rpc_credits: summary.rpc_credits,
+        sub_active: summary.sub_active,
+      };
+      const monthlyAllowance = allowance;
+      const monthlyUsed = usedSoFar;
+      const monthlyRemaining = monthlyAllowance - monthlyUsed;
+      const topupCredits = Math.max(
+        Number(summary.credits ?? 0),
+        Number(summary.profile_credits ?? 0),
+        Number(summary.ledger_purchased ?? 0),
+      );
+      const totalAvailable = Math.max(0, monthlyRemaining || 0) + Math.max(0, topupCredits || 0);
+
+      console.log("CREDIT_VALUES", {
+        monthlyAllowance,
+        monthlyUsed,
+        monthlyRemaining,
+        topupCredits,
+        totalAvailable,
+      });
+      console.log("[chat.credit_check]", creditDebug);
+
+      if (totalAvailable <= 0) {
+        return new Response(
+          JSON.stringify({
+            error: "No chat credits remaining",
+            debug: { monthlyRemaining, topupCredits, totalAvailable },
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      summary.remaining = remaining;
+
+      // Self-heal: if ledger has more credits than profile column, sync it.
+      if (summary.ledger_purchased > summary.profile_credits && summary.credits > summary.profile_credits) {
+        try {
+          await admin.from("profiles").update({ chat_credits: summary.credits }).eq("id", user.id);
+        } catch (e) {
+          console.warn("[chat.profile_credit_sync_failed]", e);
+        }
+      }
+
+      const apiKey = Deno.env.get("OPENAI_API_KEY");
+      if (!apiKey) {
+        console.warn("[chat.provider_fallback] missing_openai_key");
+        return databaseOnlyResponse(
+          admin,
+          user.id,
+          userQuery,
+          plan,
+          summary,
+          "missing_openai_key",
+          {},
+          reqLimit,
+          reqOffset,
+        );
+      }
+
+      const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
+
+      let lastKind: Intent["kind"] | null = null;
+      let lastRows: Row[] = [];
+      let lastQuery = "";
+      let lastDebug: Record<string, unknown> = {};
+      let lastIntent: Intent | null = null;
+      let lastPagination: {
+        limit: number;
+        offset: number;
+        total_estimated: number;
+        returned: number;
+        has_more: boolean;
+        next_offset: number | null;
+      } | null = null;
+      let lastSources: { database: number; web: number } = { database: 0, web: 0 };
+      let totalTokens = 0;
+
+      for (let i = 0; i < 3; i++) {
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: model || "gpt-4o-mini", messages: convo, tools, tool_choice: "auto" }),
+        });
+        if (!r.ok) {
+          const text = await r.text();
+          console.error("openai_error", { status: r.status, body: text.slice(0, 500) });
+          return databaseOnlyResponse(
+            admin,
+            user.id,
+            userQuery,
+            plan,
+            summary,
+            "model_provider_error",
+            {
+              provider_status: r.status,
+              provider_error: text.slice(0, 500),
+            },
+            reqLimit,
+            reqOffset,
+          );
+        }
+        const data = await r.json();
+        totalTokens += Number(data?.usage?.total_tokens ?? 0);
+        const msg = data.choices?.[0]?.message;
+        if (!msg) break;
+
+        if (msg.tool_calls?.length) {
+          convo.push(msg);
+          for (const tc of msg.tool_calls) {
+            let parsed: Record<string, unknown> = {};
+            try {
+              parsed = JSON.parse(tc.function.arguments || "{}");
+            } catch {
+              /* ignore */
+            }
+            const q = userQuery || String(parsed.q ?? "");
+            const result = await hybridSearch(admin, q, plan, reqLimit, reqOffset);
+            lastKind = result.intent.kind;
+            lastRows = result.rows;
+            lastQuery = q;
+            lastDebug = result.debug;
+            lastIntent = result.intent;
+            lastPagination = result.pagination;
+            lastSources = result.sources;
+            convo.push({
+              role: "tool",
+              tool_call_id: tc.id,
+              content: JSON.stringify({
+                count: result.rows.length,
+                requested: result.intent.count,
+                from_database: result.sources.database,
+                from_web: result.sources.web,
+                kind: result.intent.kind,
+                has_more: result.pagination.has_more,
+              }),
+            });
+          }
+          continue;
+        }
+
+        let remainingAfter = Math.max(remaining - totalTokens, 0);
+        try {
+          remainingAfter = await recordUsage(admin, user.id, totalTokens, remainingAfter);
+        } catch (_) {
+          /* handled in recordUsage */
+        }
+
+        const responseContent =
+          typeof lastDebug.response_message === "string"
+            ? lastDebug.response_message
+            : lastRows.length === 0 && typeof lastDebug.empty_state_message === "string"
+              ? lastDebug.empty_state_message
+              : (msg.content ?? "");
+
+        return new Response(
+          JSON.stringify({
+            warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
+            content: responseContent,
+            results: lastKind
+              ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent }
+              : null,
+            pagination: lastPagination,
+            sources: lastSources,
+            usage: {
+              allowance,
+              used: Math.min(allowance, usedSoFar + totalTokens),
+              credits: summary.credits,
+              period_ym: summary.period_ym,
+              remaining: remainingAfter,
+              tokens_this_request: totalTokens,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const finalRemaining = await recordUsage(admin, user.id, totalTokens, Math.max(remaining - totalTokens, 0));
       return new Response(
         JSON.stringify({
           warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-          content: responseContent,
-          results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
+          content: typeof lastDebug.response_message === "string" ? lastDebug.response_message : "(no response)",
+          results: lastKind
+            ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent }
+            : null,
           pagination: lastPagination,
           sources: lastSources,
-          usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: remainingAfter, tokens_this_request: totalTokens },
+          usage: {
+            allowance,
+            used: Math.min(allowance, usedSoFar + totalTokens),
+            credits: summary.credits,
+            period_ym: summary.period_ym,
+            remaining: finalRemaining,
+            tokens_this_request: totalTokens,
+          },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    } catch (e) {
+      console.error("chat error:", e);
+      return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    const finalRemaining = await recordUsage(admin, user.id, totalTokens, Math.max(remaining - totalTokens, 0));
-    return new Response(
-      JSON.stringify({
-        warning: summary.beta_credit_bypass ? "Credit check bypassed during beta" : undefined,
-        content: typeof lastDebug.response_message === "string" ? lastDebug.response_message : "(no response)",
-        results: lastKind ? { kind: lastKind, rows: lastRows, query: lastQuery, debug: lastDebug, intent: lastIntent } : null,
-        pagination: lastPagination,
-        sources: lastSources,
-        usage: { allowance, used: Math.min(allowance, usedSoFar + totalTokens), credits: summary.credits, period_ym: summary.period_ym, remaining: finalRemaining, tokens_this_request: totalTokens },
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (e) {
-    console.error("chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-});
+  });
