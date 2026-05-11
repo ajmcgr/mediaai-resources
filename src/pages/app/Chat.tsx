@@ -1138,7 +1138,11 @@ const Chat = () => {
                           )}
                         </td>
                         {cols.map((c) => {
-                          const v = c.key === "authority" ? null : r[c.key as keyof Row];
+                          const v = c.key === "authority"
+                            ? null
+                            : c.key === "category"
+                              ? ((r.topics && String(r.topics).trim()) ? r.topics : r.category)
+                              : r[c.key as keyof Row];
                           return (
                             <td
                               key={String(c.key)}
