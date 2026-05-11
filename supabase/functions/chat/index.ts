@@ -756,8 +756,23 @@ function stringifyTopics(value: unknown): string | null {
   return String(value);
 }
 
+function preferredTopicLabel(row: { category?: unknown; topics?: unknown }, intent?: Intent): string | null {
+  const topicsText = stringifyTopics(row.topics);
+  const categoryText = typeof row.category === "string" ? row.category.trim() : String(row.category ?? "").trim();
+
+  if (topicsText) return topicsText;
+
+  const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
+  if (requested.length && (!categoryText || requested.some((term) => normalizeSearchText(categoryText).includes(normalizeSearchText(term))))) {
+    return requested[0];
+  }
+
+  return categoryText || null;
+}
+
 function journalistRow(r: Record<string, unknown>): Row {
   const bio = (r.bio as string) ?? null;
+  const topics = stringifyTopics(r.topics);
   return {
     source: "database" as const,
     source_id: r.id as number,
@@ -771,7 +786,7 @@ function journalistRow(r: Record<string, unknown>): Row {
     city: (r.city as string) ?? null,
     region: (r.region as string) ?? null,
     bio,
-    topics: stringifyTopics(r.topics),
+    topics,
     email: (r.email as string) ?? null,
     linkedin_url: (r.linkedin_url as string) ?? null,
     xhandle: (r.xhandle as string) ?? null,
@@ -781,6 +796,7 @@ function journalistRow(r: Record<string, unknown>): Row {
 
 function creatorRow(r: Record<string, unknown>): Row {
   const bio = (r.bio as string) ?? null;
+  const topics = stringifyTopics(r.topics);
   return {
     source: "database" as const,
     source_id: r.id as number,
@@ -794,7 +810,7 @@ function creatorRow(r: Record<string, unknown>): Row {
     city: (r.city as string) ?? null,
     region: (r.region as string) ?? null,
     bio,
-    topics: stringifyTopics(r.topics),
+    topics,
     email: (r.email as string) ?? null,
     ig_handle: (r.ig_handle as string) ?? null,
     ig_followers: (r.ig_followers as number) ?? null,
