@@ -759,10 +759,12 @@ function stringifyTopics(value: unknown): string | null {
   return String(value);
 }
 
-function preferredTopicLabel(row: { category?: unknown; topics?: unknown }, intent?: Intent): string | null {
+function preferredTopicLabel(row: { category?: unknown; topics?: unknown; display_topic?: unknown }, intent?: Intent): string | null {
+  const displayText = typeof row.display_topic === "string" ? row.display_topic.trim() : String(row.display_topic ?? "").trim();
   const topicsText = stringifyTopics(row.topics);
   const categoryText = typeof row.category === "string" ? row.category.trim() : String(row.category ?? "").trim();
 
+  if (displayText) return displayText;
   if (topicsText) return topicsText;
 
   const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
