@@ -43,6 +43,7 @@ type Row = {
   outlet: string | null;
   title: string | null;
   category: string | null;
+  topics?: string | null;
   country: string | null;
   email: string | null;
   ig_handle?: string | null;
