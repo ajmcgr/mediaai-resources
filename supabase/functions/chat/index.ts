@@ -768,9 +768,7 @@ function preferredTopicLabel(row: { category?: unknown; topics?: unknown; displa
   if (topicsText) return topicsText;
 
   const requested = uniqueTerms([intent?.topic, ...(intent?.topics ?? [])]);
-  if (requested.length && (!categoryText || requested.some((term) => normalizeSearchText(categoryText).includes(normalizeSearchText(term))))) {
-    return requested[0];
-  }
+  if (requested.length) return requested[0];
 
   return categoryText || null;
 }
