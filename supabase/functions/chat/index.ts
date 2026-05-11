@@ -638,6 +638,7 @@ export type Row = {
   outlet: string | null;
   title: string | null;
   category: string | null;
+  display_topic?: string | null;
   country: string | null;
   location?: string | null;
   city?: string | null;
