@@ -212,6 +212,26 @@ function inferredTopicFromQuery(query: string): string | null {
   return null;
 }
 
+function titleCaseWords(value: string): string {
+  return value.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function detectCountryFromQuery(query: string): string | null {
+  const norm = ` ${normalizeQuery(query)} `;
+  for (const { canonical, terms } of COUNTRY_FALLBACK_ALIASES) {
+    if (norm.includes(` ${canonical} `) || terms.some((t) => norm.includes(` ${t} `))) {
+      return titleCaseWords(canonical);
+    }
+  }
+  return null;
+}
+
+const EXAMPLE_SEARCHES = [
+  "Find AI journalists in San Francisco",
+  "Find fintech creators in Singapore",
+  "Find startup podcasts in London",
+];
+
 function topicValue(row: Row, query = ""): string | null {
   const display = String(row.display_topic ?? "").trim();
   if (display) return display;
@@ -441,12 +461,9 @@ const Chat = () => {
   };
   const rowsWithKeys = (results?.rows ?? []).map((r) => ({ row: r, rowKey: computeRowKey(r) }));
   useEffect(() => {
-    if (results?.rows?.length) {
-      // eslint-disable-next-line no-console
-      console.log("CHAT_ROW_KEYS", results.rows.map((r) => ({ name: r.name, source: r.source, rowKey: computeRowKey(r) })));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // no-op
   }, [results?.rows]);
+
 
   // Bulk selection of rows by stable rowKey
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -608,14 +625,14 @@ const Chat = () => {
   }, [results]);
 
   const handleSend = async (inputValue = input.trim(), reset = false) => {
-    console.log("CALLING EDGE FUNCTION CHAT");
+    
     if (!inputValue.trim() || loading) return;
     const allowance = Number(usage?.allowance ?? 0);
     const used = Number(usage?.used ?? 0);
     const topup_credits = Number(usage?.credits ?? 0);
     const monthly_remaining = Math.max(0, allowance - used);
     const total_available = monthly_remaining + topup_credits;
-    console.log("[chat] credit check", { allowance, used, monthly_remaining, topup_credits, total_available });
+    
     if (total_available <= 0) {
       setMessages((m) => [
         ...m,
@@ -749,7 +766,7 @@ const Chat = () => {
         url: row.source_url,
         country: row.country,
       };
-      console.log("ENRICH_CONTACT_PAYLOAD", payload);
+      
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
         body: payload,
       });
@@ -1040,9 +1057,22 @@ const Chat = () => {
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <h1 className="text-2xl font-medium mb-2">What media are you looking for?</h1>
-                <p className="text-sm text-muted-foreground">
-                  Ask things like "find tech journalists in the UK" or "beauty creators with 100k+ followers".
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Media AI finds journalists, creators, and podcasters who cover your topic — with verified contact details.
                 </p>
+                <div className="mt-8 flex flex-col items-center gap-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground/70 mb-1">Try an example</p>
+                  {EXAMPLE_SEARCHES.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => { setInput(example); void handleSend(example); }}
+                      className="text-sm px-4 py-2 rounded-full border border-border bg-white hover:bg-secondary/60 hover:border-primary/40 transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1059,7 +1089,7 @@ const Chat = () => {
                 ))}
                 {loading && (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />Thinking…
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />Searching journalists & creators…
                   </div>
                 )}
               </div>
@@ -1103,18 +1133,44 @@ const Chat = () => {
           </div>
         </section>
 
-        {results && (
+        {results && (() => {
+          const detectedCountry = detectCountryFromQuery(lastQuery);
+          const detectedTopic = inferredTopicFromQuery(lastQuery);
+          const total = results.pagination?.total_estimated ?? results.rows.length;
+          const kindLabel = results.kind === "journalists" ? "journalists" : "creators";
+          const topicLabel = detectedTopic ? `${detectedTopic} ` : "";
+          const countryLabel = detectedCountry ? ` in ${detectedCountry}` : "";
+          const summary = `Showing ${total.toLocaleString()} ${topicLabel}${kindLabel}${countryLabel}`;
+          return (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
-                <div className="text-sm font-medium capitalize">{results.kind}</div>
-                <div className="text-xs text-muted-foreground">
-                  {results.rows.length} results
+                <div className="text-sm font-medium">{summary}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {results.rows.length.toLocaleString()} loaded
+                  {results.sources ? ` · ${results.sources.database} from database · ${results.sources.web} from web` : ""}
                 </div>
               </div>
             </div>
             {results.rows.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
+              <div className="p-12 text-center max-w-md mx-auto">
+                <div className="text-sm font-medium mb-2">No matches yet</div>
+                <p className="text-sm text-muted-foreground mb-5">
+                  We couldn't find {kindLabel} matching that query. Try broadening the topic or location, or one of these:
+                </p>
+                <div className="flex flex-col gap-2 items-center">
+                  {EXAMPLE_SEARCHES.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => { setInput(example); void handleSend(example); }}
+                      className="text-sm px-4 py-2 rounded-full border border-border bg-white hover:bg-secondary/60 hover:border-primary/40 transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px] text-sm">
@@ -1288,7 +1344,8 @@ const Chat = () => {
               </div>
             )}
           </section>
-        )}
+          );
+        })()}
       </div>
       <BulkAddToListBar
         count={selectedCount}
