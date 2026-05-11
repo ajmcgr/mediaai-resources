@@ -1150,6 +1150,7 @@ function dedupe(rows: Row[]): Row[] {
         outlet: winner.outlet ?? loser.outlet,
         title: winner.title ?? loser.title,
         category: winner.category ?? loser.category,
+        display_topic: preferredTopicLabel(winner) ?? preferredTopicLabel(loser),
         country: winner.country ?? loser.country,
         source_url: winner.source_url ?? loser.source_url,
         reason: winner.reason ?? loser.reason,
