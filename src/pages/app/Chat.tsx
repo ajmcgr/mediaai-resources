@@ -461,12 +461,9 @@ const Chat = () => {
   };
   const rowsWithKeys = (results?.rows ?? []).map((r) => ({ row: r, rowKey: computeRowKey(r) }));
   useEffect(() => {
-    if (results?.rows?.length) {
-      // eslint-disable-next-line no-console
-      console.log("CHAT_ROW_KEYS", results.rows.map((r) => ({ name: r.name, source: r.source, rowKey: computeRowKey(r) })));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // no-op
   }, [results?.rows]);
+
 
   // Bulk selection of rows by stable rowKey
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
