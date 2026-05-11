@@ -355,7 +355,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Media — Find Any Journalist or Creator Email</title>
+        <title>Media — Search Journalists and Creators using AI</title>
         <meta
           name="description"
           content="Find the right journalists and creators for your stories, campaigns, and projects in seconds. AI-powered media database with verified emails and socials."
@@ -373,7 +373,7 @@ const Index = () => {
             className="text-[34px] md:text-[56px] lg:text-[68px] font-medium tracking-tight leading-[1.04] mb-8"
             style={{ fontFamily: "var(--font-heading)", color: "#282c34" }}
           >
-            Find Any <span style={{ color: "#282c34" }}>Journalist or Creator Email.</span> Instantly.
+            Search <span style={{ color: "#282c34" }}>Journalists and Creators</span> using AI.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
             Find the right voices for your stories, campaigns, and projects in just a few clicks from our database of top journalists and creators — powered by AI.
