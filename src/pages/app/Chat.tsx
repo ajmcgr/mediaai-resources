@@ -72,7 +72,8 @@ const JOURNALIST_COLS: { key: keyof Row | "authority"; label: string }[] = [
 ];
 const CREATOR_COLS: { key: keyof Row | "authority"; label: string }[] = [
   { key: "name", label: "Name" },
-  { key: "ig_handle", label: "Handle" },
+  { key: "ig_handle", label: "Instagram" },
+  { key: "youtube_url", label: "YouTube" },
   { key: "ig_followers", label: "Followers" },
   { key: "category", label: "Topic" },
   { key: "email", label: "Email" },
@@ -1303,6 +1304,21 @@ const Chat = () => {
                                       <Sparkles className="h-3 w-3" />Find LinkedIn
                                     </button>
                                   )
+                                )
+                              ) : c.key === "ig_handle" ? (
+                                typeof v === "string" && v.trim() ? (() => {
+                                  const handle = v.trim().replace(/^@/, "");
+                                  return (
+                                    <a href={`https://instagram.com/${handle}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">@{handle}</a>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
+                              ) : c.key === "youtube_url" ? (
+                                typeof v === "string" && v.trim() ? (
+                                  <a href={v.trim()} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">YouTube</a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
                                 )
                               ) : c.key === "xhandle" ? (
                                 typeof v === "string" && v.trim() ? (() => {
