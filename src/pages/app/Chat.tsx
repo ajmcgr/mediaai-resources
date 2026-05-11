@@ -881,7 +881,7 @@ const Chat = () => {
   const authorities = useOutletAuthorities(journalistOutlets);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Helmet><title>Chat — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
