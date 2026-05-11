@@ -1172,7 +1172,8 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     const out = (r.outlet ?? "").toLowerCase();
     const ttl = (r.title ?? "").toLowerCase();
     const cnt = (r.country ?? "").toLowerCase();
-    const hay = [name, cat, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
+    const topicsText = (Array.isArray(r.topics) ? r.topics.join(" ") : (r.topics ?? "")).toLowerCase();
+    const hay = [name, cat, topicsText, out, ttl, cnt, r.reason].map((x) => (x ?? "").toLowerCase()).join(" | ");
     const locHay = [
       cnt,
       (r.location ?? "").toLowerCase(),
@@ -1186,6 +1187,9 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
     let topicMatched = false;
     for (const t of intent.topics) {
       if (cat.includes(t)) {
+        s += 50;
+        topicMatched = true;
+      } else if (topicsText.includes(t)) {
         s += 50;
         topicMatched = true;
       } else if (ttl.includes(t)) {
