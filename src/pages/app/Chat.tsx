@@ -632,7 +632,7 @@ const Chat = () => {
     const topup_credits = Number(usage?.credits ?? 0);
     const monthly_remaining = Math.max(0, allowance - used);
     const total_available = monthly_remaining + topup_credits;
-    console.log("[chat] credit check", { allowance, used, monthly_remaining, topup_credits, total_available });
+    
     if (total_available <= 0) {
       setMessages((m) => [
         ...m,
