@@ -2,7 +2,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const CHAT_VERSION = "growth-uncapped-011";
+const CHAT_VERSION = "growth-uncapped-012";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +61,7 @@ const tools: Tool[] = [
 // ---------- Intent parsing ----------
 
 const TOPIC_SYNONYMS: Record<string, string[]> = {
+  football: ["football", "soccer", "premier league", "champions league", "nfl", "fifa", "uefa", "sports", "sport"],
   tech: [
     "tech",
     "technology",
@@ -1351,6 +1352,52 @@ function normalizeSearchText(value: unknown): string {
     .trim();
 }
 
+function titleCase(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+const TOPIC_INFERENCE_RULES: Array<{ label: string; terms: string[] }> = [
+  { label: "Sports", terms: ["football", "soccer", "nfl", "nba", "mlb", "nhl", "premier league", "champions league", "fifa", "uefa", "cricket", "tennis", "golf", "motorsport", "sports"] },
+  { label: "Technology", terms: ["technology", "tech", "ai", "artificial intelligence", "software", "saas", "developer", "cybersecurity"] },
+  { label: "Finance", terms: ["finance", "financial", "fintech", "banking", "investing", "markets", "stocks"] },
+  { label: "Business", terms: ["business", "economy", "enterprise", "startup", "startups", "venture"] },
+  { label: "Health", terms: ["health", "healthcare", "medical", "wellness", "fitness"] },
+  { label: "Food", terms: ["food", "restaurant", "dining", "chef", "cooking", "beverage"] },
+  { label: "Entertainment", terms: ["entertainment", "film", "movie", "cinema", "music", "tv", "television"] },
+];
+
+function inferTopicLabel(row: Row): string | null {
+  const hay = normalizeSearchText([row.category, row.title, row.outlet, row.bio, row.topics].filter(Boolean).join(" | "));
+  if (!hay) return null;
+  for (const rule of TOPIC_INFERENCE_RULES) {
+    if (rule.terms.some((term) => matchesAnyTerm(hay, [term]))) return rule.label;
+  }
+  return null;
+}
+
+function normalizeRowCategoryForIntent(row: Row, intent: Intent): string | null {
+  const raw = String(row.category ?? "").trim();
+  const rawNorm = normalizeSearchText(raw);
+  const inferred = inferTopicLabel(row);
+  if (intent.topics.some((t) => ["football", "sports", "sport", "soccer", "nfl", "fifa", "uefa"].includes(String(t).toLowerCase()))) {
+    const sportsHay = normalizeSearchText([row.title, row.outlet, row.bio, row.topics].filter(Boolean).join(" | "));
+    if (matchesAnyTerm(sportsHay, ["football", "soccer", "nfl", "sports", "sport", "premier league", "champions league", "fifa", "uefa", "matchday", "sports desk"])) {
+      return "Sports";
+    }
+  }
+  if (!rawNorm) return inferred;
+  if (intent.topics.length) {
+    const rawMatches = matchesAnyTerm(rawNorm, intent.topics);
+    const inferredMatches = inferred ? matchesAnyTerm(normalizeSearchText(inferred), intent.topics) : false;
+    if (!rawMatches && inferredMatches && inferred) return inferred;
+  }
+  return raw.length <= 40 ? titleCase(raw) : raw;
+}
+
 function stripContactNoise(value: unknown): string {
   return String(value ?? "")
     .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, " ")
@@ -2078,7 +2125,7 @@ async function hybridSearch(
   const totalEstimated = Math.min(ranked.length, maxTotalForPlan);
   const paged = ranked
     .slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated))
-    .map((row) => ({ ...row, display_topic: preferredTopicLabel(row, intent) }));
+    .map((row) => ({ ...row, category: normalizeRowCategoryForIntent(row, intent), display_topic: preferredTopicLabel(row, intent) }));
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
   const returned = paged.length;
