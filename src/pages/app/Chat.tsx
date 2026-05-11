@@ -1133,18 +1133,44 @@ const Chat = () => {
           </div>
         </section>
 
-        {results && (
+        {results && (() => {
+          const detectedCountry = detectCountryFromQuery(lastQuery);
+          const detectedTopic = inferredTopicFromQuery(lastQuery);
+          const total = results.pagination?.total_estimated ?? results.rows.length;
+          const kindLabel = results.kind === "journalists" ? "journalists" : "creators";
+          const topicLabel = detectedTopic ? `${detectedTopic} ` : "";
+          const countryLabel = detectedCountry ? ` in ${detectedCountry}` : "";
+          const summary = `Showing ${total.toLocaleString()} ${topicLabel}${kindLabel}${countryLabel}`;
+          return (
           <section className="flex-1 min-w-0 overflow-auto bg-white">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
-                <div className="text-sm font-medium capitalize">{results.kind}</div>
-                <div className="text-xs text-muted-foreground">
-                  {results.rows.length} results
+                <div className="text-sm font-medium">{summary}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {results.rows.length.toLocaleString()} loaded
+                  {results.sources ? ` · ${results.sources.database} from database · ${results.sources.web} from web` : ""}
                 </div>
               </div>
             </div>
             {results.rows.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">No results from database or web.</div>
+              <div className="p-12 text-center max-w-md mx-auto">
+                <div className="text-sm font-medium mb-2">No matches yet</div>
+                <p className="text-sm text-muted-foreground mb-5">
+                  We couldn't find {kindLabel} matching that query. Try broadening the topic or location, or one of these:
+                </p>
+                <div className="flex flex-col gap-2 items-center">
+                  {EXAMPLE_SEARCHES.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => { setInput(example); void handleSend(example); }}
+                      className="text-sm px-4 py-2 rounded-full border border-border bg-white hover:bg-secondary/60 hover:border-primary/40 transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px] text-sm">
