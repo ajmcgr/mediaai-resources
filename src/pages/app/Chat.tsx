@@ -1057,9 +1057,22 @@ const Chat = () => {
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <h1 className="text-2xl font-medium mb-2">What media are you looking for?</h1>
-                <p className="text-sm text-muted-foreground">
-                  Ask things like "find tech journalists in the UK" or "beauty creators with 100k+ followers".
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Media AI finds journalists, creators, and podcasters who cover your topic — with verified contact details.
                 </p>
+                <div className="mt-8 flex flex-col items-center gap-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground/70 mb-1">Try an example</p>
+                  {EXAMPLE_SEARCHES.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => { setInput(example); void handleSend(example); }}
+                      className="text-sm px-4 py-2 rounded-full border border-border bg-white hover:bg-secondary/60 hover:border-primary/40 transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1076,7 +1089,7 @@ const Chat = () => {
                 ))}
                 {loading && (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />Thinking…
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />Searching journalists & creators…
                   </div>
                 )}
               </div>
