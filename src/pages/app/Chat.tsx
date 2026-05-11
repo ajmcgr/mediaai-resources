@@ -43,6 +43,7 @@ type Row = {
   outlet: string | null;
   title: string | null;
   category: string | null;
+  topics?: string | null;
   country: string | null;
   email: string | null;
   ig_handle?: string | null;
@@ -232,7 +233,8 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           name: row.name,
           outlet: row.outlet,
           title: row.titles,
-          category: row.category ?? row.topics,
+          category: row.category,
+          topics: row.topics ?? null,
           country: row.country,
           email: row.email,
           linkedin_url: row.linkedin_url,
@@ -261,7 +263,8 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           name: row.name,
           outlet: row.outlet,
           title: row.titles,
-          category: row.category ?? row.topics,
+          category: row.category,
+          topics: row.topics ?? null,
           country: row.country,
           email: row.email,
           linkedin_url: row.linkedin_url,
@@ -1137,7 +1140,11 @@ const Chat = () => {
                           )}
                         </td>
                         {cols.map((c) => {
-                          const v = c.key === "authority" ? null : r[c.key as keyof Row];
+                          const v = c.key === "authority"
+                            ? null
+                            : c.key === "category"
+                              ? ((r.topics && String(r.topics).trim()) ? r.topics : r.category)
+                              : r[c.key as keyof Row];
                           return (
                             <td
                               key={String(c.key)}
