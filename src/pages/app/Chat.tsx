@@ -1305,6 +1305,21 @@ const Chat = () => {
                                     </button>
                                   )
                                 )
+                              ) : c.key === "ig_handle" ? (
+                                typeof v === "string" && v.trim() ? (() => {
+                                  const handle = v.trim().replace(/^@/, "");
+                                  return (
+                                    <a href={`https://instagram.com/${handle}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">@{handle}</a>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
+                              ) : c.key === "youtube_url" ? (
+                                typeof v === "string" && v.trim() ? (
+                                  <a href={v.trim()} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">YouTube</a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )
                               ) : c.key === "xhandle" ? (
                                 typeof v === "string" && v.trim() ? (() => {
                                   const handle = v.trim().replace(/^@/, "");
