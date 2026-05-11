@@ -625,7 +625,7 @@ const Chat = () => {
   }, [results]);
 
   const handleSend = async (inputValue = input.trim(), reset = false) => {
-    console.log("CALLING EDGE FUNCTION CHAT");
+    
     if (!inputValue.trim() || loading) return;
     const allowance = Number(usage?.allowance ?? 0);
     const used = Number(usage?.used ?? 0);
