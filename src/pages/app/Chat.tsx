@@ -202,6 +202,15 @@ function rowPersistenceKey(row: Row) {
   return String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}|${row.title}`);
 }
 
+function topicValue(row: Row): string | null {
+  const display = String(row.display_topic ?? "").trim();
+  if (display) return display;
+  const topics = String(row.topics ?? "").trim();
+  if (topics) return topics;
+  const category = String(row.category ?? "").trim();
+  return category || null;
+}
+
 function shouldAutoPersistRow(kind: "journalists" | "creators", row: Row) {
   if (row.source !== "exa" || !row.name) return false;
   if (kind === "journalists") return !!(row.email || row.outlet || row.title);
