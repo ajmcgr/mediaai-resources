@@ -886,7 +886,7 @@ const Chat = () => {
             className="gap-1.5"
             disabled={!results?.rows.length}
             onClick={() => {
-              const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row) })) as Record<string, unknown>[];
+              const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
               if (!rows.length) return;
               const headers = Object.keys(rows[0]);
               downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
@@ -1172,7 +1172,7 @@ const Chat = () => {
                           const v = c.key === "authority"
                             ? null
                             : c.key === "category"
-                              ? topicValue(r)
+                              ? topicValue(r, lastQuery)
                               : r[c.key as keyof Row];
                           return (
                             <td
