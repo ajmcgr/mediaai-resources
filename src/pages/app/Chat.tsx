@@ -212,6 +212,26 @@ function inferredTopicFromQuery(query: string): string | null {
   return null;
 }
 
+function titleCaseWords(value: string): string {
+  return value.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function detectCountryFromQuery(query: string): string | null {
+  const norm = ` ${normalizeQuery(query)} `;
+  for (const { canonical, terms } of COUNTRY_FALLBACK_ALIASES) {
+    if (norm.includes(` ${canonical} `) || terms.some((t) => norm.includes(` ${t} `))) {
+      return titleCaseWords(canonical);
+    }
+  }
+  return null;
+}
+
+const EXAMPLE_SEARCHES = [
+  "Find AI journalists in San Francisco",
+  "Find fintech creators in Singapore",
+  "Find startup podcasts in London",
+];
+
 function topicValue(row: Row, query = ""): string | null {
   const display = String(row.display_topic ?? "").trim();
   if (display) return display;
