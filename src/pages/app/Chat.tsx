@@ -1344,7 +1344,8 @@ const Chat = () => {
               </div>
             )}
           </section>
-        )}
+          );
+        })()}
       </div>
       <BulkAddToListBar
         count={selectedCount}
