@@ -2072,7 +2072,9 @@ async function hybridSearch(
   const ranked = rankRows(combined, intent).filter((r) => isValidRow(r, intent));
   // Cap total available rows to plan budget for paging.
   const totalEstimated = Math.min(ranked.length, maxTotalForPlan);
-  const paged = ranked.slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated));
+  const paged = ranked
+    .slice(safeOffset, Math.min(safeOffset + requestedLimit, totalEstimated))
+    .map((row) => ({ ...row, display_topic: preferredTopicLabel(row, intent) }));
   const dbReturned = paged.filter((r) => r.source === "database").length;
   const webReturned = paged.filter((r) => r.source === "exa").length;
   const returned = paged.length;
