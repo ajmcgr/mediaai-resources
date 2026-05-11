@@ -176,7 +176,7 @@ insert into public.outlet_authority (domain, outlet_name, authority_score, sourc
   ('hs.fi',                 'Helsingin Sanomat',           83, 'manual'),
   ('politiken.dk',          'Politiken',                   83, 'manual'),
   ('berlingske.dk',         'Berlingske',                  82, 'manual'),
-  ('rte.ie',                'RTÉ',                         89, 'manual'),
+  -- rte.ie deduped (already inserted above)
   ('euronews.com',          'Euronews',                    89, 'manual'),
   ('politico.eu',           'Politico Europe',             87, 'manual'),
   ('eurozine.com',          'Eurozine',                    72, 'manual'),
@@ -583,7 +583,7 @@ insert into public.outlet_authority (domain, outlet_name, authority_score, sourc
   ('nybooks.com',           'The New York Review of Books',86, 'manual'),
   ('theparisreview.org',    'The Paris Review',            82, 'manual'),
   ('harpers.org',           'Harper''s Magazine',          85, 'manual'),
-  ('thecut.com',            'The Cut',                     87, 'manual'),
+  -- thecut.com deduped (already inserted above)
   ('jacobinmag.com',        'Jacobin',                     83, 'manual'),
   ('jacobin.com',           'Jacobin',                     83, 'manual'),
   ('reason.com',            'Reason',                      85, 'manual'),
