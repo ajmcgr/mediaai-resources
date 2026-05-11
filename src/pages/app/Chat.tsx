@@ -766,7 +766,7 @@ const Chat = () => {
         url: row.source_url,
         country: row.country,
       };
-      console.log("ENRICH_CONTACT_PAYLOAD", payload);
+      
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
         body: payload,
       });
