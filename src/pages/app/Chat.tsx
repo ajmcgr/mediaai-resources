@@ -44,6 +44,7 @@ type Row = {
   title: string | null;
   category: string | null;
   topics?: string | null;
+  display_topic?: string | null;
   country: string | null;
   email: string | null;
   ig_handle?: string | null;
@@ -234,6 +235,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           outlet: row.outlet,
           title: row.titles,
           category: row.category,
+          display_topic: row.topics ?? row.category,
           topics: row.topics ?? null,
           country: row.country,
           email: row.email,
@@ -264,6 +266,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
           outlet: row.outlet,
           title: row.titles,
           category: row.category,
+          display_topic: row.topics ?? row.category,
           topics: row.topics ?? null,
           country: row.country,
           email: row.email,
