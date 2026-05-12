@@ -35,6 +35,9 @@ import Account from "./pages/Account";
 import BillingSuccess from "./pages/BillingSuccess";
 import RequestDemo from "./pages/RequestDemo";
 import SharedList from "./pages/SharedList";
+import Discover from "./pages/Discover";
+import DiscoverPage from "./pages/DiscoverPage";
+import AdminSeoPages from "./pages/admin/SeoPages";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +50,7 @@ const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
   "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo", "shared",
+  "discover", "admin",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -143,8 +147,13 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/home" element={<Index />} />
               <Route path="/resources/success" element={<ProtectedRoute><TopupSuccessRedirect /></ProtectedRoute>} />
-              
+
               <Route path="/resources/:slug" element={<ResourceArticle />} />
+
+              {/* Programmatic SEO discover pages */}
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/discover/:slug" element={<DiscoverPage />} />
+              <Route path="/admin/seo-pages" element={<AdminSeoPages />} />
 
               {/* Tools (canonical) */}
               <Route path="/tools" element={<ToolsHub />} />
