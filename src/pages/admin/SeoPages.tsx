@@ -46,6 +46,26 @@ function AdminSeoPagesInner() {
     }
   }
 
+  async function handleAutoGenerate() {
+    setAutoRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seo-page-build", {
+        body: { auto: true, count: autoCount, publish: publishOnGenerate },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const results = (data as any)?.generated ?? [];
+      const ok = results.filter((r: any) => r.ok).length;
+      toast({ title: `Generated ${ok}/${results.length} pages` });
+      qc.invalidateQueries({ queryKey: ["seo-pages-admin"] });
+      qc.invalidateQueries({ queryKey: ["seo-pages-public"] });
+    } catch (e: any) {
+      toast({ title: "Auto-generate failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoRunning(false);
+    }
+  }
+
   async function togglePublished(p: SeoPage) {
     const { error } = await supabase
       .from("seo_pages" as any)
