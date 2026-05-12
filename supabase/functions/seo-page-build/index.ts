@@ -25,6 +25,55 @@ async function callAI(body: Record<string, unknown>) {
   return await res.json();
 }
 
+async function buildAndUpsert(
+  supabase: ReturnType<typeof createClient>,
+  topic: string,
+  forcedSource: string | undefined,
+  forcedSlug: string | undefined,
+  publish: boolean,
+) {
+  const sys =
+    "You are an SEO expert building landing pages for Media AI, a platform with a database of journalists and creators. " +
+    "Given a topic phrase, return JSON describing a SEO landing page that lists matching contacts. " +
+    "Be specific, useful, non-fluffy. No fluff filler. Use semantic HTML for intro_html (p, h2, h3, ul, strong). 250-400 words intro. " +
+    "Output JSON only.";
+  const user = `Topic: "${topic}"
+
+Return JSON with these keys:
+- source: "journalist" or "creator"
+- slug: short URL slug, lowercase-kebab, max 60 chars
+- title: SEO title under 60 chars including the topic keyword
+- h1: page H1
+- meta_description: under 155 chars
+- intro_html: 250-400 word intro in semantic HTML (no <h1>)
+- filters: object with optional keys: topics, category, country, outlet, ig_followers_min, youtube_subs_min, limit (max 100). Prefer 1-2 filters.
+- faq: array of 3-5 {question, answer}`;
+
+  const aiRes = await callAI({
+    model: "gpt-4o-mini",
+    messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+    response_format: { type: "json_object" },
+    temperature: 0.7,
+  });
+  const p = JSON.parse(aiRes.choices?.[0]?.message?.content ?? "{}");
+  const source: string = forcedSource || (p.source === "creator" ? "creator" : "journalist");
+  const slug = slugify(forcedSlug || p.slug || topic);
+  const row = {
+    slug,
+    source,
+    title: String(p.title || topic).slice(0, 70).trim(),
+    h1: String(p.h1 || p.title || topic).trim(),
+    meta_description: String(p.meta_description || "").slice(0, 160).trim(),
+    intro_html: String(p.intro_html || "").trim(),
+    filters: (p.filters && typeof p.filters === "object") ? p.filters : {},
+    faq: Array.isArray(p.faq) ? p.faq : [],
+    published: publish,
+  };
+  const { data, error } = await supabase.from("seo_pages").upsert(row, { onConflict: "slug" }).select().single();
+  if (error) throw error;
+  return data;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
