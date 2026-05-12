@@ -77,3 +77,6 @@ verify_jwt = false
 [functions.send-testimonial-request]
 verify_jwt = false
 
+[functions.seo-page-build]
+verify_jwt = false
+
