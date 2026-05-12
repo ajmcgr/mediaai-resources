@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,8 +217,8 @@ function AdminSeoPagesInner() {
 
 export default function AdminSeoPages() {
   return (
-    <ProtectedRoute>
+    <AdminRoute>
       <AdminSeoPagesInner />
-    </ProtectedRoute>
+    </AdminRoute>
   );
 }
