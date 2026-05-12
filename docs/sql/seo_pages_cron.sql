@@ -1,19 +1,23 @@
 -- Daily auto-generation of SEO discover pages.
 -- Run this in the Supabase SQL editor.
+-- Do NOT use `alter database ... set app.settings.service_role_key` on Supabase:
+-- hosted projects do not allow that. Store the key in Vault instead.
 
 create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net  with schema extensions;
+create extension if not exists supabase_vault with schema vault;
 
--- 1) Store the service-role key in Supabase Vault (encrypted).
+-- 1) Store the service-role key in Supabase Vault (encrypted and readable by pg_cron).
 --    Get the key from: Project Settings → API → service_role key.
---    Replace <SERVICE_ROLE_KEY> below, run this block ONCE, then delete the key from your SQL history.
+--    Replace <SERVICE_ROLE_KEY> below. If you pasted a service-role key into chat or SQL history,
+--    rotate it in Supabase after this is working.
+delete from vault.secrets where name = 'seo_cron_service_role_key';
+
 select vault.create_secret(
   '<SERVICE_ROLE_KEY>',
   'seo_cron_service_role_key',
   'Service role key used by seo-pages-daily-autogen cron'
 );
--- If you ever need to rotate it:
---   select vault.update_secret(id, '<NEW_KEY>') from vault.secrets where name = 'seo_cron_service_role_key';
 
 -- 2) Remove any prior schedule with this name
 select cron.unschedule('seo-pages-daily-autogen')
