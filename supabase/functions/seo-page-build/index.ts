@@ -96,66 +96,7 @@ Return JSON: { "topics": ["...", "..."] }` },
       });
     }
 
-    const sys =
-      "You are an SEO expert building landing pages for Media AI, a platform with a database of journalists and creators. " +
-      "Given a topic phrase, return JSON describing a SEO landing page that lists matching contacts. " +
-      "Be specific, useful, non-fluffy. No fluff filler. Use semantic HTML for intro_html (p, h2, h3, ul, strong). 250-400 words intro. " +
-      "Output JSON only.";
-
-    const user = `Topic: "${topic}"
-
-Return JSON with these keys:
-- source: "journalist" or "creator" (journalists = reporters/editors at outlets; creators = influencers/podcasters/youtubers)
-- slug: short URL slug, lowercase-kebab, max 60 chars
-- title: SEO title under 60 chars including the topic keyword
-- h1: page H1 (can be longer/more descriptive than title)
-- meta_description: under 155 chars, compelling, includes keyword
-- intro_html: 250-400 word intro in semantic HTML (no <h1>). Explain who's on the list, why they matter, how to pitch them. Reference that the list is updated from Media AI's database.
-- filters: object with optional keys to query the database. Use ONLY these keys:
-    topics (string, ilike match against journalist.topics) — e.g. "AI", "fintech", "cybersecurity"
-    category (string, ilike against category) — e.g. "Tech", "Business"
-    country (string, ilike against country) — e.g. "United States", "United Kingdom"
-    outlet (string, ilike against outlet) — only if topic mentions a specific outlet
-    ig_followers_min (number) — for creators with follower threshold
-    youtube_subs_min (number) — for youtuber lists
-    limit (number, default 50, max 100)
-  Pick filters that match the topic. Prefer 1-2 filters max for broader matches.
-- faq: array of 3-5 {question, answer} objects relevant to the topic (e.g. "How do I pitch AI journalists?")`;
-
-    const aiRes = await callAI({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-    });
-
-    const raw = aiRes.choices?.[0]?.message?.content ?? "{}";
-    const p = JSON.parse(raw);
-
-    const source: string = forcedSource || (p.source === "creator" ? "creator" : "journalist");
-    const slug = slugify(forcedSlug || p.slug || topic);
-    const title = String(p.title || topic).slice(0, 70).trim();
-    const h1 = String(p.h1 || title).trim();
-    const meta_description = String(p.meta_description || "").slice(0, 160).trim();
-    const intro_html = String(p.intro_html || "").trim();
-    const filters = (p.filters && typeof p.filters === "object") ? p.filters : {};
-    const faq = Array.isArray(p.faq) ? p.faq : [];
-
-    // upsert by slug
-    const { data, error } = await supabase
-      .from("seo_pages")
-      .upsert({
-        slug, source, title, h1, meta_description, intro_html, filters, faq,
-        published: publish === true,
-      }, { onConflict: "slug" })
-      .select()
-      .single();
-
-    if (error) throw error;
-
+    const data = await buildAndUpsert(supabase, topic, forcedSource, forcedSlug, publish === true);
     return new Response(JSON.stringify({ ok: true, page: data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
