@@ -135,6 +135,32 @@ function AdminSeoPagesInner() {
           </label>
         </Card>
 
+        <Card className="p-5 mb-8 border-dashed">
+          <h2 className="font-medium mb-1 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Auto-generate from database
+          </h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            AI brainstorms topic ideas based on real categories, beats and countries in your database, then builds each page.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">How many?</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={autoCount}
+                onChange={(e) => setAutoCount(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+                className="w-20"
+                disabled={autoRunning}
+              />
+            </div>
+            <Button onClick={handleAutoGenerate} disabled={autoRunning}>
+              {autoRunning ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating {autoCount} pages…</> : `Auto-generate ${autoCount} pages`}
+            </Button>
+          </div>
+        </Card>
+
         <h2 className="font-medium mb-4">All pages ({pages?.length ?? 0})</h2>
         {isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
