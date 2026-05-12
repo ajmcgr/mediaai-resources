@@ -20,6 +20,8 @@ function AdminSeoPagesInner() {
   const qc = useQueryClient();
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [autoCount, setAutoCount] = useState(10);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [publishOnGenerate, setPublishOnGenerate] = useState(true);
   const [editing, setEditing] = useState<SeoPage | null>(null);
 
