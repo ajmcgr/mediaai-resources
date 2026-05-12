@@ -20,6 +20,8 @@ function AdminSeoPagesInner() {
   const qc = useQueryClient();
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [autoCount, setAutoCount] = useState(10);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [publishOnGenerate, setPublishOnGenerate] = useState(true);
   const [editing, setEditing] = useState<SeoPage | null>(null);
 
@@ -41,6 +43,26 @@ function AdminSeoPagesInner() {
       toast({ title: "Failed to generate", description: e.message, variant: "destructive" });
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleAutoGenerate() {
+    setAutoRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seo-page-build", {
+        body: { auto: true, count: autoCount, publish: publishOnGenerate },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const results = (data as any)?.generated ?? [];
+      const ok = results.filter((r: any) => r.ok).length;
+      toast({ title: `Generated ${ok}/${results.length} pages` });
+      qc.invalidateQueries({ queryKey: ["seo-pages-admin"] });
+      qc.invalidateQueries({ queryKey: ["seo-pages-public"] });
+    } catch (e: any) {
+      toast({ title: "Auto-generate failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoRunning(false);
     }
   }
 
@@ -111,6 +133,32 @@ function AdminSeoPagesInner() {
             <Switch checked={publishOnGenerate} onCheckedChange={setPublishOnGenerate} />
             Publish immediately
           </label>
+        </Card>
+
+        <Card className="p-5 mb-8 border-dashed">
+          <h2 className="font-medium mb-1 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Auto-generate from database
+          </h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            AI brainstorms topic ideas based on real categories, beats and countries in your database, then builds each page.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">How many?</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={autoCount}
+                onChange={(e) => setAutoCount(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+                className="w-20"
+                disabled={autoRunning}
+              />
+            </div>
+            <Button onClick={handleAutoGenerate} disabled={autoRunning}>
+              {autoRunning ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating {autoCount} pages…</> : `Auto-generate ${autoCount} pages`}
+            </Button>
+          </div>
         </Card>
 
         <h2 className="font-medium mb-4">All pages ({pages?.length ?? 0})</h2>
