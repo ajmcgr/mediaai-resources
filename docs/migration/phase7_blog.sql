@@ -1,8 +1,8 @@
 -- Phase 7: Auto-generated blog
 -- Run in Supabase SQL editor (project ref: uavbphkhomblzkjfuaot)
 
-create extension if not exists pg_cron;
-create extension if not exists pg_net;
+create extension if not exists pg_cron with schema extensions;
+create extension if not exists pg_net with schema extensions;
 
 create table if not exists public.blog_posts (
   id uuid primary key default gen_random_uuid(),
@@ -29,7 +29,9 @@ create policy "blog_posts public read"
 
 -- service role inserts via edge function; no insert policy needed for clients
 
--- Schedule blog-generate every 3 days at 09:00 UTC
+-- Schedule blog-generate every 3 days at 09:00 UTC.
+-- The function returns quickly with { queued: true } and continues generation via EdgeRuntime.waitUntil,
+-- so pg_net does not sit open until article/image generation finishes.
 select cron.unschedule('blog-generate-3day') where exists (
   select 1 from cron.job where jobname = 'blog-generate-3day'
 );
