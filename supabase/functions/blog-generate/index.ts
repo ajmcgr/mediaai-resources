@@ -27,7 +27,7 @@ const TOPICS = [
   "Local press vs national: when to pitch which",
 ];
 
-type SupabaseClient = ReturnType<typeof createClient>;
+type BlogSupabaseClient = ReturnType<typeof createClient<any, "public", any>>;
 
 function slugify(s: string) {
   return s
@@ -88,7 +88,7 @@ async function buildPost(topic: string) {
   return { title, description, content };
 }
 
-async function createUniqueSlug(supabase: SupabaseClient, title: string) {
+async function createUniqueSlug(supabase: BlogSupabaseClient, title: string) {
   const base = slugify(title) || `post-${Date.now().toString(36)}`;
   let slug = base;
 
@@ -107,7 +107,7 @@ async function createUniqueSlug(supabase: SupabaseClient, title: string) {
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-async function attachCoverImage(supabase: SupabaseClient, postId: string, title: string) {
+async function attachCoverImage(supabase: BlogSupabaseClient, postId: string, title: string) {
   try {
     const openaiKey = requiredEnv("OPENAI_API_KEY");
     const controller = new AbortController();
