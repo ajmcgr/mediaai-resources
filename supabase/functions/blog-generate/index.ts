@@ -1,6 +1,6 @@
 // supabase/functions/blog-generate/index.ts
-// Generates a fresh blog post (text + cover image) via Lovable AI Gateway
-// and inserts it into public.blog_posts. Triggered by pg_cron every 3 days.
+// Queues a fresh blog post from pg_cron, inserts the post first, then attaches
+// an optional cover image. This keeps cron from timing out before a post exists.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -27,6 +27,8 @@ const TOPICS = [
   "Local press vs national: when to pitch which",
 ];
 
+type SupabaseClient = ReturnType<typeof createClient>;
+
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -35,9 +37,21 @@ function slugify(s: string) {
     .slice(0, 80);
 }
 
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function requiredEnv(name: string) {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`${name} missing`);
+  return value;
+}
+
 async function callAI(body: Record<string, unknown>) {
-  const key = Deno.env.get("OPENAI_API_KEY");
-  if (!key) throw new Error("OPENAI_API_KEY missing");
+  const key = requiredEnv("OPENAI_API_KEY");
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -47,110 +61,160 @@ async function callAI(body: Record<string, unknown>) {
   return await res.json();
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+async function buildPost(topic: string) {
+  const writeRes = await callAI({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a senior PR strategist writing for Media AI's blog. Write practical, specific, non-fluffy posts for PR pros, founders and comms leads. Use semantic HTML (h2, h3, p, ul, ol, blockquote, strong). 800-1100 words. No <h1>, no <html>/<body>, no markdown.",
+      },
+      {
+        role: "user",
+        content: `Write a blog post about: "${topic}". Return JSON only with keys: title (under 70 chars, compelling), description (under 160 chars, meta description), content (HTML body, no h1).`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
 
-  try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(url, serviceKey);
+  const raw = writeRes.choices?.[0]?.message?.content ?? "{}";
+  const parsed = JSON.parse(raw);
+  const title = String(parsed.title || topic).trim();
+  const description = String(parsed.description || "").trim().slice(0, 160);
+  const content = String(parsed.content || "").trim();
+  if (!title || !content) throw new Error("AI returned empty post");
 
-    const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+  return { title, description, content };
+}
 
-    // 1. Generate post (JSON: title, description, html content)
-    const writeRes = await callAI({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a senior PR strategist writing for Media AI's blog. Write practical, specific, non-fluffy posts for PR pros, founders and comms leads. Use semantic HTML (h2, h3, p, ul, ol, blockquote, strong). 800-1100 words. No <h1>, no <html>/<body>, no markdown.",
-        },
-        {
-          role: "user",
-          content: `Write a blog post about: "${topic}". Return JSON only with keys: title (under 70 chars, compelling), description (under 160 chars, meta description), content (HTML body, no h1).`,
-        },
-      ],
-      response_format: { type: "json_object" },
-    });
+async function createUniqueSlug(supabase: SupabaseClient, title: string) {
+  const base = slugify(title) || `post-${Date.now().toString(36)}`;
+  let slug = base;
 
-    const raw = writeRes.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
-    const title: string = String(parsed.title || topic).trim();
-    const description: string = String(parsed.description || "").trim().slice(0, 160);
-    const content: string = String(parsed.content || "").trim();
-    if (!title || !content) throw new Error("AI returned empty post");
-
-    // 2. Generate cover image
-    let imageUrl: string | null = null;
-    try {
-      const openaiKey = Deno.env.get("OPENAI_API_KEY")!;
-      const imgRes = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: `Editorial blog cover image for an article titled "${title}". Minimalist, modern, professional, abstract, soft gradients, no text.`,
-          size: "1792x1024",
-          n: 1,
-          response_format: "b64_json",
-        }),
-      });
-      if (imgRes.ok) {
-        const json = await imgRes.json();
-        const b64 = json.data?.[0]?.b64_json as string | undefined;
-        if (b64) {
-          const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-          const path = `auto/${Date.now()}-${slugify(title)}.png`;
-          const { error: upErr } = await supabase.storage
-            .from("blog")
-            .upload(path, bytes, { contentType: "image/png", upsert: false });
-          if (!upErr) {
-            const { data: pub } = supabase.storage.from("blog").getPublicUrl(path);
-            imageUrl = pub.publicUrl;
-          } else {
-            imageUrl = `data:image/png;base64,${b64}`;
-          }
-        }
-      } else {
-        console.error("image gen failed", imgRes.status, await imgRes.text());
-      }
-    } catch (e) {
-      console.error("image gen failed", e);
-    }
-
-    // 3. Ensure unique slug
-    let slug = slugify(title);
-    const { data: existing } = await supabase
+  for (let i = 0; i < 5; i += 1) {
+    const { data, error } = await supabase
       .from("blog_posts")
       .select("slug")
       .eq("slug", slug)
       .maybeSingle();
-    if (existing) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
-
-    const { data: inserted, error } = await supabase
-      .from("blog_posts")
-      .insert({
-        slug,
-        title,
-        description,
-        image: imageUrl,
-        content,
-        topic,
-      })
-      .select()
-      .single();
 
     if (error) throw error;
+    if (!data) return slug;
+    slug = `${base}-${Date.now().toString(36).slice(-4)}${i || ""}`;
+  }
 
-    return new Response(JSON.stringify({ ok: true, post: inserted }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+async function attachCoverImage(supabase: SupabaseClient, postId: string, title: string) {
+  try {
+    const openaiKey = requiredEnv("OPENAI_API_KEY");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45_000);
+
+    const imgRes = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: `Editorial blog cover image for an article titled "${title}". Minimalist, modern, professional, abstract, no text.`,
+        size: "1792x1024",
+        n: 1,
+        response_format: "b64_json",
+      }),
+    }).finally(() => clearTimeout(timeout));
+
+    if (!imgRes.ok) {
+      console.error("blog-generate image failed", imgRes.status, await imgRes.text());
+      return;
+    }
+
+    const json = await imgRes.json();
+    const b64 = json.data?.[0]?.b64_json as string | undefined;
+    if (!b64) return;
+
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const path = `auto/${Date.now()}-${slugify(title)}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from("blog")
+      .upload(path, bytes, { contentType: "image/png", upsert: false });
+
+    if (uploadError) {
+      console.error("blog-generate image upload failed", uploadError.message);
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from("blog").getPublicUrl(path);
+    const { error: updateError } = await supabase
+      .from("blog_posts")
+      .update({ image: pub.publicUrl })
+      .eq("id", postId);
+
+    if (updateError) console.error("blog-generate image update failed", updateError.message);
   } catch (err) {
-    console.error("blog-generate error", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    console.error("blog-generate image failed", err);
+  }
+}
+
+async function generateAndInsert(topic: string) {
+  console.log("blog-generate started", { topic });
+
+  const supabase = createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  );
+
+  const post = await buildPost(topic);
+  const slug = await createUniqueSlug(supabase, post.title);
+  const { data: inserted, error } = await supabase
+    .from("blog_posts")
+    .insert({
+      slug,
+      title: post.title,
+      description: post.description,
+      image: null,
+      content: post.content,
+      topic,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  console.log("blog-generate inserted", { id: inserted.id, slug });
+  await attachCoverImage(supabase, inserted.id, post.title);
+  return inserted;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const topic = typeof body.topic === "string" && body.topic.trim()
+      ? body.topic.trim().slice(0, 140)
+      : TOPICS[Math.floor(Math.random() * TOPICS.length)];
+
+    const job = generateAndInsert(topic).catch((err) => {
+      console.error("blog-generate error", err);
+    });
+
+    if (body.sync === true) {
+      const post = await job;
+      return jsonResponse({ ok: true, post });
+    }
+
+    const waitUntil = (globalThis as typeof globalThis & {
+      EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
+    }).EdgeRuntime?.waitUntil;
+    waitUntil?.(job);
+
+    return jsonResponse({ ok: true, queued: true, topic });
+  } catch (err) {
+    console.error("blog-generate request error", err);
+    return jsonResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }, 500);
   }
 });
