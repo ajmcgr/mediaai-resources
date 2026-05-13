@@ -210,7 +210,12 @@ Deno.serve(async (req) => {
     const edgeRuntime = (globalThis as typeof globalThis & {
       EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
     }).EdgeRuntime;
-    edgeRuntime?.waitUntil?.(job);
+
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(job);
+    } else {
+      await job;
+    }
 
     return jsonResponse({ ok: true, queued: true, topic });
   } catch (err) {
