@@ -198,19 +198,19 @@ Deno.serve(async (req) => {
       ? body.topic.trim().slice(0, 140)
       : TOPICS[Math.floor(Math.random() * TOPICS.length)];
 
+    if (body.sync === true) {
+      const post = await generateAndInsert(topic);
+      return jsonResponse({ ok: true, post });
+    }
+
     const job = generateAndInsert(topic).catch((err) => {
       console.error("blog-generate error", err);
     });
 
-    if (body.sync === true) {
-      const post = await job;
-      return jsonResponse({ ok: true, post });
-    }
-
-    const waitUntil = (globalThis as typeof globalThis & {
+    const edgeRuntime = (globalThis as typeof globalThis & {
       EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
-    }).EdgeRuntime?.waitUntil;
-    waitUntil?.(job);
+    }).EdgeRuntime;
+    edgeRuntime?.waitUntil?.(job);
 
     return jsonResponse({ ok: true, queued: true, topic });
   } catch (err) {
