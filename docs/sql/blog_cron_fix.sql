@@ -39,4 +39,5 @@ select cron.schedule(
 -- Inspect cron and HTTP results:
 -- select * from cron.job where jobname = 'blog-generate-3day';
 -- select * from cron.job_run_details where jobid = (select jobid from cron.job where jobname = 'blog-generate-3day') order by start_time desc limit 10;
--- select * from net._http_response order by created desc limit 10;
+-- select status_code, error_msg, content, created from net._http_response order by created desc limit 10;
+-- select slug, title, topic, published from public.blog_posts order by created_at desc limit 5;
