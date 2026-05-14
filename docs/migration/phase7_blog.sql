@@ -43,7 +43,8 @@ select cron.schedule(
   select net.http_post(
     url := 'https://uavbphkhomblzkjfuaot.supabase.co/functions/v1/blog-generate',
     headers := jsonb_build_object(
-      'Content-Type', 'application/json'
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdmJwaGtob21ibHpramZ1YW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMjU0NDksImV4cCI6MjA1MTgwMTQ0OX0.BpHF9fxNgWWjMupXQ5GCJMj-n_iWJ27xAqm5fLXeudA'
     ),
     body := jsonb_build_object('source', 'pg_cron'),
     timeout_milliseconds := 10000
