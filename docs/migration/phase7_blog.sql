@@ -30,6 +30,8 @@ create policy "blog_posts public read"
 -- service role inserts via edge function; no insert policy needed for clients
 
 -- Schedule blog-generate every 3 days at 09:00 UTC.
+-- Supabase's functions gateway requires an Authorization header for this project;
+-- the anon JWT is enough because the edge function itself remains public.
 -- The function returns quickly with { queued: true } and continues generation via EdgeRuntime.waitUntil,
 -- so pg_net does not sit open until article/image generation finishes.
 select cron.unschedule('blog-generate-3day') where exists (
