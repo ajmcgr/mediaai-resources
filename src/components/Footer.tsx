@@ -19,6 +19,16 @@ const RESOURCES_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Social Proof in PR", "/resources/using-reviews-and-social-proof-in-pr"],
 ];
 
+const COMPARE_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Media AI vs Muck Rack", "/compare/muck-rack"],
+  ["Media AI vs Cision", "/compare/cision"],
+  ["Media AI vs Meltwater", "/compare/meltwater"],
+  ["Media AI vs GRIN", "/compare/grin"],
+  ["Media AI vs HypeAuditor", "/compare/hypeauditor"],
+  ["Media AI vs Later", "/compare/later"],
+  ["Media AI vs Impact.com", "/compare/impact-com"],
+];
+
 const TOOLS_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Beat & Outlet Matcher", "/tools/beat-outlet-matcher"],
   ["Pitch Personalization Generator", "/tools/pitch-personalization-helper"],
@@ -51,7 +61,7 @@ const FooterCol = ({ title, links }: { title: string; links: readonly (readonly 
 const Footer = () => {
   return (
     <footer className="px-6 py-16 mt-12">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-5 gap-8 text-sm">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-6 gap-8 text-sm">
         <FooterCol title="Company" links={[
           ["About", "/about"],
           ["Blog", "/blog"],
@@ -83,6 +93,17 @@ const Footer = () => {
               </li>
             ))}
             <li><Link to="/tools" className="hover:text-foreground font-medium">View All Tools →</Link></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Compare</h4>
+          <ul className="space-y-2.5 text-muted-foreground">
+            {COMPARE_LINKS.map(([label, href]) => (
+              <li key={label}>
+                <Link to={href} className="hover:text-foreground">{label}</Link>
+              </li>
+            ))}
+            <li><Link to="/compare" className="hover:text-foreground font-medium">View All →</Link></li>
           </ul>
         </div>
         <div>

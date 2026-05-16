@@ -38,6 +38,8 @@ import SharedList from "./pages/SharedList";
 import Discover from "./pages/Discover";
 import DiscoverPage from "./pages/DiscoverPage";
 import AdminSeoPages from "./pages/admin/SeoPages";
+import CompareHub from "./pages/compare/CompareHub";
+import ComparePage from "./pages/compare/ComparePage";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +52,7 @@ const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
   "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo", "shared",
-  "discover", "admin",
+  "discover", "admin", "compare",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -158,6 +160,10 @@ const App = () => (
               {/* Tools (canonical) */}
               <Route path="/tools" element={<ToolsHub />} />
               <Route path="/tools/:slug" element={<ToolTemplate />} />
+
+              {/* Compare (vs competitors) */}
+              <Route path="/compare" element={<CompareHub />} />
+              <Route path="/compare/:slug" element={<ComparePage />} />
 
               {/* Root: dashboard for signed-in, marketing for guests */}
               <Route path="/" element={<Root />} />
