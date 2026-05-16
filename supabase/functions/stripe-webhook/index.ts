@@ -1,6 +1,6 @@
 // Stripe webhook → upserts public.subscriptions (source of truth). Public endpoint; Stripe auth is via signature.
-// IMPORTANT: deploy with --no-verify-jwt; auth is via Stripe signature.
-//   supabase functions deploy stripe-webhook --no-verify-jwt
+// IMPORTANT: Supabase JWT verification must be disabled for this function; Stripe does not send Supabase auth headers.
+// Deploy from the project root so supabase/config.toml applies [functions.stripe-webhook] verify_jwt = false.
 //
 // Required secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 //                   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
