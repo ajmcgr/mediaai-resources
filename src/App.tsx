@@ -40,6 +40,8 @@ import DiscoverPage from "./pages/DiscoverPage";
 import AdminSeoPages from "./pages/admin/SeoPages";
 import CompareHub from "./pages/compare/CompareHub";
 import ComparePage from "./pages/compare/ComparePage";
+import GuidesHub from "./pages/guides/GuidesHub";
+import GuidePage from "./pages/guides/GuidePage";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +54,7 @@ const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
   "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo", "shared",
-  "discover", "admin", "compare",
+  "discover", "admin", "compare", "guides",
 ]);
 
 const LegacySlugRedirect = () => {
@@ -164,6 +166,10 @@ const App = () => (
               {/* Compare (vs competitors) */}
               <Route path="/compare" element={<CompareHub />} />
               <Route path="/compare/:slug" element={<ComparePage />} />
+
+              {/* Guides (programmatic SEO: best / vs / alternatives / templates) */}
+              <Route path="/guides" element={<GuidesHub />} />
+              <Route path="/guides/:slug" element={<GuidePage />} />
 
               {/* Root: dashboard for signed-in, marketing for guests */}
               <Route path="/" element={<Root />} />
