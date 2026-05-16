@@ -316,6 +316,16 @@ const TOOLS_LINKS: ReadonlyArray<readonly [string, string]> = [
   ["Rate Card Estimator", "/tools/rate-card-estimator-lite"],
 ];
 
+const COMPARE_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ["Media AI vs Muck Rack", "/compare/muck-rack"],
+  ["Media AI vs Cision", "/compare/cision"],
+  ["Media AI vs Meltwater", "/compare/meltwater"],
+  ["Media AI vs GRIN", "/compare/grin"],
+  ["Media AI vs HypeAuditor", "/compare/hypeauditor"],
+  ["Media AI vs Later", "/compare/later"],
+  ["Media AI vs Impact.com", "/compare/impact-com"],
+];
+
 const Index = () => {
   const [interval, setIntervalVal] = useState<Interval>("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
