@@ -786,7 +786,7 @@ const Index = () => {
 
       {/* FOOTER */}
       <footer className="px-6 py-16 mt-12">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-5 gap-8 text-sm">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-6 gap-8 text-sm">
           <FooterCol title="Company" links={[
             ["About", "/about"],
             ["Blog", "/blog"],
