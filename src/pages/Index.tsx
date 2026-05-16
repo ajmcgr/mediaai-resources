@@ -814,17 +814,6 @@ const Index = () => {
             </ul>
           </div>
           <div>
-            <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Compare</h4>
-            <ul className="space-y-2.5 text-muted-foreground">
-              {COMPARE_LINKS.map(([label, href]) => (
-                <li key={label}>
-                  <Link to={href} className="hover:text-foreground">{label}</Link>
-                </li>
-              ))}
-              <li><Link to="/compare" className="hover:text-foreground font-medium">View All →</Link></li>
-            </ul>
-          </div>
-          <div>
             <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Free Tools</h4>
             <ul className="space-y-2.5 text-muted-foreground">
               {TOOLS_LINKS.slice(0, 9).map(([label, href]) => (
@@ -833,6 +822,17 @@ const Index = () => {
                 </li>
               ))}
               <li><Link to="/tools" className="hover:text-foreground font-medium">View All Tools →</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-4" style={{ fontFamily: "var(--font-heading)" }}>Compare</h4>
+            <ul className="space-y-2.5 text-muted-foreground">
+              {COMPARE_LINKS.map(([label, href]) => (
+                <li key={label}>
+                  <Link to={href} className="hover:text-foreground">{label}</Link>
+                </li>
+              ))}
+              <li><Link to="/compare" className="hover:text-foreground font-medium">View All →</Link></li>
             </ul>
           </div>
           <div>
