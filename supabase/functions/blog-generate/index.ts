@@ -107,6 +107,19 @@ async function createUniqueSlug(supabase: BlogSupabaseClient, title: string) {
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+async function getLatestPostCreatedAt(supabase: BlogSupabaseClient) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("created_at")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  const createdAt = (data as { created_at?: string } | null)?.created_at;
+  return createdAt || null;
+}
+
 async function attachCoverImage(supabase: BlogSupabaseClient, postId: string, title: string) {
   try {
     const openaiKey = requiredEnv("OPENAI_API_KEY");
@@ -158,13 +171,24 @@ async function attachCoverImage(supabase: BlogSupabaseClient, postId: string, ti
   }
 }
 
-async function generateAndInsert(topic: string) {
+async function generateAndInsert(topic: string, options: { skipIfRecent?: boolean } = {}) {
   console.log("blog-generate started", { topic });
 
   const supabase = createClient(
     requiredEnv("SUPABASE_URL"),
     requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
   );
+
+  if (options.skipIfRecent) {
+    const latestCreatedAt = await getLatestPostCreatedAt(supabase);
+    const latestTime = latestCreatedAt ? new Date(latestCreatedAt).getTime() : 0;
+    const threeDaysMs = 72 * 60 * 60 * 1000;
+
+    if (latestTime && Date.now() - latestTime < threeDaysMs) {
+      console.log("blog-generate skipped: recent post exists", { latestCreatedAt });
+      return { skipped: true, reason: "recent_post", latestCreatedAt };
+    }
+  }
 
   const post = await buildPost(topic);
   const slug = await createUniqueSlug(supabase, post.title);
@@ -198,12 +222,14 @@ Deno.serve(async (req) => {
       ? body.topic.trim().slice(0, 140)
       : TOPICS[Math.floor(Math.random() * TOPICS.length)];
 
+    const skipIfRecent = body.source === "pg_cron" || body.source === "cron_install_probe";
+
     if (body.sync === true) {
-      const post = await generateAndInsert(topic);
-      return jsonResponse({ ok: true, post });
+      const result = await generateAndInsert(topic, { skipIfRecent });
+      return jsonResponse({ ok: true, ...("skipped" in result ? result : { post: result }) });
     }
 
-    const job = generateAndInsert(topic).catch((err) => {
+    const job = generateAndInsert(topic, { skipIfRecent }).catch((err) => {
       console.error("blog-generate error", err);
     });
 
