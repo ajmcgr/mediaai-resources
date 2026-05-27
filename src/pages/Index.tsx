@@ -280,6 +280,12 @@ const FEATURE_BLOCKS = [
     image: featureContactInbox,
     bullets: ["Unified inbox across all your outreach", "Replies linked to journalist and outlet records", "See unread, scheduled, and follow-up status at a glance"],
   },
+  {
+    eyebrow: "Teams",
+    body: "Bring your whole PR and comms team into one shared workspace. Invite teammates, assign roles, and collaborate on the same lists, contacts, and outreach without stepping on each other's toes.",
+    image: featureTeams,
+    bullets: ["Shared workspace with owner, admin, and member roles", "Invite teammates by email with seat-based billing", "Centralized audit trail of exports, reveals, and invites"],
+  },
 ];
 
 const RESOURCES_LINKS = [
