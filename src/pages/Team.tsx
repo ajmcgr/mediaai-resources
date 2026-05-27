@@ -75,9 +75,9 @@ const Team = () => {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-white">
-        <NavLink to="/" className="flex items-center gap-2">
-          <img src={logoMedia} alt="Media AI" className="h-5" />
+      <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
+        <NavLink to="/database" className="flex items-center">
+          <img src={logoMedia} alt="Media AI" className="block h-4 w-auto max-w-[86px] object-contain" />
         </NavLink>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
