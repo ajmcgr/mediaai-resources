@@ -57,10 +57,6 @@ export function useCreateWorkspace(userId: string | undefined) {
         .select()
         .single();
       if (error) throw error;
-      const { error: memErr } = await (supabase as any)
-        .from("team_workspace_members")
-        .insert({ workspace_id: ws.id, user_id: userId, role: "owner" });
-      if (memErr) throw memErr;
       return ws as TeamWorkspace;
     },
     onSuccess: () => {
