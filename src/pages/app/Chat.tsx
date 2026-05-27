@@ -31,6 +31,7 @@ import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
+import OnboardingChecklist, { markFirstSearchComplete } from "@/components/OnboardingChecklist";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -653,6 +654,7 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     setLastQuery(inputValue);
+    markFirstSearchComplete();
     try {
       const chatRes = await supabase.functions.invoke("chat", {
         body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
@@ -1064,7 +1066,9 @@ const Chat = () => {
         <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
             {messages.length === 0 ? (
-              <div className="text-center mt-24">
+              <div className="mt-12">
+                <OnboardingChecklist />
+                <div className="text-center mt-8">
                 <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-primary/10 text-primary mb-4">
                   <Sparkles className="h-6 w-6" />
                 </div>
@@ -1084,6 +1088,7 @@ const Chat = () => {
                       {example}
                     </button>
                   ))}
+                </div>
                 </div>
               </div>
             ) : (
