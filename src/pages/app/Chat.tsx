@@ -914,6 +914,9 @@ const Chat = () => {
               const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
               if (!rows.length) return;
               const headers = Object.keys(rows[0]);
+              import("@/lib/audit").then(({ logWorkspaceEvent }) =>
+                logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
+              );
               downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
             }}
           >
