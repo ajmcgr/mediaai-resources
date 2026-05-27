@@ -266,6 +266,7 @@ const Monitor = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
