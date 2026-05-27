@@ -653,6 +653,7 @@ const Chat = () => {
     setInput("");
     setLoading(true);
     setLastQuery(inputValue);
+    markFirstSearchComplete();
     try {
       const chatRes = await supabase.functions.invoke("chat", {
         body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
