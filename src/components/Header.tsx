@@ -58,6 +58,13 @@ const Header = () => {
               <Button
                 asChild
                 variant="ghost"
+                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
+              >
+                <Link to="/resources">Resources</Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
                 className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
               >
                 <Link to="/request-demo">Request Demo</Link>
