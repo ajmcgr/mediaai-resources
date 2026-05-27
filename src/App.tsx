@@ -33,6 +33,7 @@ import Monitor from "./pages/app/Monitor";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import Team from "./pages/Team";
+import TeamInviteAccept from "./pages/TeamInviteAccept";
 import BillingSuccess from "./pages/BillingSuccess";
 import RequestDemo from "./pages/RequestDemo";
 import SharedList from "./pages/SharedList";
@@ -133,6 +134,7 @@ const App = () => (
               {/* Authenticated (any plan) */}
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+              <Route path="/team/invite/:token" element={<TeamInviteAccept />} />
 
               {/* Paid-only app */}
               <Route path="/database" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
