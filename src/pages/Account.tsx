@@ -135,6 +135,7 @@ const Account = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
@@ -286,6 +287,16 @@ const Account = () => {
               {pwSaving ? "Updating…" : "Update password"}
             </Button>
           </form>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-4">
+            Team
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Manage your workspace, seats, and invites.
+          </p>
+          <Button onClick={() => navigate("/team")}>Open team workspace</Button>
         </section>
 
         <section className="rounded-2xl border border-border bg-white p-6">
