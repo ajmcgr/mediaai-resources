@@ -22,6 +22,7 @@ import featureSearch from "@/assets/home/feature-search-v2.jpg";
 import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
 import featureMediaLists from "@/assets/home/feature-media-lists.jpg";
 import featureContactInbox from "@/assets/home/feature-contact-inbox.jpg";
+import featureTeams from "@/assets/home/feature-teams.jpg";
 import featureExport from "@/assets/home/feature-export-v2.jpg";
 import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
 import logoCision from "@/assets/home/logo-cision-new.png";
