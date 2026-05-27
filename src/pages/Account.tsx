@@ -20,6 +20,49 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
+import { useTeamWorkspaces, useTeamMembers, useTeamInvites, useCurrentWorkspace } from "@/hooks/useTeams";
+import { getWorkspaceSeatUsage } from "@/lib/teamBilling";
+
+const AccountTeamSection = ({ onOpen }: { onOpen: () => void }) => {
+  const { user } = useAuth();
+  const { data: workspaces, isLoading } = useTeamWorkspaces(user?.id);
+  const { workspace } = useCurrentWorkspace(workspaces);
+  const { data: members } = useTeamMembers(workspace?.id);
+  const { data: invites } = useTeamInvites(workspace?.id);
+  const seats = getWorkspaceSeatUsage(workspace, members, invites);
+
+  return (
+    <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+      <h2 className="text-sm font-medium text-muted-foreground mb-4">Team</h2>
+      {isLoading ? (
+        <div className="py-2"><Spinner /></div>
+      ) : !workspace ? (
+        <>
+          <p className="text-sm text-muted-foreground mb-4">
+            You don't have a team workspace yet.
+          </p>
+          <Button onClick={onOpen}>Create team workspace</Button>
+        </>
+      ) : (
+        <>
+          <dl className="space-y-3 text-sm mb-6">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Workspace</dt>
+              <dd className="font-medium">{workspace.name}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Seats used</dt>
+              <dd className="font-medium">
+                {seats.used} active + {seats.pending} pending / {seats.limit}
+              </dd>
+            </div>
+          </dl>
+          <Button onClick={onOpen}>Manage team</Button>
+        </>
+      )}
+    </section>
+  );
+};
 
 const TOKENS_PER_MESSAGE = 400;
 const formatMessages = (tokens: number) =>
