@@ -44,7 +44,7 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "Media AI chat + full journalist & creator database + keyword monitoring + inbox.",
+    tagline: "Media AI chat + full journalist & creator database + keyword monitoring + inbox + team",
     monthly: 99,
     yearly: 990,
     highlight: true,
