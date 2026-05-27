@@ -1089,6 +1089,7 @@ const Chat = () => {
                     </button>
                   ))}
                 </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
