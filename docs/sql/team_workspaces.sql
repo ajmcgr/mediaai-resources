@@ -87,6 +87,21 @@ returns boolean language sql stable security definer set search_path = public as
   )
 $$;
 
+create or replace function public.add_team_workspace_owner_member()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.team_workspace_members (workspace_id, user_id, role)
+  values (new.id, new.owner_user_id, 'owner')
+  on conflict (workspace_id, user_id) do update set role = 'owner';
+  return new;
+end;
+$$;
+
+drop trigger if exists team_workspace_owner_member on public.team_workspaces;
+create trigger team_workspace_owner_member
+after insert on public.team_workspaces
+for each row execute function public.add_team_workspace_owner_member();
+
 -- team_workspaces: owner or member (both via security-definer helpers — no recursion)
 create policy "team_workspaces_select" on public.team_workspaces for select to authenticated
   using (owner_user_id = auth.uid() or public.is_team_member(id, auth.uid()));
