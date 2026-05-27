@@ -289,15 +289,8 @@ const Account = () => {
           </form>
         </section>
 
-        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
-          <h2 className="text-sm font-medium text-muted-foreground mb-4">
-            Team
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage your workspace, seats, and invites.
-          </p>
-          <Button onClick={() => navigate("/team")}>Open team workspace</Button>
-        </section>
+        <AccountTeamSection onOpen={() => navigate("/team")} />
+
 
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
