@@ -1,5 +1,5 @@
 -- Team workspaces schema. Run manually against the Supabase project (uavbphkhomblzkjfuaot).
--- Tables, grants, RLS, and policies for the /team frontend.
+-- Idempotent: safe to re-run to drop/recreate policies if recursion or grants are wrong.
 
 create table if not exists public.team_workspaces (
   id uuid primary key default gen_random_uuid(),
@@ -43,53 +43,80 @@ alter table public.team_workspaces enable row level security;
 alter table public.team_workspace_members enable row level security;
 alter table public.team_workspace_invites enable row level security;
 
+-- Security-definer helpers. Both bypass RLS so policies can call them safely.
 create or replace function public.is_team_member(_workspace_id uuid, _user_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.team_workspace_members where workspace_id = _workspace_id and user_id = _user_id)
+  select exists (
+    select 1 from public.team_workspace_members
+    where workspace_id = _workspace_id and user_id = _user_id
+  )
 $$;
 
+create or replace function public.is_team_owner(_workspace_id uuid, _user_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.team_workspaces
+    where id = _workspace_id and owner_user_id = _user_id
+  )
+$$;
+
+create or replace function public.is_team_admin(_workspace_id uuid, _user_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.team_workspace_members
+    where workspace_id = _workspace_id and user_id = _user_id and role in ('owner','admin')
+  )
+$$;
+
+-- Drop any prior policy versions so re-runs cannot leave recursive policies behind.
 drop policy if exists "team_workspaces_select" on public.team_workspaces;
+drop policy if exists "team_workspaces_insert" on public.team_workspaces;
+drop policy if exists "team_workspaces_update" on public.team_workspaces;
+drop policy if exists "team_workspaces_delete" on public.team_workspaces;
+drop policy if exists "team_members_select"    on public.team_workspace_members;
+drop policy if exists "team_members_insert"    on public.team_workspace_members;
+drop policy if exists "team_members_delete"    on public.team_workspace_members;
+drop policy if exists "team_invites_select"    on public.team_workspace_invites;
+drop policy if exists "team_invites_insert"    on public.team_workspace_invites;
+drop policy if exists "team_invites_delete"    on public.team_workspace_invites;
+
+-- team_workspaces: owner or member (both via security-definer helpers — no recursion)
 create policy "team_workspaces_select" on public.team_workspaces for select to authenticated
   using (owner_user_id = auth.uid() or public.is_team_member(id, auth.uid()));
-drop policy if exists "team_workspaces_insert" on public.team_workspaces;
 create policy "team_workspaces_insert" on public.team_workspaces for insert to authenticated
   with check (owner_user_id = auth.uid());
-drop policy if exists "team_workspaces_update" on public.team_workspaces;
 create policy "team_workspaces_update" on public.team_workspaces for update to authenticated
   using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
-drop policy if exists "team_workspaces_delete" on public.team_workspaces;
 create policy "team_workspaces_delete" on public.team_workspaces for delete to authenticated
   using (owner_user_id = auth.uid());
 
-drop policy if exists "team_members_select" on public.team_workspace_members;
+-- team_workspace_members: only use security-definer helpers; never reference team_workspaces inline.
 create policy "team_members_select" on public.team_workspace_members for select to authenticated
   using (
     user_id = auth.uid()
+    or public.is_team_owner(workspace_id, auth.uid())
     or public.is_team_member(workspace_id, auth.uid())
-    or exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid())
   );
-drop policy if exists "team_members_insert" on public.team_workspace_members;
+-- Allow a user to insert themselves (owner bootstrap row) or an owner/admin to add others.
 create policy "team_members_insert" on public.team_workspace_members for insert to authenticated
   with check (
-    exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid())
-    or user_id = auth.uid()
+    user_id = auth.uid()
+    or public.is_team_owner(workspace_id, auth.uid())
+    or public.is_team_admin(workspace_id, auth.uid())
   );
-drop policy if exists "team_members_delete" on public.team_workspace_members;
 create policy "team_members_delete" on public.team_workspace_members for delete to authenticated
-  using (exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid()));
+  using (public.is_team_owner(workspace_id, auth.uid()));
 
-drop policy if exists "team_invites_select" on public.team_workspace_invites;
+-- team_workspace_invites
 create policy "team_invites_select" on public.team_workspace_invites for select to authenticated
   using (
-    public.is_team_member(workspace_id, auth.uid())
-    or exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid())
+    public.is_team_owner(workspace_id, auth.uid())
+    or public.is_team_member(workspace_id, auth.uid())
   );
-drop policy if exists "team_invites_insert" on public.team_workspace_invites;
 create policy "team_invites_insert" on public.team_workspace_invites for insert to authenticated
   with check (
-    exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid())
-    or exists (select 1 from public.team_workspace_members m where m.workspace_id = workspace_id and m.user_id = auth.uid() and m.role in ('owner','admin'))
+    public.is_team_owner(workspace_id, auth.uid())
+    or public.is_team_admin(workspace_id, auth.uid())
   );
-drop policy if exists "team_invites_delete" on public.team_workspace_invites;
 create policy "team_invites_delete" on public.team_workspace_invites for delete to authenticated
-  using (exists (select 1 from public.team_workspaces w where w.id = workspace_id and w.owner_user_id = auth.uid()));
+  using (public.is_team_owner(workspace_id, auth.uid()));
