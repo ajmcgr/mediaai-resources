@@ -132,6 +132,7 @@ const App = () => (
 
               {/* Authenticated (any plan) */}
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
 
               {/* Paid-only app */}
               <Route path="/database" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
