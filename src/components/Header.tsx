@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-color-official.png";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
@@ -132,6 +133,7 @@ const Header = () => {
                 >
                   <Link to="/request-demo">Request Demo</Link>
                 </Button>
+                <LanguageSwitcher />
                 <Button
                   asChild
                   variant="ghost"
