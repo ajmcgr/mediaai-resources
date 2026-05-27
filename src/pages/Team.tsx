@@ -77,7 +77,7 @@ const Team = () => {
 
       <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-white">
         <NavLink to="/" className="flex items-center gap-2">
-          <img src={logoMedia} alt="Media" className="h-7 w-auto" />
+          <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
@@ -114,7 +114,7 @@ const Team = () => {
 
       <main className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-6 py-16">
-          <h1 className="text-3xl font-medium mb-8">Team workspace</h1>
+          <h1 className="text-3xl font-medium mb-8" style={{ fontFamily: "var(--font-heading)" }}>Team workspace</h1>
 
           {wsLoading ? (
             <div className="py-12 flex justify-center"><Spinner /></div>
