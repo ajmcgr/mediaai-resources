@@ -3,6 +3,9 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getCurrentWorkspaceId } from "@/lib/workspaceContext";
+import { logWorkspaceEvent } from "@/lib/audit";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Props = {
   value: string | number | null | undefined;
@@ -18,6 +21,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
   const [loading, setLoading] = useState(false);
   const [localValue, setLocalValue] = useState<string | number | null | undefined>(value);
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const numericEmptyFields = new Set(["ig_followers", "ig_engagement_rate", "youtube_subscribers"]);
   const isEmpty = localValue === null || localValue === undefined || localValue === "" || (numericEmptyFields.has(field) && (localValue === 0 || localValue === "0"));
@@ -44,6 +48,7 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
     try {
       const sourceTable = kind === "journalist" ? "journalist" : "creators";
       const r = row ?? {};
+      const workspaceId = getCurrentWorkspaceId();
       const basePayload: Record<string, any> = {
         source: "database",
         source_id: id,
@@ -60,7 +65,15 @@ export const EnrichCell = ({ value, kind, id, field, name, outletDomain, row }: 
         ig_handle: r.ig_handle ?? null,
         ig_followers: r.ig_followers ?? null,
         fields: [field],
+        workspace_id: workspaceId,
+        actor_user_id: user?.id ?? null,
+        source_page: "dashboard",
       };
+      if (field === "email") {
+        logWorkspaceEvent("reveal_email_triggered", workspaceId, { source_id: id, source_table: sourceTable, name: effectiveName });
+      } else if (field === "linkedin_url") {
+        logWorkspaceEvent("reveal_linkedin_triggered", workspaceId, { source_id: id, source_table: sourceTable, name: effectiveName });
+      }
       if (kind === "creator") {
         basePayload.platform = r.platform ?? null;
         basePayload.handle = r.handle ?? r.xHandle ?? r.xhandle ?? r.ig_handle ?? r.username ?? null;
