@@ -22,6 +22,7 @@ import featureSearch from "@/assets/home/feature-search-v2.jpg";
 import featureBrandMonitor from "@/assets/home/feature-brand-monitor.jpg";
 import featureMediaLists from "@/assets/home/feature-media-lists.jpg";
 import featureContactInbox from "@/assets/home/feature-contact-inbox.jpg";
+import featureTeams from "@/assets/home/feature-teams.jpg";
 import featureExport from "@/assets/home/feature-export-v2.jpg";
 import logoMuckrack from "@/assets/home/logo-muckrack-new.png";
 import logoCision from "@/assets/home/logo-cision-new.png";
@@ -278,6 +279,12 @@ const FEATURE_BLOCKS = [
     body: "Keep every journalist and creator reply in one place. Media AI threads conversations against the contacts in your database so you always know who replied, what they said, and what to send next.",
     image: featureContactInbox,
     bullets: ["Unified inbox across all your outreach", "Replies linked to journalist and outlet records", "See unread, scheduled, and follow-up status at a glance"],
+  },
+  {
+    eyebrow: "Teams",
+    body: "Bring your whole PR and comms team into one shared workspace. Invite teammates, assign roles, and collaborate on the same lists, contacts, and outreach without stepping on each other's toes.",
+    image: featureTeams,
+    bullets: ["Shared workspace with owner, admin, and member roles", "Invite teammates by email with seat-based billing", "Centralized audit trail of exports, reveals, and invites"],
   },
 ];
 
