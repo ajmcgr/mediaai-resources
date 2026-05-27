@@ -214,8 +214,12 @@ const Dashboard = () => {
   const handleExportView = () => {
     if (!allRows.length) return;
     const headers = Object.keys(allRows[0]);
+    import("@/lib/audit").then(({ logWorkspaceEvent }) =>
+      logWorkspaceEvent("export_triggered", null, { source_page: "dashboard", row_count: allRows.length, tab })
+    );
     downloadCsv(`${tab}-${Date.now()}.csv`, toCsv(allRows as Record<string, unknown>[] as never, headers));
   };
+
 
   const filterDefs = tab === "journalists" ? JOURNALIST_FILTERS : CREATOR_FILTERS;
 
