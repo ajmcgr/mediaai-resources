@@ -31,7 +31,7 @@ const Header = () => {
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-transparent">
       <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6">
-        <div className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
+        <div className="grid grid-cols-[104px_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
           <a
             href="https://trymedia.ai/"
             className="flex shrink-0 items-center"
@@ -45,6 +45,27 @@ const Header = () => {
               className="block h-6 w-auto max-w-[104px] object-contain sm:h-7 sm:max-w-[120px]"
             />
           </a>
+
+          {!loading && !user ? (
+            <nav className="flex items-center justify-center gap-1 sm:gap-2">
+              <Button
+                asChild
+                variant="ghost"
+                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
+              >
+                <Link to="/pricing">Pricing</Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+              >
+                <Link to="/request-demo">Request Demo</Link>
+              </Button>
+            </nav>
+          ) : (
+            <div />
+          )}
 
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
             {loading ? null : user ? (
@@ -119,20 +140,6 @@ const Header = () => {
               </>
             ) : (
               <>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
-                >
-                  <Link to="/pricing">Pricing</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
-                >
-                  <Link to="/request-demo">Request Demo</Link>
-                </Button>
                 <LanguageSwitcher />
                 <Button
                   asChild
