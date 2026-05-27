@@ -60,6 +60,7 @@ const TIERS: Tier[] = [
       "Share contacts via link, email, or CSV",
       "Keyword Monitor — daily Google News alerts",
       "Outreach Inbox — pitch & reply tracking",
+      "Team workspaces — invite teammates, shared lists & roles",
       "Email support",
       "1-month free trial",
     ],
