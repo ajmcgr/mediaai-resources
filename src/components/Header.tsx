@@ -133,6 +133,7 @@ const Header = () => {
                 >
                   <Link to="/request-demo">Request Demo</Link>
                 </Button>
+                <LanguageSwitcher />
                 <Button
                   asChild
                   variant="ghost"
