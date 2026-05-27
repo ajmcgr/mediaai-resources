@@ -32,6 +32,7 @@ import Chat from "./pages/app/Chat";
 import Monitor from "./pages/app/Monitor";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
+import Team from "./pages/Team";
 import BillingSuccess from "./pages/BillingSuccess";
 import RequestDemo from "./pages/RequestDemo";
 import SharedList from "./pages/SharedList";
@@ -53,7 +54,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "database", "chat", "monitor", "account", "pricing", "billing", "request-demo", "shared",
+  "app", "dashboard", "database", "chat", "monitor", "account", "team", "pricing", "billing", "request-demo", "shared",
   "discover", "admin", "compare", "guides",
 ]);
 
