@@ -513,6 +513,58 @@ const Chat = () => {
   const selectedCount = selectedDbIds.length + selectedWebRows.length;
 
   const savedSearches = useSavedSearches(!!user);
+  const chatThreads = useChatThreads(!!user);
+  const createThread = useCreateChatThread();
+  const updateThread = useUpdateChatThread();
+  const deleteThread = useDeleteChatThread();
+  const activeThreadIdRef = useRef<string | null>(threadId ?? null);
+  useEffect(() => { activeThreadIdRef.current = threadId ?? null; }, [threadId]);
+
+  // Load thread from route param
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) return;
+    if (!threadId) {
+      setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput("");
+      return;
+    }
+    (async () => {
+      try {
+        const t = await fetchChatThread(threadId);
+        if (cancelled) return;
+        if (!t) { navigate("/chat", { replace: true }); return; }
+        setMessages((t.messages ?? []) as Msg[]);
+        setResults(null);
+        setSavingIdx({});
+        setEnrichingIdx({});
+      } catch (e) {
+        if (!cancelled) toast.error((e as Error).message || "Could not load chat");
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId, user?.id]);
+
+  // Persist messages whenever they change for the active thread
+  const lastPersistedRef = useRef<string>("");
+  useEffect(() => {
+    const id = activeThreadIdRef.current;
+    if (!id || !user) return;
+    if (messages.length === 0) return;
+    const serialized = JSON.stringify(messages);
+    if (serialized === lastPersistedRef.current) return;
+    lastPersistedRef.current = serialized;
+    const t = setTimeout(() => {
+      updateThread.mutate({
+        id,
+        messages,
+        title: deriveThreadTitle(messages),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, user?.id]);
+
   const upsertSearch = useUpsertSavedSearch();
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
