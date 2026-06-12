@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,10 @@ import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 import OnboardingChecklist, { markFirstSearchComplete } from "@/components/OnboardingChecklist";
+import {
+  useChatThreads, useCreateChatThread, useUpdateChatThread, useDeleteChatThread,
+  fetchChatThread, deriveThreadTitle,
+} from "@/hooks/useChatThreads";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -436,6 +440,7 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
 const Chat = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { threadId } = useParams<{ threadId?: string }>();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   const [messages, setMessages] = useState<Msg[]>([]);
