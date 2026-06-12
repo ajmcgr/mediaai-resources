@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,10 @@ import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 import OnboardingChecklist, { markFirstSearchComplete } from "@/components/OnboardingChecklist";
+import {
+  useChatThreads, useCreateChatThread, useUpdateChatThread, useDeleteChatThread,
+  fetchChatThread, deriveThreadTitle,
+} from "@/hooks/useChatThreads";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -436,6 +440,7 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
 const Chat = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { threadId } = useParams<{ threadId?: string }>();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -508,6 +513,58 @@ const Chat = () => {
   const selectedCount = selectedDbIds.length + selectedWebRows.length;
 
   const savedSearches = useSavedSearches(!!user);
+  const chatThreads = useChatThreads(!!user);
+  const createThread = useCreateChatThread();
+  const updateThread = useUpdateChatThread();
+  const deleteThread = useDeleteChatThread();
+  const activeThreadIdRef = useRef<string | null>(threadId ?? null);
+  useEffect(() => { activeThreadIdRef.current = threadId ?? null; }, [threadId]);
+
+  // Load thread from route param
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) return;
+    if (!threadId) {
+      setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput("");
+      return;
+    }
+    (async () => {
+      try {
+        const t = await fetchChatThread(threadId);
+        if (cancelled) return;
+        if (!t) { navigate("/chat", { replace: true }); return; }
+        setMessages((t.messages ?? []) as Msg[]);
+        setResults(null);
+        setSavingIdx({});
+        setEnrichingIdx({});
+      } catch (e) {
+        if (!cancelled) toast.error((e as Error).message || "Could not load chat");
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId, user?.id]);
+
+  // Persist messages whenever they change for the active thread
+  const lastPersistedRef = useRef<string>("");
+  useEffect(() => {
+    const id = activeThreadIdRef.current;
+    if (!id || !user) return;
+    if (messages.length === 0) return;
+    const serialized = JSON.stringify(messages);
+    if (serialized === lastPersistedRef.current) return;
+    lastPersistedRef.current = serialized;
+    const t = setTimeout(() => {
+      updateThread.mutate({
+        id,
+        messages,
+        title: deriveThreadTitle(messages),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, user?.id]);
+
   const upsertSearch = useUpsertSavedSearch();
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
@@ -655,6 +712,25 @@ const Chat = () => {
     setLoading(true);
     setLastQuery(inputValue);
     markFirstSearchComplete();
+
+    // Ensure thread exists; create lazily on first message and reflect in URL.
+    if (!activeThreadIdRef.current && user) {
+      try {
+        const initialMsgs: Msg[] = reset
+          ? [{ role: "user", content: inputValue }]
+          : [...base, { role: "user", content: inputValue }];
+        const created = await createThread.mutateAsync({
+          title: deriveThreadTitle(initialMsgs),
+          messages: initialMsgs,
+        });
+        activeThreadIdRef.current = created.id;
+        lastPersistedRef.current = JSON.stringify(initialMsgs);
+        navigate(`/chat/${created.id}`, { replace: true });
+      } catch (e) {
+        console.error("create thread failed", e);
+      }
+    }
+
     try {
       const chatRes = await supabase.functions.invoke("chat", {
         body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
@@ -756,7 +832,12 @@ const Chat = () => {
   };
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
+  const newChat = () => {
+    activeThreadIdRef.current = null;
+    lastPersistedRef.current = "";
+    setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput("");
+    if (threadId) navigate("/chat");
+  };
 
   const enrichEmail = async (idx: number) => {
     if (!results) return;
@@ -981,12 +1062,54 @@ const Chat = () => {
             </Button>
           </div>
           <div className="flex-1 overflow-auto px-2 py-2">
+            <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Chats</div>
+            {chatThreads.isLoading ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
+            ) : (chatThreads.data?.length ?? 0) === 0 ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">Your chats will appear here.</div>
+            ) : (
+              <ul className="space-y-0.5 mb-3">
+                {chatThreads.data!.map((t) => {
+                  const active = t.id === threadId;
+                  return (
+                    <li key={t.id} className={`group flex items-center gap-1 rounded-md ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/chat/${t.id}`)}
+                        className="flex-1 text-left px-2 py-1.5 text-sm truncate flex items-center gap-1.5"
+                        title={t.title}
+                      >
+                        <MessageSquare className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">{t.title || "New chat"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm("Delete this chat?")) return;
+                          try {
+                            await deleteThread.mutateAsync(t.id);
+                            if (active) { activeThreadIdRef.current = null; navigate("/chat"); }
+                          } catch (err) {
+                            toast.error((err as Error).message || "Could not delete");
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <div className="px-2 pt-2 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide border-t border-border">Saved searches</div>
             {savedSearches.isLoading ? (
-              <div className="px-2 py-3 text-xs text-muted-foreground">Loading…</div>
+              <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
             ) : (savedSearches.data?.length ?? 0) === 0 ? (
-              <div className="px-2 py-3 text-xs text-muted-foreground">
-                Your searches will appear here.
-              </div>
+              <div className="px-2 py-2 text-xs text-muted-foreground">Your searches will appear here.</div>
             ) : (
               <ul className="space-y-0.5">
                 {savedSearches.data!.map((s) => (
@@ -1021,6 +1144,7 @@ const Chat = () => {
               </ul>
             )}
           </div>
+
           <div className="border-t border-border p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
