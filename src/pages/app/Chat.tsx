@@ -712,6 +712,25 @@ const Chat = () => {
     setLoading(true);
     setLastQuery(inputValue);
     markFirstSearchComplete();
+
+    // Ensure thread exists; create lazily on first message and reflect in URL.
+    if (!activeThreadIdRef.current && user) {
+      try {
+        const initialMsgs: Msg[] = reset
+          ? [{ role: "user", content: inputValue }]
+          : [...base, { role: "user", content: inputValue }];
+        const created = await createThread.mutateAsync({
+          title: deriveThreadTitle(initialMsgs),
+          messages: initialMsgs,
+        });
+        activeThreadIdRef.current = created.id;
+        lastPersistedRef.current = JSON.stringify(initialMsgs);
+        navigate(`/chat/${created.id}`, { replace: true });
+      } catch (e) {
+        console.error("create thread failed", e);
+      }
+    }
+
     try {
       const chatRes = await supabase.functions.invoke("chat", {
         body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
