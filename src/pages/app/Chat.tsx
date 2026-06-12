@@ -1062,12 +1062,54 @@ const Chat = () => {
             </Button>
           </div>
           <div className="flex-1 overflow-auto px-2 py-2">
+            <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Chats</div>
+            {chatThreads.isLoading ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
+            ) : (chatThreads.data?.length ?? 0) === 0 ? (
+              <div className="px-2 py-2 text-xs text-muted-foreground">Your chats will appear here.</div>
+            ) : (
+              <ul className="space-y-0.5 mb-3">
+                {chatThreads.data!.map((t) => {
+                  const active = t.id === threadId;
+                  return (
+                    <li key={t.id} className={`group flex items-center gap-1 rounded-md ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/chat/${t.id}`)}
+                        className="flex-1 text-left px-2 py-1.5 text-sm truncate flex items-center gap-1.5"
+                        title={t.title}
+                      >
+                        <MessageSquare className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">{t.title || "New chat"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm("Delete this chat?")) return;
+                          try {
+                            await deleteThread.mutateAsync(t.id);
+                            if (active) { activeThreadIdRef.current = null; navigate("/chat"); }
+                          } catch (err) {
+                            toast.error((err as Error).message || "Could not delete");
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <div className="px-2 pt-2 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide border-t border-border">Saved searches</div>
             {savedSearches.isLoading ? (
-              <div className="px-2 py-3 text-xs text-muted-foreground">Loading…</div>
+              <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
             ) : (savedSearches.data?.length ?? 0) === 0 ? (
-              <div className="px-2 py-3 text-xs text-muted-foreground">
-                Your searches will appear here.
-              </div>
+              <div className="px-2 py-2 text-xs text-muted-foreground">Your searches will appear here.</div>
             ) : (
               <ul className="space-y-0.5">
                 {savedSearches.data!.map((s) => (
@@ -1102,6 +1144,7 @@ const Chat = () => {
               </ul>
             )}
           </div>
+
           <div className="border-t border-border p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
