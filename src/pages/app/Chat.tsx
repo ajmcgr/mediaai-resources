@@ -832,7 +832,12 @@ const Chat = () => {
   };
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
-  const newChat = () => { setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput(""); };
+  const newChat = () => {
+    activeThreadIdRef.current = null;
+    lastPersistedRef.current = "";
+    setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput("");
+    if (threadId) navigate("/chat");
+  };
 
   const enrichEmail = async (idx: number) => {
     if (!results) return;
