@@ -140,6 +140,7 @@ const App = () => (
               <Route path="/database" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
               <Route path="/dashboard" element={<Navigate to="/database" replace />} />
               <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/chat/:threadId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
               <Route path="/monitor" element={<PaidRoute requireGrowth><Monitor /></PaidRoute>} />
               <Route path="/app" element={<Navigate to="/database" replace />} />
 
