@@ -391,7 +391,7 @@ const Index = () => {
             className="text-[34px] md:text-[56px] lg:text-[68px] font-medium tracking-tight leading-[1.04] mb-8"
             style={{ fontFamily: "var(--font-heading)", color: "#282c34" }}
           >
-            Search <span style={{ color: "#282c34" }}>Journalists and Creators</span> Using AI.
+            Search <span style={{ color: "#282c34" }}>Journalists and Creators</span> Using AI
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
             Find the right voices for your stories, campaigns, and projects in just a few clicks from our database of top journalists and creators — powered by AI.
