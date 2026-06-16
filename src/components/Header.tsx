@@ -31,7 +31,7 @@ const Header = () => {
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-transparent">
       <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6">
-        <div className="grid grid-cols-[104px_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
+        <div className="grid grid-cols-[104px_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[1fr_auto_1fr]">
           <a
             href="https://trymedia.ai/"
             className="flex shrink-0 items-center"
