@@ -15,6 +15,7 @@ import { RefreshCw } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useTeamWorkspaces, useTeamMembers, useTeamInvites, useCurrentWorkspace } from "@/hooks/useTeams";
 import { getWorkspaceSeatUsage } from "@/lib/teamBilling";
+import { startProductTour } from "@/components/ProductTour";
 
 
 const AccountTeamSection = ({ onOpen }: { onOpen: () => void }) => {
