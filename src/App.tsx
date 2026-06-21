@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import PaidRoute from "@/components/PaidRoute";
 import RecoveryRedirect from "@/components/RecoveryRedirect";
 import { supabase } from "@/integrations/supabase/client";
+import ProductTour from "@/components/ProductTour";
 import Root from "./pages/Root";
 import Index from "./pages/Index";
 import ToolsHub from "./pages/ToolsHub";
