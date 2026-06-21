@@ -36,6 +36,7 @@ import {
   useChatThreads, useCreateChatThread, useUpdateChatThread, useDeleteChatThread,
   fetchChatThread, deriveThreadTitle,
 } from "@/hooks/useChatThreads";
+import AppHeader from "@/components/AppHeader";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
