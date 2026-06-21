@@ -118,6 +118,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <RecoveryRedirect />
+            <ProductTour />
             <Routes>
               {/* Auth */}
               <Route path="/login" element={<Login />} />
