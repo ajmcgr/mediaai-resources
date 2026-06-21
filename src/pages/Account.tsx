@@ -141,45 +141,7 @@ const Account = () => {
         <title>Account — Media AI</title>
       </Helmet>
 
-      <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <NavLink to="/database" className="flex items-center">
-          <img src={logoMedia} alt="Media AI" className="h-5" />
-        </NavLink>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
-            <MessageSquare className="h-3.5 w-3.5" />Chat
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/database")}>
-            <Database className="h-3.5 w-3.5" />Database
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
-            <Bell className="h-3.5 w-3.5" />Monitor
-          </Button>
-          <InboxSheet />
-          <ListsSheet />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
-                <Avatar className="h-8 w-8 border border-border">
-                  <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="text-xs text-muted-foreground">Signed in as</div>
-                <div className="text-sm truncate">{user?.email}</div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-6 py-16">
