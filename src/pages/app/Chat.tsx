@@ -967,92 +967,28 @@ const Chat = () => {
     <div className="h-screen bg-chat flex flex-col overflow-hidden">
       <Helmet><title>Chat — Media AI</title></Helmet>
 
-      <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-10">
-          <NavLink to="/database" className="flex items-center">
-            <img src={logoMedia} alt="Media AI" className="h-5" />
-          </NavLink>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-            >
-              Chat
-            </Button>
-            {hasGrowth && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                onClick={() => navigate("/database")}
-              >
-                Database
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-              onClick={() => navigate("/monitor")}
-            >
-              Monitor
-            </Button>
-            <InboxSheet />
-            <ListsSheet />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-              disabled={!results?.rows.length}
-              onClick={() => {
-                const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
-                if (!rows.length) return;
-                const headers = Object.keys(rows[0]);
-                import("@/lib/audit").then(({ logWorkspaceEvent }) =>
-                  logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
-                );
-                downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
-              }}
-            >
-              Export
-            </Button>
-          </div>
-
-        </div>
-
-        <div className="flex items-center gap-2">
+      <AppHeader
+        active="chat"
+        rightExtras={
           <Button
-            asChild
             variant="ghost"
             size="sm"
-            className="font-medium text-sm px-3 py-2 h-auto text-gray-700 hover:text-gray-900 hover:bg-transparent"
+            className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            disabled={!results?.rows.length}
+            onClick={() => {
+              const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
+              if (!rows.length) return;
+              const headers = Object.keys(rows[0]);
+              import("@/lib/audit").then(({ logWorkspaceEvent }) =>
+                logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
+              );
+              downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
+            }}
           >
-            <a href="mailto:alex@trymedia.ai">Support</a>
+            Export
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
-                <Avatar className="h-8 w-8 border border-border">
-                  <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="text-xs text-muted-foreground">Signed in as</div>
-                <div className="text-sm truncate">{user?.email}</div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+        }
+      />
 
 
       <div className="flex flex-1 min-h-0">
