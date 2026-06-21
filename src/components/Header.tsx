@@ -48,86 +48,29 @@ const Header = () => {
             />
           </a>
 
-          {!loading && !user ? (
-            <nav className="flex items-center justify-center gap-1 sm:gap-2">
-              <Button
-                asChild
-                variant="ghost"
-                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
-              >
-                <Link to="/pricing">Pricing</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
-              >
-                <Link to="/resources">Resources</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
-              >
-                <Link to="/request-demo">Request Demo</Link>
-              </Button>
-            </nav>
-          ) : user ? (
-            <nav className="flex items-center justify-start gap-1 sm:gap-2">
-              <Button
-                asChild
-                variant="ghost"
-                className={cn(
-                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
-                  location.pathname === (hasGrowth ? "/chat" : "/pricing")
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                )}
-              >
-                <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className={cn(
-                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
-                  location.pathname === (hasGrowth ? "/database" : "/pricing")
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                )}
-              >
-                <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className={cn(
-                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
-                  location.pathname === (hasGrowth ? "/monitor" : "/pricing")
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                )}
-              >
-                <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
-              </Button>
-              {!hasGrowth && (
-                <Button
-                  asChild
-                  variant="ghost"
-                  className={cn(
-                    "font-medium text-sm px-3 py-2 h-auto rounded-full",
-                    location.pathname === "/pricing"
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                  )}
-                >
-                  <Link to="/pricing">Inbox</Link>
-                </Button>
-              )}
-            </nav>
-          ) : (
-            <div />
-          )}
+          <nav className="flex items-center justify-center gap-1 sm:gap-2">
+            <Button
+              asChild
+              variant="ghost"
+              className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
+            >
+              <Link to="/pricing">Pricing</Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-2 py-2 h-auto sm:px-4"
+            >
+              <Link to="/resources">Resources</Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              className="hidden lg:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-4 py-2 h-auto"
+            >
+              <Link to="/request-demo">Request Demo</Link>
+            </Button>
+          </nav>
 
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
             {loading ? null : user ? (
