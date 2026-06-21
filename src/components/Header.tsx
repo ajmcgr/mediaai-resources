@@ -110,6 +110,13 @@ const Header = () => {
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
             {loading ? null : user ? (
               <>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <a href="mailto:alex@trymedia.ai">Support</a>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
