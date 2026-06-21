@@ -964,7 +964,7 @@ const Chat = () => {
   const authorities = useOutletAuthorities(journalistOutlets);
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-screen bg-chat flex flex-col overflow-hidden">
       <Helmet><title>Chat — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
@@ -1309,7 +1309,7 @@ const Chat = () => {
           const countryLabel = detectedCountry ? ` in ${detectedCountry}` : "";
           const summary = `Showing ${total.toLocaleString()} ${topicLabel}${kindLabel}${countryLabel}`;
           return (
-          <section className="flex-1 min-w-0 overflow-auto bg-white">
+          <section className="flex-1 min-w-0 overflow-auto bg-chat">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
                 <div className="text-sm font-medium">{summary}</div>

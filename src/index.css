@@ -61,6 +61,9 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Chat workspace surface — matches Rocket's light gray page background */
+    --chat-background: 0 0% 98%;
+
     /* Media AI Specific Design Tokens */
     --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
     --gradient-subtle: linear-gradient(180deg, hsl(217 91% 98%), hsl(0 0% 100%));
