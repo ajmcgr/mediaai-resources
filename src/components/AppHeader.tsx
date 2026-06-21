@@ -98,7 +98,7 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
+            <button type="button" data-tour="account-menu" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
               </Avatar>
