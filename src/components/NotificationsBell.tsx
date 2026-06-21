@@ -78,7 +78,7 @@ export function NotificationsBell() {
       href: "/chat",
     });
 
-    const plan = sub?.planName || "Free";
+    const plan = sub?.planIdentifier || (sub?.active ? "Pro" : "Free");
     list.push({
       id: `plan-${plan}`,
       icon: "sparkles",
@@ -88,7 +88,7 @@ export function NotificationsBell() {
       href: "/account",
     });
 
-    const remaining = usage?.remaining;
+    const remaining = usage?.usage?.remaining;
     if (typeof remaining === "number") {
       if (remaining <= 0) {
         list.push({
@@ -112,7 +112,7 @@ export function NotificationsBell() {
     }
 
     return list.filter((n) => !dismissed.has(n.id));
-  }, [user, sub?.planName, usage?.remaining, dismissed]);
+  }, [user, sub?.planIdentifier, sub?.active, usage?.usage?.remaining, dismissed]);
 
   const unreadCount = notifications.length;
 
