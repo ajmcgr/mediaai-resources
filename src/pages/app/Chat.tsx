@@ -974,24 +974,38 @@ const Chat = () => {
           </NavLink>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 bg-secondary">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+          >
             <MessageSquare className="h-3.5 w-3.5" />Chat
           </Button>
           {hasGrowth && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/database")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              onClick={() => navigate("/database")}
+            >
               <Database className="h-3.5 w-3.5" />Database
             </Button>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/monitor")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            onClick={() => navigate("/monitor")}
+          >
             <Bell className="h-3.5 w-3.5" />Monitor
           </Button>
           <InboxSheet />
           <ListsSheet />
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="gap-1.5"
+            className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
             disabled={!results?.rows.length}
             onClick={() => {
               const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
