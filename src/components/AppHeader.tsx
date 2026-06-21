@@ -49,8 +49,8 @@ function PillNavButton({
 export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { planIdentifier, active } = useSubscription();
-  const hasGrowth = active || isGrowthPlanIdentifier(planIdentifier);
+  const { planIdentifier, active: subActive } = useSubscription();
+  const hasGrowth = subActive || isGrowthPlanIdentifier(planIdentifier);
   if (typeof window !== "undefined") {
     // eslint-disable-next-line no-console
     console.debug("[AppHeader] plan", { planIdentifier, active, hasGrowth });
