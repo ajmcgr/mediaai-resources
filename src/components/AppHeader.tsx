@@ -38,8 +38,8 @@ function PillNavButton({
     <Button
       variant="ghost"
       size="sm"
-      className={cn(pillBase, active ? pillActive : pillInactive)}
-      onClick={() => !active && navigate(to)}
+      className={cn(pillBase, active ? pillActive : pillPlain)}
+      onClick={() => navigate(to)}
     >
       {children}
     </Button>
