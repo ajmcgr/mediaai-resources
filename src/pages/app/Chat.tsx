@@ -976,7 +976,7 @@ const Chat = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-md bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
             >
               Chat
             </Button>
@@ -984,7 +984,7 @@ const Chat = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
                 onClick={() => navigate("/database")}
               >
                 Database
@@ -993,7 +993,7 @@ const Chat = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
               onClick={() => navigate("/monitor")}
             >
               Monitor
