@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -1030,6 +1031,7 @@ const Chat = () => {
           >
             <a href="mailto:alex@trymedia.ai">Support</a>
           </Button>
+          <NotificationsBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
