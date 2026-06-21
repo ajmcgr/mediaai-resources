@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, Info, Sparkles, CreditCard, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useChatUsage } from "@/hooks/useChatUsage";
@@ -133,8 +137,8 @@ export function NotificationsBell() {
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label="Notifications"
@@ -145,8 +149,8 @@ export function NotificationsBell() {
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="w-[360px] p-0 overflow-hidden">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className="w-[360px] p-0 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
             <div className="text-sm font-semibold text-gray-900">Notifications</div>
@@ -202,8 +206,8 @@ export function NotificationsBell() {
             })
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
