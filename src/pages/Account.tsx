@@ -133,7 +133,7 @@ const Account = () => {
     navigate("/");
   };
 
-  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
