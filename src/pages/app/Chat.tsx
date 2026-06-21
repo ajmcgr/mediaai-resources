@@ -968,7 +968,7 @@ const Chat = () => {
       <Helmet><title>Chat — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-10">
           <NavLink to="/database" className="flex items-center">
             <img src={logoMedia} alt="Media AI" className="h-5" />
           </NavLink>
@@ -976,34 +976,34 @@ const Chat = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-md bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-md bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
             >
-              <MessageSquare className="h-3.5 w-3.5" />Chat
+              Chat
             </Button>
             {hasGrowth && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
                 onClick={() => navigate("/database")}
               >
-                <Database className="h-3.5 w-3.5" />Database
+                Database
               </Button>
             )}
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
               onClick={() => navigate("/monitor")}
             >
-              <Bell className="h-3.5 w-3.5" />Monitor
+              Monitor
             </Button>
             <InboxSheet />
             <ListsSheet />
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
               disabled={!results?.rows.length}
               onClick={() => {
                 const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
@@ -1015,9 +1015,10 @@ const Chat = () => {
                 downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
               }}
             >
-              <Download className="h-3.5 w-3.5" />Export
+              Export
             </Button>
           </div>
+
         </div>
 
         <div className="flex items-center gap-2">
