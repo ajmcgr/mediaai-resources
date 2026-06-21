@@ -242,15 +242,10 @@ export default function ProductTour() {
       {/* Backdrop with spotlight cutout */}
       {spot ? (
         <>
-          {/* 4 dim panels around the spotlight */}
-          <div className="fixed inset-0 bg-black/55" style={{ clipPath: `polygon(
-            0 0, 100% 0, 100% 100%, 0 100%, 0 ${spot.top}px,
-            ${spot.left}px ${spot.top}px,
-            ${spot.left}px ${spot.top + spot.height}px,
-            ${spot.left + spot.width}px ${spot.top + spot.height}px,
-            ${spot.left + spot.width}px ${spot.top}px,
-            0 ${spot.top}px
-          )` }} />
+          <div className="fixed bg-black/55" style={{ top: 0, left: 0, right: 0, height: spot.top }} />
+          <div className="fixed bg-black/55" style={{ top: spot.top + spot.height, left: 0, right: 0, bottom: 0 }} />
+          <div className="fixed bg-black/55" style={{ top: spot.top, left: 0, width: spot.left, height: spot.height }} />
+          <div className="fixed bg-black/55" style={{ top: spot.top, left: spot.left + spot.width, right: 0, height: spot.height }} />
           <div
             className="fixed rounded-xl ring-2 ring-primary pointer-events-none transition-all duration-200"
             style={{
@@ -258,7 +253,6 @@ export default function ProductTour() {
               left: spot.left,
               width: spot.width,
               height: spot.height,
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0)",
             }}
           />
         </>
