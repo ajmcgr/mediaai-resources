@@ -32,6 +32,7 @@ import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
+import AppHeader from "@/components/AppHeader";
 
 type Tab = "journalists" | "creators";
 
