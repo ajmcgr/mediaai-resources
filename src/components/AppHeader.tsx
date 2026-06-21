@@ -27,10 +27,12 @@ function PillNavButton({
   to,
   active,
   children,
+  dataTour,
 }: {
   to: string;
   active?: boolean;
   children: ReactNode;
+  dataTour?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -39,6 +41,7 @@ function PillNavButton({
       size="sm"
       className={cn(pillBase, active ? pillActive : pillPlain)}
       onClick={() => navigate(to)}
+      data-tour={dataTour}
     >
       {children}
     </Button>
@@ -73,13 +76,13 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/chat" active>Chat</PillNavButton>
+          <PillNavButton to="/chat" active dataTour="nav-chat">Chat</PillNavButton>
           {hasGrowth && (
-            <PillNavButton to="/database">Database</PillNavButton>
+            <PillNavButton to="/database" dataTour="nav-database">Database</PillNavButton>
           )}
-          <PillNavButton to="/monitor">Monitor</PillNavButton>
-          <InboxSheet />
-          <ListsSheet />
+          <PillNavButton to="/monitor" dataTour="nav-monitor">Monitor</PillNavButton>
+          <span data-tour="nav-inbox" className="inline-flex"><InboxSheet /></span>
+          <span data-tour="nav-lists" className="inline-flex"><ListsSheet /></span>
           {rightExtras}
         </div>
       </div>
@@ -95,7 +98,7 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
+            <button type="button" data-tour="account-menu" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">{initials}</AvatarFallback>
               </Avatar>
