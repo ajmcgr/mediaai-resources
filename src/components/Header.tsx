@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import {
@@ -14,11 +14,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logoMedia from "@/assets/brand/logo-media-color-official.png";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { cn } from "@/lib/utils";
 
 const Header = () => {
   const { user, signOut, loading } = useAuth();
   const { planIdentifier } = useSubscription();
   const navigate = useNavigate();
+  const location = useLocation();
   const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
 
   const handleSignOut = async () => {
@@ -75,21 +77,36 @@ const Header = () => {
               <Button
                 asChild
                 variant="ghost"
-                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/chat" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
               </Button>
               <Button
                 asChild
                 variant="ghost"
-                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/database" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
               </Button>
               <Button
                 asChild
                 variant="ghost"
-                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/monitor" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
               </Button>
@@ -97,7 +114,12 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                  className={cn(
+                    "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                    location.pathname === "/pricing"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  )}
                 >
                   <Link to="/pricing">Inbox</Link>
                 </Button>
