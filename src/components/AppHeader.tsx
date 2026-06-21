@@ -74,11 +74,11 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/chat" active={active === "chat"}>Chat</PillNavButton>
+          <PillNavButton to="/chat" active>Chat</PillNavButton>
           {hasGrowth && (
-            <PillNavButton to="/database" active={active === "database"}>Database</PillNavButton>
+            <PillNavButton to="/database">Database</PillNavButton>
           )}
-          <PillNavButton to="/monitor" active={active === "monitor"}>Monitor</PillNavButton>
+          <PillNavButton to="/monitor">Monitor</PillNavButton>
           <InboxSheet />
           <ListsSheet />
           {rightExtras}
