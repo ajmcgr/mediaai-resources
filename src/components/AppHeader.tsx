@@ -27,10 +27,12 @@ function PillNavButton({
   to,
   active,
   children,
+  dataTour,
 }: {
   to: string;
   active?: boolean;
   children: ReactNode;
+  dataTour?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -39,6 +41,7 @@ function PillNavButton({
       size="sm"
       className={cn(pillBase, active ? pillActive : pillPlain)}
       onClick={() => navigate(to)}
+      data-tour={dataTour}
     >
       {children}
     </Button>
