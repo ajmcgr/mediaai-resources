@@ -22,6 +22,7 @@ type AppHeaderProps = {
 const pillBase = "font-medium text-sm px-3 py-2 h-auto";
 const pillActive = "rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground";
 const pillInactive = "rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-100";
+const pillPlain = "rounded-lg text-gray-700 hover:text-gray-900 hover:bg-transparent";
 
 function PillNavButton({
   to,
@@ -37,8 +38,8 @@ function PillNavButton({
     <Button
       variant="ghost"
       size="sm"
-      className={cn(pillBase, active ? pillActive : pillInactive)}
-      onClick={() => !active && navigate(to)}
+      className={cn(pillBase, active ? pillActive : pillPlain)}
+      onClick={() => navigate(to)}
     >
       {children}
     </Button>
@@ -73,11 +74,11 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/chat" active={active === "chat"}>Chat</PillNavButton>
+          <PillNavButton to="/chat" active>Chat</PillNavButton>
           {hasGrowth && (
-            <PillNavButton to="/database" active={active === "database"}>Database</PillNavButton>
+            <PillNavButton to="/database">Database</PillNavButton>
           )}
-          <PillNavButton to="/monitor" active={active === "monitor"}>Monitor</PillNavButton>
+          <PillNavButton to="/monitor">Monitor</PillNavButton>
           <InboxSheet />
           <ListsSheet />
           {rightExtras}
