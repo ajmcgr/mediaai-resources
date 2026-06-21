@@ -291,6 +291,19 @@ const Account = () => {
 
         <AccountTeamSection onOpen={() => navigate("/team")} />
 
+        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">
+            Product tour
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Replay the guided walkthrough of Media AI.
+          </p>
+          <Button variant="outline" onClick={() => startProductTour()}>
+            Replay tour
+          </Button>
+        </section>
+
+
 
         <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
