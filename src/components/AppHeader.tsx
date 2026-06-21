@@ -15,13 +15,36 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type AppHeaderProps = {
-  active: "chat" | "database" | "monitor";
+  active?: "chat" | "database" | "monitor";
   rightExtras?: ReactNode;
 };
 
 const pillBase = "font-medium text-sm px-3 py-2 h-auto rounded-full";
 const pillActive = "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground";
 const pillInactive = "text-gray-700 hover:text-gray-900 hover:bg-gray-100";
+
+function PillNavButton({
+  to,
+  active,
+  children,
+}: {
+  to: string;
+  active?: boolean;
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn(pillBase, active ? pillActive : pillInactive)}
+      onClick={() => !active && navigate(to)}
+    >
+      {children}
+    </Button>
+  );
+}
+
 
 export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
   const navigate = useNavigate();
