@@ -236,21 +236,39 @@ const Monitor = () => {
       <Helmet><title>Keyword Monitor — Media AI</title></Helmet>
 
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
-        <NavLink to="/database" className="flex items-center">
-          <img src={logoMedia} alt="Media AI" className="h-5" />
-        </NavLink>
+        <div className="flex items-center gap-10">
+          <NavLink to="/database" className="flex items-center">
+            <img src={logoMedia} alt="Media AI" className="h-5" />
+          </NavLink>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              onClick={() => navigate("/chat")}
+            >
+              Chat
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              onClick={() => navigate("/database")}
+            >
+              Database
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+            >
+              Monitor
+            </Button>
+            <InboxSheet />
+            <ListsSheet />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/chat")}>
-            <MessageSquare className="h-3.5 w-3.5" />Chat
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/database")}>
-            <Database className="h-3.5 w-3.5" />Database
-          </Button>
-          <Button variant="default" size="sm" className="gap-1.5">
-            <Bell className="h-3.5 w-3.5" />Monitor
-          </Button>
-          <InboxSheet />
-          <ListsSheet />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
