@@ -1030,6 +1030,7 @@ const Chat = () => {
           >
             <a href="mailto:alex@trymedia.ai">Support</a>
           </Button>
+          <NotificationsBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
