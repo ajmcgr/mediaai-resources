@@ -49,8 +49,16 @@ function PillNavButton({
 export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { planIdentifier } = useSubscription();
+  const { planIdentifier, active: subActive, loading: subLoading } = useSubscription();
   const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.debug("[AppHeader] plan", { planIdentifier, subActive, subLoading, hasGrowth });
+  }
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.debug("[AppHeader] plan", { planIdentifier, active, hasGrowth });
+  }
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   const handleSignOut = async () => {
