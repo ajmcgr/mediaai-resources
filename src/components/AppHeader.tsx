@@ -15,13 +15,36 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type AppHeaderProps = {
-  active: "chat" | "database" | "monitor";
+  active?: "chat" | "database" | "monitor";
   rightExtras?: ReactNode;
 };
 
 const pillBase = "font-medium text-sm px-3 py-2 h-auto rounded-full";
 const pillActive = "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground";
 const pillInactive = "text-gray-700 hover:text-gray-900 hover:bg-gray-100";
+
+function PillNavButton({
+  to,
+  active,
+  children,
+}: {
+  to: string;
+  active?: boolean;
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn(pillBase, active ? pillActive : pillInactive)}
+      onClick={() => !active && navigate(to)}
+    >
+      {children}
+    </Button>
+  );
+}
+
 
 export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
   const navigate = useNavigate();
@@ -42,32 +65,11 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(pillBase, active === "chat" ? pillActive : pillInactive)}
-            onClick={() => active !== "chat" && navigate("/chat")}
-          >
-            Chat
-          </Button>
+          <PillNavButton to="/chat" active={active === "chat"}>Chat</PillNavButton>
           {hasGrowth && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(pillBase, active === "database" ? pillActive : pillInactive)}
-              onClick={() => active !== "database" && navigate("/database")}
-            >
-              Database
-            </Button>
+            <PillNavButton to="/database" active={active === "database"}>Database</PillNavButton>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(pillBase, active === "monitor" ? pillActive : pillInactive)}
-            onClick={() => active !== "monitor" && navigate("/monitor")}
-          >
-            Monitor
-          </Button>
+          <PillNavButton to="/monitor" active={active === "monitor"}>Monitor</PillNavButton>
           <InboxSheet />
           <ListsSheet />
           {rightExtras}
