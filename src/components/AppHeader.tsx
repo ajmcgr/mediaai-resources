@@ -22,6 +22,7 @@ type AppHeaderProps = {
 const pillBase = "font-medium text-sm px-3 py-2 h-auto";
 const pillActive = "rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground";
 const pillInactive = "rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-100";
+const pillPlain = "rounded-lg text-gray-700 hover:text-gray-900 hover:bg-transparent";
 
 function PillNavButton({
   to,
