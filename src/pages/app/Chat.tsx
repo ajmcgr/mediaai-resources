@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Bell, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
+import { ArrowUp, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
-import { NotificationsBell } from "@/components/NotificationsBell";
 import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -1031,7 +1030,6 @@ const Chat = () => {
           >
             <a href="mailto:alex@trymedia.ai">Support</a>
           </Button>
-          <NotificationsBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
