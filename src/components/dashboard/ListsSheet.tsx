@@ -67,7 +67,11 @@ export const ListsSheet = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+        >
           <ListChecks className="h-3.5 w-3.5" />Lists
         </Button>
       </SheetTrigger>
