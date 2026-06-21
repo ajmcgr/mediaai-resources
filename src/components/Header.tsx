@@ -70,6 +70,39 @@ const Header = () => {
                 <Link to="/request-demo">Request Demo</Link>
               </Button>
             </nav>
+          ) : user ? (
+            <nav className="flex items-center justify-start gap-1 sm:gap-2">
+              <Button
+                asChild
+                variant="ghost"
+                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+              >
+                <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+              >
+                <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+              >
+                <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
+              </Button>
+              {!hasGrowth && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                >
+                  <Link to="/pricing">Inbox</Link>
+                </Button>
+              )}
+            </nav>
           ) : (
             <div />
           )}
@@ -77,36 +110,6 @@ const Header = () => {
           <div className="flex min-w-0 items-center justify-end space-x-1 sm:space-x-2">
             {loading ? null : user ? (
               <>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                >
-                  <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                >
-                  <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                >
-                  <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
-                </Button>
-                {!hasGrowth && (
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
-                  >
-                    <Link to="/pricing">Inbox</Link>
-                  </Button>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
