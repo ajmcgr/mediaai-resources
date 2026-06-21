@@ -77,21 +77,36 @@ const Header = () => {
               <Button
                 asChild
                 variant="ghost"
-                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/chat" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/chat" : "/pricing"}>Chat</Link>
               </Button>
               <Button
                 asChild
                 variant="ghost"
-                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/database" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/database" : "/pricing"}>Database</Link>
               </Button>
               <Button
                 asChild
                 variant="ghost"
-                className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                className={cn(
+                  "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                  location.pathname === (hasGrowth ? "/monitor" : "/pricing")
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                )}
               >
                 <Link to={hasGrowth ? "/monitor" : "/pricing"}>Monitor</Link>
               </Button>
@@ -99,7 +114,12 @@ const Header = () => {
                 <Button
                   asChild
                   variant="ghost"
-                  className="text-gray-700 hover:text-gray-900 hover:bg-transparent font-medium text-sm px-3 py-2 h-auto"
+                  className={cn(
+                    "font-medium text-sm px-3 py-2 h-auto rounded-full",
+                    location.pathname === "/pricing"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  )}
                 >
                   <Link to="/pricing">Inbox</Link>
                 </Button>
