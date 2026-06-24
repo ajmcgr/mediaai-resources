@@ -38,7 +38,16 @@ import {
 } from "@/hooks/useChatThreads";
 import AppHeader from "@/components/AppHeader";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; ts?: string };
+
+function formatMsgTime(ts?: string) {
+  const d = ts ? new Date(ts) : new Date();
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (sameDay) return time;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} · ${time}`;
+}
 
 type Row = {
   source: "database" | "exa";
