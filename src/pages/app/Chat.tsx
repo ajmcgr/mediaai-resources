@@ -38,7 +38,16 @@ import {
 } from "@/hooks/useChatThreads";
 import AppHeader from "@/components/AppHeader";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; ts?: string };
+
+function formatMsgTime(ts?: string) {
+  const d = ts ? new Date(ts) : new Date();
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (sameDay) return time;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} · ${time}`;
+}
 
 type Row = {
   source: "database" | "exa";
@@ -727,12 +736,12 @@ const Chat = () => {
     if (total_available <= 0) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." },
+        { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() },
       ]);
       return;
     }
     const base = reset ? [] : messages;
-    setMessages([...base, { role: "user", content: inputValue }]);
+    setMessages([...base, { role: "user", content: inputValue, ts: new Date().toISOString() }]);
     setInput("");
     setLoading(true);
     setLastQuery(inputValue);
@@ -742,8 +751,8 @@ const Chat = () => {
     if (!activeThreadIdRef.current && user) {
       try {
         const initialMsgs: Msg[] = reset
-          ? [{ role: "user", content: inputValue }]
-          : [...base, { role: "user", content: inputValue }];
+          ? [{ role: "user", content: inputValue, ts: new Date().toISOString() }]
+          : [...base, { role: "user", content: inputValue, ts: new Date().toISOString() }];
         const created = await createThread.mutateAsync({
           title: deriveThreadTitle(initialMsgs),
           messages: initialMsgs,
@@ -779,23 +788,23 @@ const Chat = () => {
             });
             setMessages((m) => m.slice(0, -1));
             setInput(inputValue);
-            setMessages((m) => [...m, { role: "assistant", content: `Your balance shows ${dbgRemaining.toLocaleString()} remaining + ${dbgCredits.toLocaleString()} credits, but the server reported quota exhausted. Please click **Send** again to retry.` }]);
+            setMessages((m) => [...m, { role: "assistant", content: `Your balance shows ${dbgRemaining.toLocaleString()} remaining + ${dbgCredits.toLocaleString()} credits, but the server reported quota exhausted. Please click **Send** again to retry.`, ts: new Date().toISOString() }]);
             await refreshUsage();
             return;
           }
-          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing)." }]);
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() }]);
           await refreshUsage();
           return;
         }
         if (parsed?.error === "model_provider_error") {
-          setMessages((m) => [...m, { role: "assistant", content: "Your Media AI credits are available, but the AI model provider rejected the request. Please check the configured OpenAI billing/API key." }]);
+          setMessages((m) => [...m, { role: "assistant", content: "Your Media AI credits are available, but the AI model provider rejected the request. Please check the configured OpenAI billing/API key.", ts: new Date().toISOString() }]);
           return;
         }
         throw error;
       }
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: data?.content || "(no response)" },
+        { role: "assistant", content: data?.content || "(no response)", ts: new Date().toISOString() },
       ]);
       if (data?.usage) applyServerUsage(data.usage);
       if (data?.results) {
@@ -809,7 +818,7 @@ const Chat = () => {
     } catch (e) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: `Error: ${(e as Error).message}` },
+        { role: "assistant", content: `Error: ${(e as Error).message}`, ts: new Date().toISOString() },
       ]);
     } finally {
       setLoading(false);
@@ -1205,14 +1214,19 @@ const Chat = () => {
             ) : (
               <div className="space-y-4">
                 {messages.map((m, i) => (
-                  <div key={i} className={`text-sm rounded-xl px-4 py-3 ${m.role === "user" ? "bg-primary text-primary-foreground ml-12" : "bg-secondary mr-12"}`}>
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      m.content
-                    )}
+                  <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end ml-12" : "items-start mr-12"}`}>
+                    <div className={`text-sm rounded-xl px-4 py-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                      {m.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2">
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        m.content
+                      )}
+                    </div>
+                    <div className="mt-1 px-1 text-[11px] text-muted-foreground">
+                      {formatMsgTime(m.ts)}
+                    </div>
                   </div>
                 ))}
                 {loading && (
