@@ -1228,13 +1228,16 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       locMatched = true;
     }
 
-    // Free terms
+    // Free terms — score subject/topic fields only. Do NOT reward name
+    // matches: "mohamed salah" should not boost journalists named Mohamed.
     for (const t of intent.freeTerms) {
-      if (name.includes(t)) s += 3;
       if (cat.includes(t)) s += 3;
+      if (topicsText.includes(t)) s += 4;
+      if (ttl.includes(t)) s += 3;
       if (out.includes(t)) s += 2;
-      if (hay.includes(t)) s += 1;
+      if ((r.bio ?? "").toLowerCase().includes(t)) s += 2;
     }
+
 
     if (/journalist|reporter|editor|writer|correspondent|columnist|contributor|author/.test(ttl)) s += 25;
     if (r.name && /\s/.test(r.name) && r.name.length <= 70) s += 8;
