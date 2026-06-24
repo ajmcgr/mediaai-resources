@@ -534,15 +534,39 @@ const Chat = () => {
         const t = await fetchChatThread(threadId);
         if (cancelled) return;
         if (!t) { navigate("/chat", { replace: true }); return; }
-        setMessages((t.messages ?? []) as Msg[]);
+        const msgs = (t.messages ?? []) as Msg[];
+        setMessages(msgs);
         setResults(null);
         setSavingIdx({});
         setEnrichingIdx({});
+        // Re-fetch results panel for the most recent user query in this thread.
+        const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content?.trim();
+        if (lastUser) {
+          setLastQuery(lastUser);
+          setLoading(true);
+          try {
+            const { data, error } = await supabase.functions.invoke("chat", {
+              body: { messages: [{ role: "user", content: lastUser }], limit: hasGrowth ? 100000 : 100, offset: 0, results_only: true },
+            });
+            if (cancelled) return;
+            if (!error && data?.results) {
+              const expanded = await expandChatResults(data.results, lastUser);
+              if (cancelled) return;
+              setResults({ ...expanded, pagination: data?.pagination ?? null, sources: data?.sources ?? null });
+            }
+            if (data?.usage) applyServerUsage(data.usage);
+          } catch {
+            // silent — thread still loads even if results re-fetch fails
+          } finally {
+            if (!cancelled) setLoading(false);
+          }
+        }
       } catch (e) {
         if (!cancelled) toast.error((e as Error).message || "Could not load chat");
       }
     })();
     return () => { cancelled = true; };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId, user?.id]);
 
