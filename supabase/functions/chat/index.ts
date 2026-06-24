@@ -894,17 +894,24 @@ async function runCreatorQuery(admin: AdminClient, terms: string[], fields: stri
 
 async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const limit = Math.max(1500, Math.min(8000, intent.count * 60));
+  // Build subject phrase from free terms so "mohamed salah" stays together,
+  // instead of OR-matching every journalist named "Mohamed".
+  const phrase = intent.freeTerms.join(" ").trim();
   const primaryTerms = uniqueTerms([
     ...intent.topics,
-    ...intent.freeTerms,
+    ...(phrase ? [phrase] : []),
     ...intent.outlets,
     intent.countryCanonical,
     ...intent.countries.slice(0, 4),
   ]);
-  const allTerms = buildSearchTerms(intent);
+  const allTerms = uniqueTerms([
+    ...primaryTerms,
+    ...intent.freeTerms,
+  ]);
+  // Search SUBJECT/TOPIC fields only. Name/email are the journalist's own
+  // identity, not what they cover, so matching them produces false positives
+  // (e.g. "mohamed salah" -> any journalist named Mohamed).
   const fields = [
-    "name",
-    "email",
     "outlet",
     "titles",
     "topics",
@@ -913,7 +920,6 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     "city",
     "region",
     "category",
-    "xhandle",
     "bio",
   ];
 
@@ -927,20 +933,22 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
 
 async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row[]> {
   const limit = Math.max(1000, Math.min(6000, intent.count * 50));
-  const primaryTerms = uniqueTerms([...intent.topics, ...intent.freeTerms, ...intent.outlets, intent.countryCanonical]);
-  const allTerms = buildSearchTerms(intent);
+  const phrase = intent.freeTerms.join(" ").trim();
+  const primaryTerms = uniqueTerms([
+    ...intent.topics,
+    ...(phrase ? [phrase] : []),
+    ...intent.outlets,
+    intent.countryCanonical,
+  ]);
+  const allTerms = uniqueTerms([...primaryTerms, ...intent.freeTerms]);
   const fields = [
-    "name",
     "category",
     "topics",
     "country",
     "location",
     "city",
     "region",
-    "email",
     "bio",
-    "ig_handle",
-    "youtube_url",
     "type",
   ];
 
@@ -950,6 +958,7 @@ async function searchCreatorsDb(admin: AdminClient, intent: Intent): Promise<Row
 
   return dedupe([...primary, ...secondary]);
 }
+
 
 // ---------- Exa search ----------
 
