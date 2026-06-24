@@ -1214,14 +1214,19 @@ const Chat = () => {
             ) : (
               <div className="space-y-4">
                 {messages.map((m, i) => (
-                  <div key={i} className={`text-sm rounded-xl px-4 py-3 ${m.role === "user" ? "bg-primary text-primary-foreground ml-12" : "bg-secondary mr-12"}`}>
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      m.content
-                    )}
+                  <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end ml-12" : "items-start mr-12"}`}>
+                    <div className={`text-sm rounded-xl px-4 py-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                      {m.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2">
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        m.content
+                      )}
+                    </div>
+                    <div className="mt-1 px-1 text-[11px] text-muted-foreground">
+                      {formatMsgTime(m.ts)}
+                    </div>
                   </div>
                 ))}
                 {loading && (
