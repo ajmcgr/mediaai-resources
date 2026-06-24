@@ -1150,7 +1150,7 @@ const Chat = () => {
         </aside>
         )}
 
-        <section className={`flex flex-col ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
+        <section className={`flex flex-col min-h-0 ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
             {messages.length === 0 ? (
               <div className="mt-12">
