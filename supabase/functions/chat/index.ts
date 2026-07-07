@@ -1,6 +1,7 @@
 // redeploy trigger: chat edge function growth-page-cap-009 2026-05-08
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
 const CHAT_VERSION = "growth-uncapped-012";
 
