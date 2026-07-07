@@ -1,6 +1,7 @@
 // redeploy trigger: chat edge function growth-page-cap-009 2026-05-08
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
 const CHAT_VERSION = "growth-uncapped-012";
 
@@ -654,6 +655,7 @@ export type Row = {
   xhandle?: string | null;
   reason?: string;
   score?: number;
+  semantic_score?: number;
 };
 
 // ---------- Supabase search ----------
@@ -1282,6 +1284,11 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (unrelated.some((u) => cat.includes(u))) s -= 100;
     }
 
+    // Semantic rerank signal dominates when present.
+    if (typeof r.semantic_score === "number") {
+      s = r.semantic_score * 10 + s * 0.25;
+    }
+
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => b.score! - a.score!);
@@ -1813,7 +1820,19 @@ async function hybridSearch(
   };
   sources: { database: number; web: number };
 }> {
-  const intent = parseIntent(q);
+  let intent = parseIntent(q);
+
+  // ----- Semantic query understanding (best-effort LLM enrichment) -----
+  // Turns "Leo Messi" -> canonical "Lionel Messi" + topical beats
+  // (football/soccer/sports) + aliases, so downstream keyword search hits
+  // journalists who cover the subject rather than journalists named Leo.
+  let enrichment: Awaited<ReturnType<typeof enrichIntent>> = null;
+  try {
+    enrichment = await enrichIntent(intent);
+    if (enrichment) intent = applyEnrichmentToIntent(intent, enrichment);
+  } catch (e) {
+    console.warn("[chat.enrich_failed]", e instanceof Error ? e.message : String(e));
+  }
   const planLimit = capForPlan(plan);
   const planNorm = normalizePlanIdentifier(plan);
   const isStarter = planNorm === "starter";
@@ -2108,6 +2127,34 @@ async function hybridSearch(
   debug.exa_queries_run = exaQueriesRun;
   debug.exa_results_count = exaResultsCount;
   debug.ranked_pool_size = rankedStrictRows.length;
+
+  // ----- Semantic rerank (LLM) -----
+  // Rescore the top pool by true topical relevance so results who actually
+  // cover the subject rank above name/substring false positives.
+  const enrichmentDebug = enrichment
+    ? {
+        canonical_subject: enrichment.canonical_subject,
+        subject_kind: enrichment.subject_kind,
+        aliases: enrichment.aliases,
+        expanded_topics: enrichment.expanded_topics,
+        related_entities: enrichment.related_entities,
+        strict_subject: enrichment.strict_subject,
+      }
+    : null;
+  debug.enrichment = enrichmentDebug;
+  try {
+    const rerankPool = Math.min(80, rankedStrictRows.length);
+    if (rerankPool > 0) {
+      const { rows: reranked, ok } = await semanticRerank(rankedStrictRows, intent, enrichment, rerankPool);
+      rankedStrictRows = reranked;
+      debug.semantic_rerank = { applied: ok, pool: rerankPool };
+    } else {
+      debug.semantic_rerank = { applied: false, pool: 0 };
+    }
+  } catch (e) {
+    console.warn("[chat.semantic_rerank_failed]", e instanceof Error ? e.message : String(e));
+    debug.semantic_rerank = { applied: false, error: e instanceof Error ? e.message : String(e) };
+  }
 
   const dbRanked = rankedStrictRows.filter((r) => r.source === "database").slice(0, target);
   const exaRanked = rankedStrictRows.filter((r) => r.source === "exa").slice(0, exaLimit + 900);
