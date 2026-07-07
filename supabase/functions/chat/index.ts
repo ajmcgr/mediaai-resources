@@ -1284,6 +1284,11 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
       if (unrelated.some((u) => cat.includes(u))) s -= 100;
     }
 
+    // Semantic rerank signal dominates when present.
+    if (typeof r.semantic_score === "number") {
+      s = r.semantic_score * 10 + s * 0.25;
+    }
+
     return s;
   };
   return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => b.score! - a.score!);
