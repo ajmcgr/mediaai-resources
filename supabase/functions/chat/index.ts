@@ -654,6 +654,7 @@ export type Row = {
   xhandle?: string | null;
   reason?: string;
   score?: number;
+  semantic_score?: number;
 };
 
 // ---------- Supabase search ----------
