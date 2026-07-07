@@ -1815,7 +1815,19 @@ async function hybridSearch(
   };
   sources: { database: number; web: number };
 }> {
-  const intent = parseIntent(q);
+  let intent = parseIntent(q);
+
+  // ----- Semantic query understanding (best-effort LLM enrichment) -----
+  // Turns "Leo Messi" -> canonical "Lionel Messi" + topical beats
+  // (football/soccer/sports) + aliases, so downstream keyword search hits
+  // journalists who cover the subject rather than journalists named Leo.
+  let enrichment: Awaited<ReturnType<typeof enrichIntent>> = null;
+  try {
+    enrichment = await enrichIntent(intent);
+    if (enrichment) intent = applyEnrichmentToIntent(intent, enrichment);
+  } catch (e) {
+    console.warn("[chat.enrich_failed]", e instanceof Error ? e.message : String(e));
+  }
   const planLimit = capForPlan(plan);
   const planNorm = normalizePlanIdentifier(plan);
   const isStarter = planNorm === "starter";
