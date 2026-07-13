@@ -1177,6 +1177,9 @@ const Chat = () => {
                 <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
                   Or upgrade your plan →
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild className="text-xs text-muted-foreground">
+                  <a href="mailto:alex@trymedia.ai">Support</a>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

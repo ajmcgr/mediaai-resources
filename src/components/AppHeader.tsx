@@ -88,14 +88,6 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="font-medium text-sm px-3 py-2 h-auto text-gray-700 hover:text-gray-900 hover:bg-transparent"
-        >
-          <a href="mailto:alex@trymedia.ai">Support</a>
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" data-tour="account-menu" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
