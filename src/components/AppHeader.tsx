@@ -76,7 +76,7 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/chat" active dataTour="nav-chat">Chat</PillNavButton>
+          <PillNavButton to="/chat" dataTour="nav-chat">Chat</PillNavButton>
           {hasGrowth && (
             <PillNavButton to="/database" dataTour="nav-database">Database</PillNavButton>
           )}
