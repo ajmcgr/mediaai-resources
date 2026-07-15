@@ -1054,7 +1054,7 @@ const Chat = () => {
           </div>
           <div className="px-3 pb-3">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
-              <Plus className="h-3.5 w-3.5" />New chat
+              <Plus className="h-3.5 w-3.5" />New
             </Button>
           </div>
           <div className="flex-1 overflow-auto px-2 py-2">
