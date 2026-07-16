@@ -102,6 +102,7 @@ const CHAT_STOPWORDS = new Set([
   "get", "give", "help", "i", "i'm", "im", "in", "is", "journalist", "journalists",
   "list", "looking", "me", "need", "of", "on", "or", "please", "reporter", "reporters",
   "search", "show", "that", "the", "to", "want", "who", "with",
+  "about", "cover", "covers", "covering", "write", "writes", "writing",
 ]);
 
 const COUNTRY_FALLBACK_ALIASES: Array<{ canonical: string; terms: string[] }> = [
@@ -216,6 +217,61 @@ function buildOrExpression(fields: string[], terms: string[]) {
     .join(",");
 }
 
+function matchesAnyWholeTerm(haystack: string, terms: string[]) {
+  const hay = normalizeQuery(haystack);
+  return terms.some((term) => {
+    const cleaned = normalizeQuery(term);
+    if (!cleaned) return false;
+    return new RegExp(`(?:^|[^a-z0-9])${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9])`, "i").test(hay);
+  });
+}
+
+function matchesFallbackSubject(row: Row, query: string) {
+  const normalized = normalizeQuery(query);
+  const terms = buildFallbackTerms(query);
+  const looksSpecific =
+    /\b(about|cover|covers|covering|write|writes|writing|report|reports|reporting)\b/.test(normalized) &&
+    terms.length >= 2;
+  const isMessi = normalized.includes("lionel messi") || normalized.includes("leo messi");
+  if (!looksSpecific && !isMessi) return true;
+
+  const hay = [
+    row.category,
+    row.display_topic,
+    row.topics,
+    row.title,
+    row.outlet,
+    row.reason,
+    row.source_url,
+  ].filter(Boolean).join(" ");
+
+  const direct = isMessi ? ["lionel messi", "leo messi", "messi"] : [terms.join(" "), terms[terms.length - 1]];
+  if (matchesAnyWholeTerm(hay, direct)) return true;
+
+  if (isMessi) {
+    const sportsTerms = [
+      "football",
+      "soccer",
+      "inter miami",
+      "argentina",
+      "barcelona",
+      "psg",
+      "mls",
+      "fifa",
+      "world cup",
+      "champions league",
+      "uefa",
+      "la liga",
+      "sports",
+      "sport",
+    ];
+    const antiTerms = ["automotive", "cars", "auto", "electric vehicles", "car repair", "trucks", "suvs"];
+    return matchesAnyWholeTerm(hay, sportsTerms) && !matchesAnyWholeTerm(hay, antiTerms);
+  }
+
+  return false;
+}
+
 function rowPersistenceKey(row: Row) {
   return String(row.source_url ?? row.email ?? `${row.name}|${row.outlet}|${row.title}`);
 }
@@ -281,7 +337,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
 
   const collected: Row[] = [];
   const expression = buildOrExpression(
-    ["name", "email", "outlet", "titles", "topics", "xhandle", "country", "category"],
+    ["outlet", "titles", "topics", "country", "category"],
     terms,
   );
 
@@ -320,7 +376,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
       const { data, error } = await supabase
         .from("journalist")
         .select("id,name,email,category,titles,topics,xhandle,outlet,country,linkedin_url")
-        .or(`name.ilike.${pattern},email.ilike.${pattern},outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},xhandle.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
+        .or(`outlet.ilike.${pattern},titles.ilike.${pattern},topics.ilike.${pattern},country.ilike.${pattern},category.ilike.${pattern}`)
         .limit(25);
 
       if (error) continue;
@@ -345,7 +401,7 @@ async function fetchJournalistFallback(query: string): Promise<Row[]> {
     }
   }
 
-  return dedupeRows(collected).slice(0, 75);
+  return dedupeRows(collected).filter((row) => matchesFallbackSubject(row, query)).slice(0, 75);
 }
 
 async function fetchCreatorFallback(query: string): Promise<Row[]> {
@@ -354,7 +410,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
 
   const collected: Row[] = [];
   const expression = buildOrExpression(
-    ["name", "email", "category", "bio", "ig_handle", "youtube_url", "type"],
+    ["category", "bio", "type"],
     terms,
   );
 
@@ -394,7 +450,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
       const { data, error } = await supabase
         .from("creators")
         .select("id,name,category,email,bio,ig_handle,ig_followers,youtube_url,type,linkedin_url")
-        .or(`name.ilike.${pattern},email.ilike.${pattern},category.ilike.${pattern},bio.ilike.${pattern},ig_handle.ilike.${pattern},youtube_url.ilike.${pattern},type.ilike.${pattern}`)
+        .or(`category.ilike.${pattern},bio.ilike.${pattern},type.ilike.${pattern}`)
         .limit(25);
 
       if (error) continue;
@@ -420,7 +476,7 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
     }
   }
 
-  return dedupeRows(collected).slice(0, 75);
+  return dedupeRows(collected).filter((row) => matchesFallbackSubject(row, query)).slice(0, 75);
 }
 
 async function expandChatResults(base: Exclude<Results, null>, query: string): Promise<Exclude<Results, null>> {

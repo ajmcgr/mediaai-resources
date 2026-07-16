@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
-const CHAT_VERSION = "growth-uncapped-012";
+const CHAT_VERSION = "growth-uncapped-013";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1431,7 +1431,102 @@ function matchesAnyTerm(hay: string, terms: string[]): boolean {
   });
 }
 
-export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
+type SearchEnrichment = Awaited<ReturnType<typeof enrichIntent>>;
+
+function coverageHayOf(row: Row): string {
+  return normalizeSearchText([
+    row.category,
+    row.title,
+    row.outlet,
+    row.bio,
+    Array.isArray(row.topics) ? row.topics.join(" ") : row.topics,
+    row.reason,
+    row.source_url,
+  ].filter(Boolean).join(" | "));
+}
+
+function specificSubjectTerms(intent: Intent, enrichment: SearchEnrichment) {
+  const direct = new Set<string>();
+  const related = new Set<string>();
+  const strongBeat = new Set<string>();
+
+  const add = (set: Set<string>, value: unknown) => {
+    const cleaned = normalizeSearchText(value);
+    if (cleaned.length >= 3) set.add(cleaned);
+  };
+
+  if (enrichment?.canonical_subject && enrichment.strict_subject) {
+    add(direct, enrichment.canonical_subject);
+    for (const alias of enrichment.aliases ?? []) add(direct, alias);
+    for (const entity of enrichment.related_entities ?? []) add(related, entity);
+    for (const topic of enrichment.expanded_topics ?? []) add(strongBeat, topic);
+  }
+
+  const raw = normalizeSearchText(intent.raw);
+  const phrase = normalizeSearchText(intent.freeTerms.join(" "));
+  const looksLikeSubjectQuery =
+    /\b(about|cover|covers|covering|write|writes|writing|report|reports|reporting|follow|following)\b/.test(raw) &&
+    intent.freeTerms.length >= 2 &&
+    !intent.topics.length;
+
+  if (!direct.size && looksLikeSubjectQuery) {
+    add(direct, phrase);
+    const last = intent.freeTerms[intent.freeTerms.length - 1];
+    if (last && last.length >= 4) add(direct, last);
+  }
+
+  // Known high-volume entities need useful fallback beats if the database has
+  // no explicit subject mentions. Keep this list tight so it cannot become a
+  // broad "any sports person" loophole.
+  if (raw.includes("lionel messi") || raw.includes("leo messi") || phrase.includes("lionel messi")) {
+    ["lionel messi", "leo messi", "messi"].forEach((term) => add(direct, term));
+    ["inter miami", "argentina", "barcelona", "psg", "mls"].forEach((term) => add(related, term));
+    [
+      "football",
+      "soccer",
+      "fifa",
+      "world cup",
+      "champions league",
+      "uefa",
+      "la liga",
+      "mls",
+      "sports",
+      "sport",
+    ].forEach((term) => add(strongBeat, term));
+  }
+
+  return {
+    direct: [...direct],
+    related: [...related],
+    strongBeat: [...strongBeat],
+    active: direct.size > 0,
+  };
+}
+
+export function matchesSpecificSubjectCoverage(row: Row, intent: Intent, enrichment: SearchEnrichment = null): boolean {
+  const terms = specificSubjectTerms(intent, enrichment);
+  if (!terms.active) return true;
+
+  const hay = coverageHayOf(row);
+  if (!hay) return false;
+  if (matchesAnyTerm(hay, terms.direct)) return true;
+  if (terms.related.length && matchesAnyTerm(hay, terms.related)) return true;
+
+  const categoryTopicHay = normalizeSearchText([
+    row.category,
+    Array.isArray(row.topics) ? row.topics.join(" ") : row.topics,
+    row.title,
+    row.bio,
+  ].filter(Boolean).join(" | "));
+  if (terms.strongBeat.length && matchesAnyTerm(categoryTopicHay, terms.strongBeat)) {
+    const antiMatches = ["automotive", "cars", "auto", "electric vehicles", "car repair", "trucks", "suvs"];
+    return !matchesAnyTerm(categoryTopicHay, antiMatches);
+  }
+
+  return false;
+}
+
+export function strictFilterDiagnostics(rows: Row[], intent: Intent, enrichment: SearchEnrichment = null) {
   const fieldHay = (values: unknown[]) => values.map(normalizeSearchText).filter(Boolean).join(" | ");
   const locationFieldHay = (values: unknown[]) =>
     values.map(stripContactNoise).map(normalizeSearchText).filter(Boolean).join(" | ");
@@ -1494,6 +1589,7 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
     }
     return matchesAnyTerm(topicHayOf(r), topicTerms);
   };
+  const matchSubject = (r: Row) => matchesSpecificSubjectCoverage(r, intent, enrichment);
   const hasSubstringFalsePositive = (r: Row) =>
     intent.locationTerms.some((term) => {
       const cleaned = normalizeSearchText(term);
@@ -1502,10 +1598,12 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
   const afterKind = rows.filter(matchKind);
   const afterLocation = afterKind.filter(matchLocation);
   const afterTopic = afterLocation.filter(matchTopic);
+  const afterSubject = afterTopic.filter(matchSubject);
   const rejectionReason = (row: Row): string | null => {
     if (!matchKind(row)) return "kind_mismatch";
     if (!matchLocation(row)) return hasSubstringFalsePositive(row) ? "substring_false_positive" : "location_mismatch";
     if (!matchTopic(row)) return "topic_mismatch";
+    if (!matchSubject(row)) return "subject_mismatch";
     return null;
   };
   return {
@@ -1513,6 +1611,7 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent) {
     afterKind,
     afterLocation,
     afterTopic,
+    afterSubject,
     rejectionReason,
     matchExplicitLocation,
     matchInferredLocation,
@@ -1899,7 +1998,7 @@ async function hybridSearch(
   for (const r of cRows) r.source_table = "creators";
 
   // ----- Hard filters (strict) -----
-  const filterRules = strictFilterDiagnostics([], intent);
+  const filterRules = strictFilterDiagnostics([], intent, enrichment);
   const matchKind = (r: Row) => !filterRules.rejectionReason(r) || filterRules.rejectionReason(r) !== "kind_mismatch";
   const matchLocation = (r: Row) => {
     const reason = filterRules.rejectionReason(r);
@@ -1953,7 +2052,8 @@ async function hybridSearch(
   const afterKindFilterRows = rawCandidates.filter(matchKind);
   const afterLocationFilterRows = afterKindFilterRows.filter(matchLocation);
   const afterTopicFilterRows = afterLocationFilterRows.filter(matchTopic);
-  const strictRows = afterTopicFilterRows.filter(matchSupplementalFilters);
+  const afterSubjectFilterRows = afterTopicFilterRows.filter((row) => filterRules.rejectionReason(row) !== "subject_mismatch");
+  const strictRows = afterSubjectFilterRows.filter(matchSupplementalFilters);
 
   const rejectionReason = (row: Row): string | null => {
     const strictReason = filterRules.rejectionReason(row);
@@ -1990,6 +2090,7 @@ async function hybridSearch(
   debug.afterKindFilter = afterKindFilterRows.length;
   debug.afterLocationFilter = afterLocationFilterRows.length;
   debug.afterTopicFilter = afterTopicFilterRows.length;
+  debug.afterSubjectFilter = afterSubjectFilterRows.length;
   debug.strictCount = strictRows.length;
   debug.strict_location_count = afterLocationFilterRows.length;
   debug.strict_topic_count = afterTopicFilterRows.length;
@@ -2012,7 +2113,7 @@ async function hybridSearch(
 
   // Compute DB explicit/inferred US counts (and equivalents for any country) for debug.
   {
-    const diag = strictFilterDiagnostics(rawCandidates, intent);
+    const diag = strictFilterDiagnostics(rawCandidates, intent, enrichment);
     const dbRowsAll = rawCandidates.filter((r) => r.source === "database");
     debug.db_explicit_us_count = dbRowsAll.filter((r) => diag.matchExplicitLocation(r)).length;
     debug.db_inferred_us_count = dbRowsAll.filter(
@@ -2108,6 +2209,7 @@ async function hybridSearch(
       .filter(matchKind)
       .filter(matchLocation)
       .filter(matchTopic)
+      .filter((row) => filterRules.rejectionReason(row) !== "subject_mismatch")
       .filter(matchSupplementalFilters);
 
     const strictKeys = new Set(

@@ -1,4 +1,4 @@
-import { parseSearchIntent, strictFilterDiagnostics, type Row } from "./index.ts";
+import { matchesSpecificSubjectCoverage, parseSearchIntent, strictFilterDiagnostics, type Row } from "./index.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -61,4 +61,48 @@ Deno.test("finance journalists from germany rejects non-Germany and cars rows", 
   assert(result.rejectionReason(candidates[2]) === "location_mismatch", "India finance row must be rejected");
   assert(result.rejectionReason(candidates[3]) === "topic_mismatch", "Germany ESPN cars row must be rejected");
   assert(result.rejectionReason(candidates[4]) === "location_mismatch", "blank location finance row must be rejected");
+});
+
+Deno.test("Lionel Messi query rejects name-token and automotive false positives", () => {
+  const intent = parseSearchIntent("give me a list of journalists that write about lionel messi");
+  const enrichment = {
+    canonical_subject: "Lionel Messi",
+    subject_kind: "person" as const,
+    aliases: ["lionel messi", "leo messi", "messi"],
+    expanded_topics: ["football", "soccer", "sports"],
+    related_entities: ["Inter Miami", "Argentina", "Barcelona", "PSG", "MLS"],
+    strict_subject: true,
+  };
+  const candidates = [
+    row({
+      name: "Lionel Robert",
+      outlet: "PARIS MATCH - VIVRE MATCH",
+      title: "Chef de Rubrique",
+      category: "AAA Publications, Alternative Fuel & Electric Vehicles, Auto Aftermarket, Auto Repair, Automotive",
+      topics: "Car Buyer Guides, Car Dealers, Car Enthusiasts, Cars, Driving",
+    }),
+    row({
+      name: "Geoff Maxted",
+      outlet: "Drive Write Automotive",
+      title: "Editor / Freelance Journalist",
+      category: "Antique & Collectible Cars, Automakers, Automotive, Driving, Trucks & SUVs",
+      topics: "Motocycles & Dirt Bikes, Off Road Vehicles & ATVs",
+    }),
+    row({
+      name: "Football Reporter",
+      outlet: "The Athletic",
+      title: "Football reporter covering MLS and Inter Miami",
+      category: "Sports",
+      topics: "Football Soccer MLS Inter Miami Lionel Messi Argentina",
+    }),
+  ];
+
+  const result = strictFilterDiagnostics(candidates, intent, enrichment);
+  assert(intent.kind === "journalists", "query must parse as journalist-only");
+  assert(matchesSpecificSubjectCoverage(candidates[2], intent, enrichment), "football/Messi coverage should pass");
+  assert(!matchesSpecificSubjectCoverage(candidates[0], intent, enrichment), "journalist first name and outlet word Match are not subject evidence");
+  assert(!matchesSpecificSubjectCoverage(candidates[1], intent, enrichment), "automotive rows must not pass Messi subject coverage");
+  assert(result.afterSubject.length === 1, "only the actual football/Messi row should survive subject filtering");
+  assert(result.rejectionReason(candidates[0]) === "subject_mismatch", "Lionel Robert must be rejected as subject mismatch");
+  assert(result.rejectionReason(candidates[1]) === "subject_mismatch", "automotive row must be rejected as subject mismatch");
 });
