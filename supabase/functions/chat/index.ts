@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
-const CHAT_VERSION = "growth-uncapped-013";
+const CHAT_VERSION = "growth-uncapped-014";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1576,9 +1576,10 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent, enrichment:
     if (matchExplicitLocation(r)) return true;
     if (matchInferredLocation(r)) return true;
     if (isExplicitWrongCountry(r)) return false;
-    // Blank/unknown location for DB rows — let them through; ranker deprioritizes.
-    // Exa rows still get the stricter check inside isValidRow().
-    return r.source === "database";
+    // A geographic request is a hard requirement. Unknown location is not
+    // evidence that the contact is in the requested place, so do not trade
+    // precision for a larger result count.
+    return false;
   };
 
   const matchTopic = (r: Row) => {
@@ -2250,6 +2251,21 @@ async function hybridSearch(
       const { rows: reranked, ok } = await semanticRerank(rankedStrictRows, intent, enrichment, rerankPool);
       rankedStrictRows = reranked;
       debug.semantic_rerank = { applied: ok, pool: rerankPool };
+
+      // Specific people, companies, teams, products, and events should never
+      // be padded with merely adjacent beats. Once the relevance judge has
+      // scored the pool, return only candidates it considers a credible match.
+      if (ok && enrichment?.strict_subject) {
+        const semanticFloor = 45;
+        const judged = rankedStrictRows.filter((row) => typeof row.semantic_score === "number");
+        rankedStrictRows = judged.filter((row) => (row.semantic_score ?? 0) >= semanticFloor);
+        debug.semantic_quality_gate = {
+          applied: true,
+          floor: semanticFloor,
+          judged: judged.length,
+          kept: rankedStrictRows.length,
+        };
+      }
     } else {
       debug.semantic_rerank = { applied: false, pool: 0 };
     }

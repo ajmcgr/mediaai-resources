@@ -480,27 +480,11 @@ async function fetchCreatorFallback(query: string): Promise<Row[]> {
 }
 
 async function expandChatResults(base: Exclude<Results, null>, query: string): Promise<Exclude<Results, null>> {
-  if (base.rows.length >= MIN_CHAT_RESULTS) return base;
-
-  const supplemental = base.kind === "journalists"
-    ? await fetchJournalistFallback(query)
-    : await fetchCreatorFallback(query);
-
-  if (!supplemental.length) return base;
-
-  const merged = dedupeRows([...base.rows, ...supplemental]);
-  const capped = merged.slice(0, Math.max(MIN_CHAT_RESULTS, base.rows.length + 20));
-
-  return {
-    ...base,
-    rows: capped,
-    debug: {
-      ...(base.debug ?? {}),
-      ui_fallback_query: query,
-      ui_fallback_terms: buildFallbackTerms(query),
-      ui_fallback_added: Math.max(0, capped.length - base.rows.length),
-    },
-  };
+  // The edge function owns retrieval, filtering, and ranking. Padding a thin
+  // result set with a second browser-side keyword search can bypass those
+  // safeguards and surface weak matches, so preserve its ranked response.
+  void query;
+  return base;
 }
 
 const Chat = () => {
