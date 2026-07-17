@@ -656,6 +656,7 @@ export type Row = {
   reason?: string;
   score?: number;
   semantic_score?: number;
+  match_score?: number;
 };
 
 // ---------- Supabase search ----------
@@ -1291,7 +1292,33 @@ function rankRows(rows: Row[], intent: Intent): Row[] {
 
     return s;
   };
-  return [...rows].map((r) => ({ ...r, score: score(r) })).sort((a, b) => b.score! - a.score!);
+  const matchScore = (r: Row, rankingScore: number): number => {
+    // Semantic scoring judges coverage directly. When it is unavailable, expose
+    // a conservative evidence score rather than leaking the operational rank.
+    if (typeof r.semantic_score === "number") return Math.max(0, Math.min(100, Math.round(r.semantic_score)));
+    const category = (r.category ?? "").toLowerCase();
+    const topics = stringifyTopics(r.topics)?.toLowerCase() ?? "";
+    const title = (r.title ?? "").toLowerCase();
+    const bio = (r.bio ?? "").toLowerCase();
+    const coverage = `${category} ${topics} ${title} ${bio}`;
+    const hasTopicEvidence = intent.topics.some((term) => coverage.includes(term));
+    const hasFreeTermEvidence = intent.freeTerms.some((term) => coverage.includes(term));
+    const hasLocationEvidence = !intent.locationTerms.length || intent.locationTerms.some((term) =>
+      `${r.country ?? ""} ${r.location ?? ""} ${r.city ?? ""} ${r.region ?? ""}`.toLowerCase().includes(term)
+    );
+    let value = hasTopicEvidence ? 70 : hasFreeTermEvidence ? 55 : 30;
+    if (hasFreeTermEvidence) value += 10;
+    if (hasLocationEvidence) value += 8;
+    if (r.source === "database") value += 5;
+    if (rankingScore < 0) value -= 25;
+    return Math.max(0, Math.min(95, Math.round(value)));
+  };
+  return [...rows]
+    .map((r) => {
+      const rankingScore = score(r);
+      return { ...r, score: rankingScore, match_score: matchScore(r, rankingScore) };
+    })
+    .sort((a, b) => b.score! - a.score!);
 }
 
 function blendedResults(rows: Row[], intent: Intent, target: number): Row[] {

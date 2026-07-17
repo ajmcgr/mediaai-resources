@@ -68,6 +68,7 @@ type Row = {
   linkedin_url?: string | null;
   xhandle?: string | null;
   reason?: string;
+  match_score?: number;
 };
 type Pagination = { limit: number; offset: number; total_estimated: number; has_more: boolean; returned?: number; next_offset?: number | null };
 type Results =
@@ -1450,6 +1451,14 @@ const Chat = () => {
                         <td className="px-2 py-2.5">
                           {rowKey ? (
                             <div className="flex items-center gap-1">
+                              {typeof r.match_score === "number" && (
+                                <span
+                                  className={`mr-1 rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${r.match_score >= 75 ? "bg-emerald-100 text-emerald-700" : r.match_score >= 50 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"}`}
+                                  title="Evidence-based match score for this search"
+                                >
+                                  {r.match_score}
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => submitRelevanceFeedback(r, rowKey, "relevant")}
@@ -1577,7 +1586,12 @@ const Chat = () => {
                               ) : c.key === "name" && dbId !== null ? (
                                 <button
                                   type="button"
-                                  onClick={() => navigate(`/profiles/${results.kind === "journalists" ? "journalist" : "creator"}/${dbId}${lastQuery ? `?q=${encodeURIComponent(lastQuery)}` : ""}`)}
+                                  onClick={() => {
+                                    const params = new URLSearchParams();
+                                    if (lastQuery) params.set("q", lastQuery);
+                                    if (typeof r.match_score === "number") params.set("score", String(r.match_score));
+                                    navigate(`/profiles/${results.kind === "journalists" ? "journalist" : "creator"}/${dbId}${params.size ? `?${params.toString()}` : ""}`);
+                                  }}
                                   className="text-left font-medium hover:text-primary hover:underline"
                                 >
                                   {String(v)}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, AtSign, Building2, ExternalLink, Globe2, Instagram,
+  ArrowLeft, AtSign, Building2, CalendarDays, ExternalLink, Globe2, Instagram,
   Linkedin, Mail, MapPin, Sparkles, Users, Youtube,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -33,6 +33,15 @@ type Contact = Record<string, unknown> & {
   youtube_subscribers?: number | null;
   youtube_views_per_video?: number | null;
   type?: string | null;
+};
+
+type CoverageItem = {
+  id: string;
+  headline: string;
+  canonical_url: string;
+  outlet?: string | null;
+  published_at?: string | null;
+  summary?: string | null;
 };
 
 const STOP_WORDS = new Set([
@@ -77,11 +86,15 @@ export default function ContactProfile() {
   const { kind, id } = useParams();
   const [searchParams] = useSearchParams();
   const [contact, setContact] = useState<Contact | null>(null);
+  const [coverage, setCoverage] = useState<CoverageItem[]>([]);
+  const [coverageAvailable, setCoverageAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const profileKind = kind === "journalist" || kind === "creator" ? kind : null;
   const contactId = Number(id);
   const searchQuery = searchParams.get("q")?.trim() ?? "";
+  const matchScore = Number(searchParams.get("score"));
+  const hasMatchScore = Number.isFinite(matchScore) && matchScore >= 0 && matchScore <= 100;
   const authorities = useOutletAuthorities(profileKind === "journalist" ? [contact?.outlet ?? null] : []);
 
   useEffect(() => {
@@ -110,6 +123,29 @@ export default function ContactProfile() {
         setContact(data as Contact);
       }
       setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [profileKind, contactId]);
+
+  useEffect(() => {
+    let active = true;
+    if (!profileKind || !Number.isInteger(contactId) || contactId < 1) return;
+    void (async () => {
+      const { data, error: coverageError } = await (supabase as any)
+        .from("contact_coverage")
+        .select("id,headline,canonical_url,outlet,published_at,summary")
+        .eq("contact_kind", profileKind)
+        .eq("contact_id", contactId)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(5);
+      if (!active) return;
+      if (coverageError) {
+        setCoverageAvailable(false);
+        setCoverage([]);
+      } else {
+        setCoverageAvailable(true);
+        setCoverage((data ?? []) as CoverageItem[]);
+      }
     })();
     return () => { active = false; };
   }, [profileKind, contactId]);
@@ -175,6 +211,7 @@ export default function ContactProfile() {
               <section className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-5">
                 <div className="flex gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h2 className="font-semibold">Why this match</h2>
                   {queryMatches.length ? <p className="mt-1 text-sm text-muted-foreground">This profile matches “{searchQuery}” through {queryMatches.join(" and ")}.</p> : <p className="mt-1 text-sm text-muted-foreground">Opened from your search for “{searchQuery}”. Review the coverage details below before outreach.</p>}
+                  {hasMatchScore && <p className="mt-2 text-xs font-medium text-primary">Evidence-based match score: {Math.round(matchScore)}/100</p>}
                 </div></div>
               </section>
             )}
@@ -207,6 +244,27 @@ export default function ContactProfile() {
                 </div>
               </aside>
             </div>
+
+            <section className="mt-6 rounded-xl border border-border bg-card p-6">
+              <h2 className="text-base font-semibold">Recent verified coverage</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Attributable articles and posts linked to this profile.</p>
+              {coverage.length ? (
+                <div className="mt-5 divide-y divide-border">
+                  {coverage.map((item) => (
+                    <a key={item.id} href={item.canonical_url} target="_blank" rel="noreferrer" className="group block py-4 first:pt-0 last:pb-0 hover:bg-secondary/30">
+                      <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="font-medium group-hover:text-primary group-hover:underline">{item.headline}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{[item.outlet, item.published_at ? new Date(item.published_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : null].filter(Boolean).join(" · ")}</p>
+                        {item.summary && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.summary}</p>}
+                      </div><ExternalLink className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-dashed border-border bg-secondary/20 px-4 py-5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{coverageAvailable ? "No verified article evidence has been linked to this profile yet." : "Article evidence will appear here once coverage ingestion is enabled."}</div>
+                </div>
+              )}
+            </section>
           </>
         )}
       </main>
