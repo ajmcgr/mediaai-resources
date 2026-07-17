@@ -24,10 +24,8 @@ import {
 import { toCsv, downloadCsv } from "@/lib/csv";
 import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { useChatUsage } from "@/hooks/useChatUsage";
-import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
@@ -99,6 +97,7 @@ const CREATOR_COLS: { key: keyof Row | "authority"; label: string }[] = [
 
 const MIN_CHAT_RESULTS = 25;
 const AUTO_PERSIST_WEB_ROWS = 12;
+const SEARCH_PAGE_SIZE = 50;
 const CHAT_STOPWORDS = new Set([
   "a", "an", "and", "are", "at", "based", "best", "by", "find", "for", "from",
   "get", "give", "help", "i", "i'm", "im", "in", "is", "journalist", "journalists",
@@ -632,7 +631,7 @@ const Chat = () => {
           setLoading(true);
           try {
             const { data, error } = await supabase.functions.invoke("chat", {
-              body: { messages: [{ role: "user", content: lastUser }], limit: hasGrowth ? 100000 : 100, offset: 0, results_only: true },
+              body: { messages: [{ role: "user", content: lastUser }], limit: SEARCH_PAGE_SIZE, offset: 0, results_only: true },
             });
             if (cancelled) return;
             if (!error && data?.results) {
@@ -681,8 +680,6 @@ const Chat = () => {
   const deleteSearch = useDeleteSavedSearch();
 
   const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
-  const { planIdentifier } = useSubscription();
-  const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -844,7 +841,7 @@ const Chat = () => {
 
     try {
       const chatRes = await supabase.functions.invoke("chat", {
-        body: { messages: [...base, { role: "user", content: inputValue }], limit: hasGrowth ? 100000 : 100, offset: 0 },
+        body: { messages: [...base, { role: "user", content: inputValue }], limit: SEARCH_PAGE_SIZE, offset: 0 },
       });
       const { data, error } = chatRes;
       if (error) {
@@ -909,7 +906,7 @@ const Chat = () => {
       const pag = results.pagination;
       const nextOffset = (pag.next_offset ?? (pag.offset + pag.limit)) as number;
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: lastQuery }], limit: hasGrowth ? 100000 : 100, offset: nextOffset },
+        body: { messages: [{ role: "user", content: lastQuery }], limit: SEARCH_PAGE_SIZE, offset: nextOffset },
       });
       if (error) throw error;
       if (data?.usage) applyServerUsage(data.usage);

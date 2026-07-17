@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
-const CHAT_VERSION = "growth-uncapped-015";
+const CHAT_VERSION = "search-pagination-016";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -484,10 +484,11 @@ function isGrowthOrHigherPlan(plan: string | null | undefined): boolean {
 
 function capForPlan(plan: string | null | undefined): number {
   const p = normalizePlanIdentifier(plan);
-  // free=50, starter=100, growth/pro/enterprise=unlimited (large sentinel for in-memory ranking)
+  // Keep result discovery useful on every plan while reserving the full ranked pool
+  // for Growth and above. Results are delivered in small pages by hybridSearch.
   if (isGrowthOrHigherPlan(p)) return 100_000;
-  if (["starter"].includes(p)) return 100;
-  return 50;
+  if (["starter"].includes(p)) return 1_000;
+  return 500;
 }
 
 // ---------- Inferred location: outlet/domain -> country ----------
@@ -1984,8 +1985,9 @@ async function hybridSearch(
   const planNorm = normalizePlanIdentifier(plan);
   const isStarter = planNorm === "starter";
   const isGrowthOrHigher = isGrowthOrHigherPlan(planNorm);
-  // Plan caps: free=50 total, starter=100 total, growth+=unlimited (large sentinel)
-  const maxTotalForPlan = planLimit; // 50 / 100 / 100_000
+  // Plan caps: free=500 total, starter=1,000 total, growth+=the full ranked pool.
+  // The UI requests one small page at a time, so this is not a large response.
+  const maxTotalForPlan = planLimit;
   const exaLimit = isStarter ? 100 : isGrowthOrHigher ? 10000 : 50;
   const userExplicit = intent.count > 0;
   // Use plan cap as the in-memory target so ranking pool is large enough for paging.
@@ -1993,15 +1995,15 @@ async function hybridSearch(
   else intent.count = Math.min(intent.count, planLimit);
   const target = intent.count;
 
-  // Per-page request limit. Starter/free hard-cap = 100. Growth+ uncapped (return whole ranked pool).
-  const perPageCap = isGrowthOrHigher ? 100_000 : 100;
-  const pageDefault = isGrowthOrHigher ? 100_000 : 100;
+  // Keep all searches responsive. Additional pages are loaded on demand.
+  const perPageCap = 100;
+  const pageDefault = 50;
   const safeOffset = Math.max(0, offset);
   const remainingBudget = Math.max(0, maxTotalForPlan - safeOffset);
   const requestedLimit = Math.max(
     1,
     Math.min(
-      isGrowthOrHigher ? pageDefault : limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
+      limitOverride && limitOverride > 0 ? Math.floor(limitOverride) : pageDefault,
       perPageCap,
       remainingBudget,
     ),
