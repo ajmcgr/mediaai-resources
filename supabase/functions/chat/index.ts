@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { enrichIntent, applyEnrichmentToIntent, semanticRerank } from "./semantic.ts";
 
-const CHAT_VERSION = "growth-uncapped-014";
+const CHAT_VERSION = "growth-uncapped-015";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -315,6 +315,7 @@ export function parseSearchIntent(q: string): Intent {
 function parseIntent(q: string): Intent {
   const lower = ` ${q.toLowerCase()} `;
   let working = lower;
+  let location: string | null = null;
 
   let count = 0;
   const qMatch = lower.match(/\b(\d{1,4})\b(?!\s*[km])/);
@@ -367,6 +368,7 @@ function parseIntent(q: string): Intent {
   if (cityMatch && cityMatch[1]) {
     const city = cityMatch[1].trim().toLowerCase().replace(/\s+/g, " ");
     if (city.length >= 2 && city.length <= 40 && !["the", "a", "an", "email", "emails", "followers"].includes(city)) {
+      location = city;
       locationTerms.add(city);
       // Common US state aliases to broaden
       if (city === "new york") {
@@ -452,7 +454,7 @@ function parseIntent(q: string): Intent {
     kind,
     topic: topics.has("finance") ? "finance" : ([...topics][0] ?? null),
     topics: [...topics],
-    location: countryCanonical,
+    location: location ?? countryCanonical,
     countries: [...countries],
     countryCanonical,
     locationTerms: [...locationTerms],
@@ -621,6 +623,17 @@ const INFERRED_OUTLETS_BY_COUNTRY: Record<string, string[]> = {
   Singapore: ["straitstimes", "channelnewsasia", "cna", "businesstimes.com.sg", "techinasia"],
   Australia: ["smh.com.au", "theaustralian", "news.com.au", "abc.net.au", "afr.com"],
   Canada: ["cbc.ca", "theglobeandmail", "nationalpost", "thestar.com", "ctvnews"],
+};
+
+// City signals supplement an explicit city match when an outlet's author
+// records omit location. Keep this intentionally small and high-confidence.
+const INFERRED_OUTLETS_BY_CITY: Record<string, string[]> = {
+  "san francisco": [
+    "sfchronicle", "san francisco chronicle", "sfgate", "sf gate",
+    "sfstandard", "san francisco standard", "kqed", "mission local",
+    "48 hills", "48hills", "sf examiner", "san francisco examiner",
+    "bay area news group", "mercurynews", "mercury news",
+  ],
 };
 
 // All known country canonicals — used to detect "explicit wrong country" rejections.
@@ -904,6 +917,7 @@ async function searchJournalistsDb(admin: AdminClient, intent: Intent): Promise<
     ...intent.topics,
     ...(phrase ? [phrase] : []),
     ...intent.outlets,
+    intent.location,
     intent.countryCanonical,
     ...intent.countries.slice(0, 4),
   ]);
@@ -1048,7 +1062,7 @@ async function exaSearchOnce(
 
 function buildExaQueries(intent: Intent): string[] {
   const topic = intent.topics[0] ? cleanTopicForQuery(intent) : "";
-  const loc = intent.countryCanonical ?? "";
+  const loc = intent.location ?? intent.countryCanonical ?? "";
   const outlet = intent.outlets[0] ?? "";
   const platform = intent.platforms[0] ?? "";
   const followers = intent.minFollowers
@@ -1574,14 +1588,17 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent, enrichment:
   const inferredOutlets = intent.countryCanonical
     ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []).map(normalizeSearchText).filter(Boolean)
     : [];
+  const inferredCityOutlets = intent.location
+    ? (INFERRED_OUTLETS_BY_CITY[normalizeSearchText(intent.location)] ?? []).map(normalizeSearchText).filter(Boolean)
+    : [];
 
   const matchExplicitLocation = (r: Row) =>
     !intent.locationTerms.length || matchesAnyTerm(locationHayOf(r), intent.locationTerms);
   const matchInferredLocation = (r: Row) => {
-    if (!inferredOutlets.length) return false;
+    if (!inferredOutlets.length && !inferredCityOutlets.length) return false;
     const hay = outletHayOf(r);
     if (!hay) return false;
-    return inferredOutlets.some((o) => hay.includes(o));
+    return [...inferredOutlets, ...inferredCityOutlets].some((o) => hay.includes(o));
   };
   // Reject only when the row has a *populated* country that clearly maps to a
   // different known country canonical. Blank country = unknown, allowed through.
@@ -1643,7 +1660,7 @@ export function strictFilterDiagnostics(rows: Row[], intent: Intent, enrichment:
     rejectionReason,
     matchExplicitLocation,
     matchInferredLocation,
-    inferredOutlets,
+    inferredOutlets: [...inferredOutlets, ...inferredCityOutlets],
   };
 }
 
@@ -1699,7 +1716,10 @@ export function isValidRow(row: Row, intent: Intent): boolean {
       .join(" | ")
       .toLowerCase();
     const ok = intent.locationTerms.some((t) => hayLoc.includes(String(t).toLowerCase()));
-    const inferredList = intent.countryCanonical ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []) : [];
+    const inferredList = [
+      ...(intent.countryCanonical ? (INFERRED_OUTLETS_BY_COUNTRY[intent.countryCanonical] ?? []) : []),
+      ...(intent.location ? (INFERRED_OUTLETS_BY_CITY[normalizeSearchText(intent.location)] ?? []) : []),
+    ];
     const okInferred = inferredList.length ? inferredList.some((o) => hayLoc.includes(o.toLowerCase())) : false;
     if (!ok && !okInferred) return false;
   }
@@ -2154,12 +2174,13 @@ async function hybridSearch(
   let exaQueriesRun: string[] = [];
   let exaResultsCount = 0;
   if (rankedStrictRows.length < 100) {
-    const country = intent.countryCanonical ?? "";
+    const country = intent.location ?? intent.countryCanonical ?? "";
     const rawQ = intent.raw || "";
     const isTech =
       intent.topics.some((t) => ["tech", "technology", "ai", "software", "saas"].includes(String(t).toLowerCase())) ||
       /tech|technology|software|ai|startup|cyber|gadget/i.test(rawQ);
     const isUS = intent.countryCanonical === "United States";
+    const isSanFrancisco = normalizeSearchText(intent.location) === "san francisco";
 
     const broadQueries = [
       `${rawQ} journalist ${country}`.trim(),
@@ -2174,6 +2195,16 @@ async function hybridSearch(
             "startup journalist United States",
             "cybersecurity journalist United States",
             "technology editor United States",
+          ]
+        : []),
+      ...(isTech && isSanFrancisco
+        ? [
+            "AI reporter San Francisco",
+            "artificial intelligence journalist San Francisco",
+            "technology reporter Bay Area",
+            "site:sfchronicle.com AI reporter",
+            "site:sfstandard.com technology reporter",
+            "site:kqed.org technology reporter",
           ]
         : []),
     ].filter((q, i, arr) => q && arr.indexOf(q) === i);
