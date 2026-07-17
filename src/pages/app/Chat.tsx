@@ -37,6 +37,7 @@ import {
   fetchChatThread, deriveThreadTitle,
 } from "@/hooks/useChatThreads";
 import AppHeader from "@/components/AppHeader";
+import { ContactProfileSheet } from "@/components/search/ContactProfileSheet";
 
 type Msg = { role: "user" | "assistant"; content: string; ts?: string };
 
@@ -503,6 +504,7 @@ const Chat = () => {
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
   const [relevanceFeedback, setRelevanceFeedback] = useState<Record<string, "relevant" | "not_relevant">>({});
+  const [openProfile, setOpenProfile] = useState<{ kind: "journalist" | "creator"; id: number; query?: string; matchScore?: number } | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("chat.sidebarCollapsed") === "1";
@@ -1586,12 +1588,12 @@ const Chat = () => {
                               ) : c.key === "name" && dbId !== null ? (
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    const params = new URLSearchParams();
-                                    if (lastQuery) params.set("q", lastQuery);
-                                    if (typeof r.match_score === "number") params.set("score", String(r.match_score));
-                                    navigate(`/profiles/${results.kind === "journalists" ? "journalist" : "creator"}/${dbId}${params.size ? `?${params.toString()}` : ""}`);
-                                  }}
+                                  onClick={() => setOpenProfile({
+                                    kind: results.kind === "journalists" ? "journalist" : "creator",
+                                    id: dbId,
+                                    query: lastQuery || undefined,
+                                    matchScore: typeof r.match_score === "number" ? r.match_score : undefined,
+                                  })}
                                   className="text-left font-medium hover:text-primary hover:underline"
                                 >
                                   {String(v)}
@@ -1661,6 +1663,7 @@ const Chat = () => {
         }}
         onClear={() => setSelectedRows(new Set())}
       />
+      <ContactProfileSheet profile={openProfile} onOpenChange={(open) => { if (!open) setOpenProfile(null); }} />
     </div>
   );
 };
