@@ -24,21 +24,21 @@ const BASE_STEPS: Step[] = [
     id: "welcome",
     title: "Welcome to Media AI",
     body: "A 60-second tour of how to find journalists, pitch, and track coverage — all from one place.",
-    route: "/chat",
+    route: "/search",
   },
   {
-    id: "chat",
+    id: "search",
     title: "Ask in plain English",
-    body: "Tell Chat who you want to reach — e.g. \"tech journalists in the UK who cover AI startups\" — and we'll surface verified contacts.",
-    route: "/chat",
-    target: "chat-input",
+    body: "Describe who you want to reach — e.g. \"tech journalists in the UK who cover AI startups\" — and we'll surface verified contacts.",
+    route: "/search",
+    target: "search-input",
   },
   {
-    id: "nav-chat",
-    title: "Chat is your home base",
+    id: "nav-search",
+    title: "Search is your home base",
     body: "Every conversation is saved. Reopen previous searches, refine, and keep building your list.",
-    route: "/chat",
-    target: "nav-chat",
+    route: "/search",
+    target: "nav-search",
   },
   {
     id: "nav-database",
@@ -59,28 +59,28 @@ const BASE_STEPS: Step[] = [
     id: "nav-inbox",
     title: "Pitch from your inbox",
     body: "Connect Gmail or Outlook to send and reply to pitches without leaving Media AI.",
-    route: "/chat",
+    route: "/search",
     target: "nav-inbox",
   },
   {
     id: "nav-lists",
     title: "Save contacts to lists",
     body: "Build outreach lists, share them with your team, and export to CSV or your CRM.",
-    route: "/chat",
+    route: "/search",
     target: "nav-lists",
   },
   {
     id: "account",
     title: "Account & billing",
     body: "Manage your plan, top up message credits, and invite teammates from the account menu.",
-    route: "/chat",
+    route: "/search",
     target: "account-menu",
   },
   {
     id: "done",
     title: "You're all set",
-    body: "Jump back into Chat and ask your first question. You can replay this tour anytime from Account.",
-    route: "/chat",
+    body: "Jump back into Search and run your first query. You can replay this tour anytime from Account.",
+    route: "/search",
   },
 ];
 
@@ -116,7 +116,7 @@ export default function ProductTour() {
       const seen = localStorage.getItem(STORAGE_KEY);
       if (!seen) {
         // Only auto-start on app routes
-        if (/^\/(chat|database|monitor|account)/.test(location.pathname)) {
+        if (/^\/(search|chat|database|monitor|account)/.test(location.pathname)) {
           setStepIdx(0);
           setOpen(true);
         }

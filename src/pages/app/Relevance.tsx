@@ -84,7 +84,7 @@ export default function Relevance() {
           <div className="rounded-xl border bg-card p-10 text-center">
             <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <h2 className="font-medium">No feedback yet</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Mark results relevant or not relevant in Chat to start measuring search quality.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Mark results relevant or not relevant in Search to start measuring search quality.</p>
           </div>
         ) : (
           <>

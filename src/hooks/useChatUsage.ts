@@ -26,7 +26,7 @@ export const useChatUsage = () => {
     if (forceDirect) {
       const fallback = await loadUsageFallback(user.id);
       setUsage(fallback);
-      setError(fallback ? null : "Could not load chat credits.");
+      setError(fallback ? null : "Could not load search credits.");
       setLoading(false);
       return;
     }
@@ -49,7 +49,7 @@ export const useChatUsage = () => {
         setError(null);
       } else {
         setUsage(null);
-        setError(error.message || "Could not load chat credits.");
+        setError(error.message || "Could not load search credits.");
       }
     }
     setLoading(false);

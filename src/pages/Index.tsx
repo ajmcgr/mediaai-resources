@@ -115,7 +115,7 @@ function HeroVideo({ src, poster }: { src: string; poster: string }) {
           onCanPlay={() => setReady(true)}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
-          aria-label="Media AI chat finding a tech journalist in the United Kingdom and saving the search"
+          aria-label="Media AI search finding a tech journalist in the United Kingdom and saving the search"
           className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-out ${ready && playing ? "opacity-100" : "opacity-0"}`}
         />
         <div
@@ -152,12 +152,12 @@ const TIERS: Tier[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "Media AI chat.",
+    tagline: "Media AI search.",
     monthly: 29,
     yearly: 290,
     cta: "Start Free Trial",
     features: [
-      "~500 AI chat messages / month",
+      "~500 AI searches / month",
       "Verified journalist and creator contact emails",
       "Capped at 100 media contacts per query",
       "Top-up credits any time",
@@ -168,14 +168,14 @@ const TIERS: Tier[] = [
   {
     id: "growth",
     name: "Growth",
-    tagline: "Media AI chat + full journalist & creator database + keyword monitoring + inbox + teams.",
+    tagline: "Media AI search + full journalist & creator database + keyword monitoring + inbox + teams.",
     monthly: 99,
     yearly: 990,
     highlight: true,
     badge: "Most popular",
     cta: "Start Free Trial",
     features: [
-      "~3,000 AI chat messages / month",
+      "~3,000 AI searches / month",
       "Verified journalist and creator contact emails",
       "Unlimited media contacts per query",
       "Top-up credits any time",
@@ -209,9 +209,9 @@ const TIERS: Tier[] = [
 
 
 const FAQS = [
-  { q: "What is Media AI?", a: "Media AI is an AI-powered database of journalists and creators. PR and social media pros use our chat to find the right contacts, save searches, build lists, and monitor brand mentions — all in one place." },
-  { q: "How does the AI chat work?", a: "Just ask in plain English — e.g. 'I'm looking for a tech journalist in the United Kingdom'. The AI searches the database plus live web sources and returns a curated list of journalists or creators with verified emails, beats, outlets, and social handles. You can refine with follow-up questions." },
-  { q: "Can I find creators and influencers, not just journalists?", a: "Yes. The Creators view lets you filter by Instagram followers, engagement rate, YouTube subscribers, category, and country, and the chat works across both journalists and creators." },
+  { q: "What is Media AI?", a: "Media AI is an AI-powered database of journalists and creators. PR and social media pros use Search to find the right contacts, save searches, build lists, and monitor brand mentions — all in one place." },
+  { q: "How does AI search work?", a: "Just ask in plain English — e.g. 'I'm looking for a tech journalist in the United Kingdom'. Search queries the database plus live web sources and returns a curated list of journalists or creators with verified emails, beats, outlets, and social handles. You can refine with follow-up questions." },
+  { q: "Can I find creators and influencers, not just journalists?", a: "Yes. The Creators view lets you filter by Instagram followers, engagement rate, YouTube subscribers, category, and country, and Search works across both journalists and creators." },
   { q: "How many journalists and creators are in the database?", a: "Hundreds of thousands of journalists and creators worldwide, with new contacts added continuously. Our AI crawler keeps contact info fresh and removes outdated records." },
   { q: "Do you offer verified email addresses?", a: "Yes — every profile includes a verified email along with relevant social handles, outlet, country, topic, and beat info. Use 'Find email' on any row to enrich missing contacts on demand." },
   { q: "Can I save lists, monitor coverage, and send pitches?", a: "Yes. Save any search, build custom lists, get brand mention alerts in Monitor, connect your inbox to send and track pitches, and export contacts to CSV any time." },
@@ -239,7 +239,7 @@ const VALUE_PROPS = [
 
 const FEATURE_BLOCKS = [
   {
-    eyebrow: "AI Chat",
+    eyebrow: "AI Search",
     body: "Ask in plain English and get curated journalist and creator contacts in seconds. Our AI assistant turns natural-language questions into precise media lists — no filters, no spreadsheets, no guesswork.",
     image: featureAiChat,
     bullets: ["Conversational search across the full database", "Refine results with follow-up questions", "Export the contacts you need with one click"],
@@ -252,7 +252,7 @@ const FEATURE_BLOCKS = [
   },
   {
     eyebrow: "Media Lists",
-    body: "Build curated media lists straight from chat or search results. Save shortlists for each launch, keep them updated as contacts change, and share them with teammates, clients, or collaborators with a single link.",
+    body: "Build curated media lists straight from Search results. Save shortlists for each launch, keep them updated as contacts change, and share them with teammates, clients, or collaborators with a single link.",
     image: featureMediaLists,
     bullets: ["Save journalists and creators into named lists in one click", "Share any list via public link, email, or X / LinkedIn / WhatsApp", "Recipients get a clean, branded read-only view — no login required"],
   },
@@ -697,7 +697,7 @@ const Index = () => {
               </thead>
               <tbody className="[&>tr]:border-t [&>tr]:border-border">
                 {[
-                  { label: "AI chat", row: [true, false, false, false] },
+                  { label: "AI search", row: [true, false, false, false] },
                   { label: "Journalist database", row: [true, true, true, true] },
                   { label: "Creator database", row: [true, false, false, true] },
                   { label: "Export to CSV", row: [true, true, true, true] },

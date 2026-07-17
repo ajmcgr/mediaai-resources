@@ -21,7 +21,7 @@ const Signup = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/chat", { replace: true });
+    if (user) navigate("/search", { replace: true });
   }, [user, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -36,7 +36,7 @@ const Signup = () => {
         password,
         displayName,
         company,
-        redirectTo: `${APP_URL}/chat`,
+        redirectTo: `${APP_URL}/search`,
       },
     });
 
@@ -69,7 +69,7 @@ const Signup = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${APP_URL}/chat`,
+        redirectTo: `${APP_URL}/search`,
       },
     });
     if (error) toast.error(error.message);

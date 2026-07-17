@@ -7,7 +7,7 @@ const Root = () => {
   const { user, loading } = useAuth();
 
   if (loading) return <FullscreenSpinner />;
-  if (user) return <Navigate to="/chat" replace />;
+  if (user) return <Navigate to="/search" replace />;
 
   return <Index />;
 };

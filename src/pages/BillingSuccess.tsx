@@ -21,12 +21,12 @@ const BillingSuccess = () => {
     }
 
     if (sub.active) {
-      navigate("/chat", { replace: true });
+      navigate("/search", { replace: true });
       return;
     }
     const interval = window.setInterval(() => { sub.refresh(); }, 1500);
     const fallback = window.setTimeout(() => {
-      navigate("/chat", { replace: true });
+      navigate("/search", { replace: true });
     }, 8000);
     return () => {
       window.clearInterval(interval);
@@ -46,12 +46,12 @@ const BillingSuccess = () => {
         <h1 className="text-3xl font-medium mb-3">You're in.</h1>
         <p className="text-muted-foreground mb-8">
           {sub.active
-            ? "Your subscription is active. Redirecting you to chat."
+            ? "Your subscription is active. Redirecting you to Search."
             : "Payment received. We're activating your subscription — this usually takes a few seconds."}
         </p>
         <div className="flex gap-3 justify-center">
-          <Button onClick={() => navigate("/chat")} disabled={!sub.active}>
-            {sub.active ? "Open chat" : "Activating…"}
+          <Button onClick={() => navigate("/search")} disabled={!sub.active}>
+            {sub.active ? "Open Search" : "Activating…"}
           </Button>
           <Button variant="outline" onClick={() => navigate("/account")}>
             Account

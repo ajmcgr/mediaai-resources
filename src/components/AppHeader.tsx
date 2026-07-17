@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type AppHeaderProps = {
-  active?: "chat" | "database" | "monitor";
+  active?: "search" | "database" | "monitor";
   rightExtras?: ReactNode;
 };
 
@@ -64,11 +64,11 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
   return (
     <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0">
       <div className="flex items-center gap-10">
-        <NavLink to={hasGrowth ? "/database" : "/chat"} className="flex items-center">
+        <NavLink to={hasGrowth ? "/database" : "/search"} className="flex items-center">
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/chat" dataTour="nav-chat">Chat</PillNavButton>
+          <PillNavButton to="/search" dataTour="nav-search">Search</PillNavButton>
           {hasGrowth && (
             <PillNavButton to="/database" dataTour="nav-database">Database</PillNavButton>
           )}

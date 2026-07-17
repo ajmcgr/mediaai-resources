@@ -94,7 +94,7 @@ const ResetPassword = () => {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Password updated");
-    navigate("/chat", { replace: true });
+    navigate("/search", { replace: true });
   };
 
   return (

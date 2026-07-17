@@ -81,7 +81,7 @@ export const COMPETITORS: Competitor[] = [
       "No procurement, no annual lock-in",
     ],
     comparison: [
-      baseMediaRow("AI-native chat search", "Legacy database UI", "Search experience"),
+      baseMediaRow("AI-native search", "Legacy database UI", "Search experience"),
       baseMediaRow("From <$100/mo", "$7K–$50K+/year contracts", "Pricing"),
       baseMediaRow("Continuously refreshed contacts", "Often-outdated records", "Data freshness"),
       baseMediaRow("Lean, focused product", "Feature-bloated suite", "Product design"),

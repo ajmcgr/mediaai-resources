@@ -59,8 +59,8 @@ export default function OnboardingChecklist() {
       id: "search",
       title: "Run your first AI search",
       description: "Ask Media AI to find journalists or creators in plain English.",
-      cta: "Open Chat",
-      href: "/chat",
+      cta: "Start Search",
+      href: "/search",
       done: firstSearch,
     },
     {

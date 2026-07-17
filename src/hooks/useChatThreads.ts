@@ -50,7 +50,7 @@ export function useCreateChatThread() {
         .from("chat_threads")
         .insert({
           user_id: user.id,
-          title: initial?.title ?? "New chat",
+          title: initial?.title ?? "New search",
           messages: initial?.messages ?? [],
         })
         .select("id,user_id,title,messages,created_at,updated_at")
@@ -89,6 +89,6 @@ export function useDeleteChatThread() {
 
 export function deriveThreadTitle(messages: ChatThreadMessage[]): string {
   const first = messages.find((m) => m.role === "user")?.content?.trim();
-  if (!first) return "New chat";
+  if (!first) return "New search";
   return first.length > 60 ? first.slice(0, 57) + "…" : first;
 }

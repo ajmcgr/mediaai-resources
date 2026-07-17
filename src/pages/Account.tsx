@@ -204,7 +204,7 @@ const Account = () => {
         <section className="rounded-2xl border border-border bg-white p-6 mb-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-muted-foreground">
-              Chat credits
+              Search credits
             </h2>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" onClick={() => refreshUsage(true)} disabled={usageLoading}>
               <RefreshCw className={`h-3.5 w-3.5 ${usageLoading ? "animate-spin" : ""}`} />
@@ -215,7 +215,7 @@ const Account = () => {
             <div className="py-2"><Spinner /></div>
           ) : usageError ? (
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              Chat credit balance could not load. {usageError}
+              Search credit balance could not load. {usageError}
             </div>
           ) : (
             <>

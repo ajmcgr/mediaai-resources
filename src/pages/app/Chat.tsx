@@ -617,7 +617,7 @@ const Chat = () => {
       try {
         const t = await fetchChatThread(threadId);
         if (cancelled) return;
-        if (!t) { navigate("/chat", { replace: true }); return; }
+        if (!t) { navigate("/search", { replace: true }); return; }
         const msgs = (t.messages ?? []) as Msg[];
         setMessages(msgs);
         setResults(null);
@@ -646,7 +646,7 @@ const Chat = () => {
           }
         }
       } catch (e) {
-        if (!cancelled) toast.error((e as Error).message || "Could not load chat");
+        if (!cancelled) toast.error((e as Error).message || "Could not load search");
       }
     })();
     return () => { cancelled = true; };
@@ -811,7 +811,7 @@ const Chat = () => {
     if (total_available <= 0) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() },
+        { role: "assistant", content: "You've used all your search credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() },
       ]);
       return;
     }
@@ -834,7 +834,7 @@ const Chat = () => {
         });
         activeThreadIdRef.current = created.id;
         lastPersistedRef.current = JSON.stringify(initialMsgs);
-        navigate(`/chat/${created.id}`, { replace: true });
+        navigate(`/search/${created.id}`, { replace: true });
       } catch (e) {
         console.error("create thread failed", e);
       }
@@ -867,7 +867,7 @@ const Chat = () => {
             await refreshUsage();
             return;
           }
-          setMessages((m) => [...m, { role: "assistant", content: "You've used all your chat credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() }]);
+          setMessages((m) => [...m, { role: "assistant", content: "You've used all your search credits for this month. Click the **Buy credits** button in the lower-left sidebar to buy a top-up pack, or [upgrade your plan](/pricing).", ts: new Date().toISOString() }]);
           await refreshUsage();
           return;
         }
@@ -945,7 +945,7 @@ const Chat = () => {
     activeThreadIdRef.current = null;
     lastPersistedRef.current = "";
     setMessages([]); setResults(null); setSavingIdx({}); setEnrichingIdx({}); setInput("");
-    if (threadId) navigate("/chat");
+    if (threadId) navigate("/search");
   };
 
   const enrichEmail = async (idx: number) => {
@@ -1074,10 +1074,10 @@ const Chat = () => {
 
   return (
     <div className="h-screen bg-chat flex flex-col overflow-hidden">
-      <Helmet><title>Chat — Media AI</title></Helmet>
+      <Helmet><title>Search — Media AI</title></Helmet>
 
       <AppHeader
-        active="chat"
+        active="search"
         rightExtras={
           <Button
             variant="ghost"
@@ -1116,7 +1116,7 @@ const Chat = () => {
         ) : (
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chats</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Searches</span>
             <button
               type="button"
               onClick={() => setSidebarCollapsed(true)}
@@ -1177,7 +1177,7 @@ const Chat = () => {
             {chatThreads.isLoading ? (
               <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
             ) : (chatThreads.data?.length ?? 0) === 0 ? (
-              <div className="px-2 py-2 text-xs text-muted-foreground">Your chats will appear here.</div>
+              <div className="px-2 py-2 text-xs text-muted-foreground">Your searches will appear here.</div>
             ) : (
               <ul className="space-y-0.5 mb-3">
                 {chatThreads.data!.map((t) => {
@@ -1186,26 +1186,26 @@ const Chat = () => {
                     <li key={t.id} className={`group flex items-center gap-1 rounded-md ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}>
                       <button
                         type="button"
-                        onClick={() => navigate(`/chat/${t.id}`)}
+                        onClick={() => navigate(`/search/${t.id}`)}
                         className="flex-1 text-left px-2 py-1.5 text-sm truncate"
                         title={t.title}
                       >
-                        <span className="truncate">{t.title || "New chat"}</span>
+                        <span className="truncate">{t.title || "New search"}</span>
                       </button>
                       <button
                         type="button"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          if (!confirm("Delete this chat?")) return;
+                          if (!confirm("Delete this search?")) return;
                           try {
                             await deleteThread.mutateAsync(t.id);
-                            if (active) { activeThreadIdRef.current = null; navigate("/chat"); }
+                            if (active) { activeThreadIdRef.current = null; navigate("/search"); }
                           } catch (err) {
                             toast.error((err as Error).message || "Could not delete");
                           }
                         }}
                         className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                        aria-label="Delete chat"
+                        aria-label="Delete search"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -1223,7 +1223,7 @@ const Chat = () => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy chat credits"}
+                  title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
                   className={`w-full justify-center gap-1.5 ${usage && usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage && usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : ""}`}
                 >
                   <Sparkles className="h-3.5 w-3.5" />
@@ -1232,7 +1232,7 @@ const Chat = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
                 <DropdownMenuLabel className="font-normal">
-                  <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more chat credits"}</div>
+                  <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more search credits"}</div>
                   <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -1318,7 +1318,7 @@ const Chat = () => {
 
           <div className={`w-full ${results ? "" : "max-w-2xl"} px-4 pb-6`}>
             <div
-              data-tour="chat-input"
+              data-tour="search-input"
               className="relative rounded-2xl border border-border bg-white shadow-sm focus-within:border-primary/60"
             >
               <Textarea
@@ -1331,7 +1331,7 @@ const Chat = () => {
                     void handleSend();
                   }
                 }}
-                placeholder="Ask Media AI to find journalists or creators…"
+                placeholder="Search journalists or creators in plain English…"
                 disabled={loading}
                 rows={2}
                 className="resize-none border-0 focus-visible:ring-0 shadow-none px-4 py-3 pr-14 min-h-[64px]"

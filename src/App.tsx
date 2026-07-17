@@ -58,7 +58,7 @@ const RedirectWithSlug = ({ to }: { to: (slug: string) => string }) => {
 const RESERVED_ROOT = new Set([
   "resources", "tools", "about", "blog", "privacy", "terms", "",
   "login", "signup", "forgot-password", "reset-password",
-  "app", "dashboard", "database", "chat", "monitor", "relevance", "profiles", "account", "team", "pricing", "billing", "request-demo", "shared",
+  "app", "dashboard", "database", "chat", "search", "monitor", "relevance", "profiles", "account", "team", "pricing", "billing", "request-demo", "shared",
   "discover", "admin", "compare", "guides",
 ]);
 
@@ -69,11 +69,17 @@ const LegacySlugRedirect = () => {
   return <Navigate to={`/resources/${slug}`} replace />;
 };
 
+const LegacyChatRedirect = () => {
+  const { threadId } = useParams<{ threadId?: string }>();
+  const location = useLocation();
+  return <Navigate to={`/search${threadId ? `/${threadId}` : ""}${location.search}`} replace />;
+};
+
 const TopupSuccessRedirect = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   params.set("topup", "success");
-  return <Navigate to={`/chat?${params.toString()}`} replace />;
+  return <Navigate to={`/search?${params.toString()}`} replace />;
 };
 
 const AuthConfirm = () => {
@@ -85,7 +91,7 @@ const AuthConfirm = () => {
     const tokenHash = params.get("token_hash");
     const requestedType = params.get("type");
     const type = requestedType === "signup" || requestedType === "recovery" ? requestedType : null;
-    const next = params.get("next") || "/chat";
+    const next = params.get("next") || "/search";
 
     if (!tokenHash || !type) {
       navigate("/login", { replace: true });
@@ -143,8 +149,10 @@ const App = () => (
               {/* Paid-only app */}
               <Route path="/database" element={<PaidRoute requireGrowth><Dashboard /></PaidRoute>} />
               <Route path="/dashboard" element={<Navigate to="/database" replace />} />
-              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-              <Route path="/chat/:threadId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/search/:threadId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/chat" element={<LegacyChatRedirect />} />
+              <Route path="/chat/:threadId" element={<LegacyChatRedirect />} />
               <Route path="/monitor" element={<PaidRoute requireGrowth><Monitor /></PaidRoute>} />
               <Route path="/relevance" element={<ProtectedRoute><Relevance /></ProtectedRoute>} />
               <Route path="/profiles/:kind/:id" element={<ProtectedRoute><ContactProfile /></ProtectedRoute>} />
