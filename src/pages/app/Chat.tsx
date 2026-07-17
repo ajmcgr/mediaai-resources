@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, Trash2, Zap } from "lucide-react";
+import { ArrowUp, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, ThumbsDown, ThumbsUp, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
+import { logWorkspaceEvent } from "@/lib/audit";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 import OnboardingChecklist, { markFirstSearchComplete } from "@/components/OnboardingChecklist";
@@ -501,6 +502,7 @@ const Chat = () => {
   const [lastQuery, setLastQuery] = useState<string>("");
   const [savingIdx, setSavingIdx] = useState<Record<number, "saving" | "saved">>({});
   const [enrichingIdx, setEnrichingIdx] = useState<Record<number, boolean>>({});
+  const [relevanceFeedback, setRelevanceFeedback] = useState<Record<string, "relevant" | "not_relevant">>({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("chat.sidebarCollapsed") === "1";
@@ -561,6 +563,26 @@ const Chat = () => {
     .filter(({ row, rowKey }) => rowKey && selectedRows.has(rowKey) && row.source !== "database")
     .map(({ row }) => row);
   const selectedCount = selectedDbIds.length + selectedWebRows.length;
+
+  const submitRelevanceFeedback = (row: Row, rowKey: string, feedback: "relevant" | "not_relevant") => {
+    if (!user || !lastQuery.trim()) return;
+    const feedbackKey = `${lastQuery}:${rowKey}`;
+    const previous = relevanceFeedback[feedbackKey];
+    setRelevanceFeedback((current) => ({ ...current, [feedbackKey]: feedback }));
+
+    void logWorkspaceEvent(
+      feedback === "relevant" ? "search_result_marked_relevant" : "search_result_marked_not_relevant",
+      null,
+      {
+        search_query: lastQuery.trim(),
+        result_key: rowKey,
+        source: row.source,
+        source_table: row.source_table ?? null,
+        source_id: row.source_id == null ? null : String(row.source_id),
+        previous_feedback: previous ?? null,
+      },
+    );
+  };
 
   const savedSearches = useSavedSearches(!!user);
   const chatThreads = useChatThreads(!!user);
@@ -1371,6 +1393,7 @@ const Chat = () => {
                       />
                     </th>
                     <th className="w-8" />
+                    <th className="w-[72px] text-left font-medium px-2 py-2.5">Quality</th>
                     {cols.map((c) => (
                       <th
                         key={String(c.key)}
@@ -1389,6 +1412,8 @@ const Chat = () => {
                     const enriching = !!enrichingIdx[i];
                     const saving = savingIdx[i] === "saving";
                     const selected = rowKey ? selectedRows.has(rowKey) : false;
+                    const feedbackKey = rowKey ? `${lastQuery}:${rowKey}` : null;
+                    const rowFeedback = feedbackKey ? relevanceFeedback[feedbackKey] : null;
                     return (
                       <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-secondary/30 align-top ${selected ? "bg-primary/5" : ""}`}>
                         <td className="px-2 py-2.5">
@@ -1408,6 +1433,32 @@ const Chat = () => {
                               journalistId={results.kind === "journalists" ? dbId : undefined}
                               creatorId={results.kind === "creators" ? dbId : undefined}
                             />
+                          )}
+                        </td>
+                        <td className="px-2 py-2.5">
+                          {rowKey ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => submitRelevanceFeedback(r, rowKey, "relevant")}
+                                aria-label="Mark result relevant"
+                                title="Relevant"
+                                className={`rounded p-1 transition-colors ${rowFeedback === "relevant" ? "bg-emerald-100 text-emerald-700" : "text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700"}`}
+                              >
+                                <ThumbsUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => submitRelevanceFeedback(r, rowKey, "not_relevant")}
+                                aria-label="Mark result not relevant"
+                                title="Not relevant"
+                                className={`rounded p-1 transition-colors ${rowFeedback === "not_relevant" ? "bg-rose-100 text-rose-700" : "text-muted-foreground hover:bg-rose-50 hover:text-rose-700"}`}
+                              >
+                                <ThumbsDown className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
                         {cols.map((c) => {
