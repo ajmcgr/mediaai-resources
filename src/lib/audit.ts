@@ -11,9 +11,7 @@ export type WorkspaceAction =
   | "member_role_changed"
   | "export_triggered"
   | "reveal_email_triggered"
-  | "reveal_linkedin_triggered"
-  | "search_result_marked_relevant"
-  | "search_result_marked_not_relevant";
+  | "reveal_linkedin_triggered";
 
 type Meta = Record<string, unknown>;
 

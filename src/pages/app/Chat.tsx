@@ -29,7 +29,6 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { confirmTopup, startTopup, type TopupPack } from "@/lib/billing";
-import { logWorkspaceEvent } from "@/lib/audit";
 import { useOutletAuthorities, resolveAuthority } from "@/hooks/useOutletAuthority";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
 import OnboardingChecklist, { markFirstSearchComplete } from "@/components/OnboardingChecklist";
@@ -570,18 +569,31 @@ const Chat = () => {
     const previous = relevanceFeedback[feedbackKey];
     setRelevanceFeedback((current) => ({ ...current, [feedbackKey]: feedback }));
 
-    void logWorkspaceEvent(
-      feedback === "relevant" ? "search_result_marked_relevant" : "search_result_marked_not_relevant",
-      null,
-      {
-        search_query: lastQuery.trim(),
-        result_key: rowKey,
-        source: row.source,
-        source_table: row.source_table ?? null,
-        source_id: row.source_id == null ? null : String(row.source_id),
-        previous_feedback: previous ?? null,
-      },
-    );
+    void (async () => {
+      const { error } = await (supabase as any)
+        .from("search_result_feedback")
+        .upsert(
+          {
+            user_id: user.id,
+            search_query: lastQuery.trim(),
+            result_key: rowKey,
+            feedback,
+            source: row.source,
+            source_table: row.source_table ?? null,
+            source_id: row.source_id == null ? null : String(row.source_id),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,search_query,result_key" },
+        );
+      if (!error) return;
+      setRelevanceFeedback((current) => {
+        const next = { ...current };
+        if (previous) next[feedbackKey] = previous;
+        else delete next[feedbackKey];
+        return next;
+      });
+      toast.error("Could not save relevance feedback. Please try again.");
+    })();
   };
 
   const savedSearches = useSavedSearches(!!user);
