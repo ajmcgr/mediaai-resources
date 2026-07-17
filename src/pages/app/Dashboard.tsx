@@ -410,7 +410,7 @@ const Dashboard = () => {
                         />
                       </div>
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
-                        <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                        {r.name ? <button type="button" onClick={() => navigate(`/profiles/journalist/${r.id}`)} className="truncate text-left font-medium hover:text-primary hover:underline">{r.name}</button> : <span className="text-muted-foreground">—</span>}
                         <AddToListMenu journalistId={r.id} />
                       </div>
                       <EnrichCell value={r.email} kind="journalist" id={r.id} field="email" name={r.name} outletDomain={r.outlet} row={r} />
@@ -467,7 +467,7 @@ const Dashboard = () => {
                         />
                       </div>
                       <div className="px-3 py-3 text-sm flex items-center gap-2 min-w-0">
-                        <span className="truncate">{r.name ?? <span className="text-muted-foreground">—</span>}</span>
+                        {r.name ? <button type="button" onClick={() => navigate(`/profiles/creator/${r.id}`)} className="truncate text-left font-medium hover:text-primary hover:underline">{r.name}</button> : <span className="text-muted-foreground">—</span>}
                         <AddToListMenu creatorId={r.id} />
                       </div>
                       <EnrichCell value={r.email} kind="creator" id={r.id} field="email" name={r.name} row={r} />

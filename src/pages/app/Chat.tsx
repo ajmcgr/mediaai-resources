@@ -1574,6 +1574,14 @@ const Chat = () => {
                                 <span className="text-muted-foreground">—</span>
                               ) : typeof v === "number" ? (
                                 v.toLocaleString()
+                              ) : c.key === "name" && dbId !== null ? (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/profiles/${results.kind === "journalists" ? "journalist" : "creator"}/${dbId}${lastQuery ? `?q=${encodeURIComponent(lastQuery)}` : ""}`)}
+                                  className="text-left font-medium hover:text-primary hover:underline"
+                                >
+                                  {String(v)}
+                                </button>
                               ) : c.key === "name" && r.source === "exa" ? (
                                 <span className="inline-flex items-center gap-2">
                                   {r.source_url ? (
