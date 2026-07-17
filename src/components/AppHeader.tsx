@@ -104,6 +104,7 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/relevance")}>Search quality</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
