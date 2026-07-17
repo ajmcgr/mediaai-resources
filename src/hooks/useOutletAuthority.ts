@@ -78,7 +78,6 @@ export function useOutletAuthorities(outlets: Array<string | null | undefined>) 
     enabled: domains.length + names.length > 0,
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
-      console.log("AUTHORITY_LOOKUP_STARTED", { domains: domains.length, names: names.length });
       const map = new Map<string, OutletAuthority>();
       try {
         if (domains.length) {
@@ -111,9 +110,8 @@ export function useOutletAuthorities(outlets: Array<string | null | undefined>) 
             }
           }
         }
-        console.log("AUTHORITY_LOOKUP_SUCCESS", { found: map.size });
-      } catch (err) {
-        console.warn("AUTHORITY_LOOKUP_FAILED", err);
+      } catch {
+        // Authority is supplementary; the directory remains usable if cache lookup fails.
       }
       return map;
     },
@@ -135,6 +133,5 @@ export function resolveAuthority(
     const hit = map.get(`n:${cand}`);
     if (hit) return hit.authority_score;
   }
-  if (outlet) console.debug("AUTHORITY_LOOKUP_MISSING", { outlet });
   return null;
 }
