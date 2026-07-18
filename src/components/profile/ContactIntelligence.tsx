@@ -1,6 +1,11 @@
-import { ExternalLink, FileText, Lightbulb, RefreshCw, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Copy, ExternalLink, FileText, Lightbulb, Mail, RefreshCw, Sparkles, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProfileIntelligence, type ContactKind } from "@/hooks/useProfileIntelligence";
 
@@ -8,6 +13,8 @@ type ContactIntelligenceProps = {
   kind: ContactKind;
   id: number;
   compact?: boolean;
+  contactName?: string | null;
+  outlet?: string | null;
 };
 
 function Chip({ children }: { children: React.ReactNode }) {
@@ -44,7 +51,101 @@ function EmptyState({ onGenerate, loading }: { onGenerate: () => void; loading: 
   );
 }
 
-export function ContactIntelligence({ kind, id, compact = false }: ContactIntelligenceProps) {
+function buildOutreachDraft({
+  contactName,
+  outlet,
+  angle,
+  evidence,
+  tone,
+}: {
+  contactName?: string | null;
+  outlet?: string | null;
+  angle?: string;
+  evidence?: string[];
+  tone?: string;
+}) {
+  const greeting = contactName ? `Hi ${contactName.split(" ")[0]},` : "Hi,";
+  const evidenceLine = evidence?.length
+    ? `I would lead with: ${evidence.slice(0, 3).join("; ")}.`
+    : "I would lead with one specific proof point and a clear reason this matters to their audience.";
+  const outletLine = outlet ? `Given your work at ${outlet},` : "Given your recent coverage,";
+  return [
+    "Subject: Relevant story idea for your beat",
+    "",
+    greeting,
+    "",
+    `${outletLine} the strongest angle appears to be: ${angle || "tie the story directly to their current coverage area and audience."}`,
+    "",
+    evidenceLine,
+    tone ? `Suggested tone: ${tone}.` : "Suggested tone: concise, specific, and evidence-led.",
+    "",
+    "A short pitch should keep this non-promotional, explain why the timing matters, and offer a concrete source, dataset, customer example, or founder perspective.",
+  ].join("\n");
+}
+
+function PrepareOutreachDialog({
+  contactName,
+  outlet,
+  pitch,
+  evidence,
+}: {
+  contactName?: string | null;
+  outlet?: string | null;
+  pitch: NonNullable<ReturnType<typeof useProfileIntelligence>["data"]>["pitch_guidance"];
+  evidence: NonNullable<ReturnType<typeof useProfileIntelligence>["data"]>["evidence"];
+}) {
+  const draft = buildOutreachDraft({
+    contactName,
+    outlet,
+    angle: pitch.recommended_angle,
+    evidence: pitch.evidence_to_include,
+    tone: pitch.suggested_tone,
+  });
+
+  const copyDraft = async () => {
+    await navigator.clipboard.writeText(draft);
+    toast({ title: "Outreach draft copied" });
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="gap-2">
+          <Mail className="h-4 w-4" />
+          Prepare outreach
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Prepare outreach</DialogTitle>
+          <DialogDescription>
+            Draft guidance based on the cached AI profile. Review the evidence before sending.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Textarea value={draft} readOnly className="min-h-[260px] resize-none font-mono text-xs leading-5" />
+          {!!evidence?.length && (
+            <div className="rounded-lg border border-border p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evidence to check</p>
+              <div className="mt-2 space-y-2">
+                {evidence.slice(0, 3).map((source) => (
+                  <a key={source.coverage_id ?? source.canonical_url} href={source.canonical_url} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline">
+                    {source.headline}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={copyDraft} className="gap-2"><Copy className="h-4 w-4" />Copy draft</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ContactIntelligence({ kind, id, compact = false, contactName, outlet }: ContactIntelligenceProps) {
   const { data, isLoading, isError, generate } = useProfileIntelligence(kind, id);
   const generating = generate.isPending || data?.status === "generating";
 
@@ -101,10 +202,13 @@ export function ContactIntelligence({ kind, id, compact = false }: ContactIntell
           </div>
           {data.generated_at && <p className="mt-1 text-xs text-muted-foreground">Grounded in {data.evidence?.length ?? 0} source{data.evidence?.length === 1 ? "" : "s"} · Updated {new Date(data.generated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p>}
         </div>
-        <Button variant="outline" size="sm" onClick={() => generate.mutate(true)} disabled={generating} className="gap-2">
-          <RefreshCw className={cn("h-4 w-4", generating && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <PrepareOutreachDialog contactName={contactName} outlet={outlet} pitch={pitch} evidence={data.evidence} />
+          <Button variant="outline" size="sm" onClick={() => generate.mutate(true)} disabled={generating} className="gap-2">
+            <RefreshCw className={cn("h-4 w-4", generating && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {data.profile_summary && <p className="mt-4 text-sm leading-6 text-foreground">{data.profile_summary}</p>}

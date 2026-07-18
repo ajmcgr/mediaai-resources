@@ -207,7 +207,7 @@ export default function ContactProfile() {
               </section>
             )}
 
-            {profileKind && <div className="mt-6"><ContactIntelligence kind={profileKind} id={contact.id} /></div>}
+            {profileKind && <div className="mt-6"><ContactIntelligence kind={profileKind} id={contact.id} contactName={name} outlet={contact.outlet ?? contact.category} /></div>}
 
             <div className="mt-6 grid gap-6 md:grid-cols-[1.35fr_0.65fr]">
               <section className="rounded-xl border border-border bg-card p-6">
