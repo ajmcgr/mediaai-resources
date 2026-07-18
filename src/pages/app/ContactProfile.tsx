@@ -8,6 +8,7 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
+import { ContactIntelligence } from "@/components/profile/ContactIntelligence";
 import { resolveAuthority, useOutletAuthorities } from "@/hooks/useOutletAuthority";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ export default function ContactProfile() {
     setError(null);
     void (async () => {
       const table = profileKind === "journalist" ? "journalist" : "creators";
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await supabase
         .from(table)
         .select("*")
         .eq("id", contactId)
@@ -131,7 +132,7 @@ export default function ContactProfile() {
     let active = true;
     if (!profileKind || !Number.isInteger(contactId) || contactId < 1) return;
     void (async () => {
-      const { data, error: coverageError } = await (supabase as any)
+      const { data, error: coverageError } = await supabase
         .from("contact_coverage")
         .select("id,headline,canonical_url,outlet,published_at,summary")
         .eq("contact_kind", profileKind)
@@ -215,6 +216,8 @@ export default function ContactProfile() {
                 </div></div>
               </section>
             )}
+
+            {profileKind && <div className="mt-6"><ContactIntelligence kind={profileKind} id={contact.id} /></div>}
 
             <div className="mt-6 grid gap-6 md:grid-cols-[1.35fr_0.65fr]">
               <section className="rounded-xl border border-border bg-card p-6">

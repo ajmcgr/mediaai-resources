@@ -7,6 +7,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { AddToListMenu } from "@/components/dashboard/AddToListMenu";
 import { AuthorityBadge } from "@/components/dashboard/AuthorityBadge";
+import { ContactIntelligence } from "@/components/profile/ContactIntelligence";
 import { resolveAuthority, useOutletAuthorities } from "@/hooks/useOutletAuthority";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -93,7 +94,7 @@ export function ContactProfileSheet({ profile, onOpenChange }: ContactProfileShe
     setCoverage([]);
     void (async () => {
       const table = profile.kind === "journalist" ? "journalist" : "creators";
-      const { data, error: fetchError } = await (supabase as any).from(table).select("*").eq("id", profile.id).maybeSingle();
+      const { data, error: fetchError } = await supabase.from(table).select("*").eq("id", profile.id).maybeSingle();
       if (!active) return;
       if (fetchError || !data) {
         setError(fetchError ? "We could not load this profile. Please try again." : "This profile is no longer available.");
@@ -103,7 +104,7 @@ export function ContactProfileSheet({ profile, onOpenChange }: ContactProfileShe
       setContact(data as Contact);
       setLoading(false);
 
-      const { data: coverageData, error: coverageError } = await (supabase as any)
+      const { data: coverageData, error: coverageError } = await supabase
         .from("contact_coverage")
         .select("id,headline,canonical_url,outlet,published_at,summary")
         .eq("contact_kind", profile.kind)
@@ -164,6 +165,8 @@ export function ContactProfileSheet({ profile, onOpenChange }: ContactProfileShe
               </section>
 
               {profile.query && <section className="rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">Why this match</h3><p className="mt-1 text-sm text-muted-foreground">{queryMatches.length ? `Matches “${profile.query}” through ${queryMatches.join(" and ")}.` : `Opened from your search for “${profile.query}”.`}</p>{typeof profile.matchScore === "number" && <p className="mt-2 text-xs font-medium text-primary">Evidence-based match score: {Math.round(profile.matchScore)}/100</p>}</div></div></section>}
+
+              <ContactIntelligence kind={profile.kind} id={profile.id} compact />
 
               <section className="rounded-xl border border-border bg-card p-5"><h3 className="font-semibold">Profile and outreach</h3><div className="mt-3 divide-y divide-border"><DetailRow icon={<Building2 className="h-4 w-4" />} label={profile.kind === "journalist" ? "Outlet" : "Category"} value={profile.kind === "journalist" ? contact.outlet : contact.category} /><DetailRow icon={<Users className="h-4 w-4" />} label={profile.kind === "journalist" ? "Role" : "Creator type"} value={profile.kind === "journalist" ? contact.titles : contact.type} /><DetailRow icon={<Sparkles className="h-4 w-4" />} label="Topics" value={profile.kind === "journalist" ? (contact.topics || contact.category) : contact.bio} />{profile.kind === "journalist" && <div className="flex items-center justify-between py-3"><div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Outlet authority</p><p className="mt-0.5 text-sm text-muted-foreground">Cached Domain Rating</p></div><AuthorityBadge score={authority} /></div>}</div></section>
 

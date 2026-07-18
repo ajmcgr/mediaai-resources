@@ -24,6 +24,9 @@ verify_jwt = false
 [functions.chat]
 verify_jwt = false
 
+[functions.profile-intelligence]
+verify_jwt = false
+
 [functions.exa-search]
 verify_jwt = false
 
@@ -79,4 +82,3 @@ verify_jwt = false
 
 [functions.seo-page-build]
 verify_jwt = false
-
