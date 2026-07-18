@@ -12,6 +12,7 @@ import { resolveAuthority, useOutletAuthorities } from "@/hooks/useOutletAuthori
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildMatchExplanation } from "@/lib/matchExplanation";
 
 type ContactKind = "journalist" | "creator";
 
@@ -48,8 +49,6 @@ type ContactProfileSheetProps = {
   profile: { kind: ContactKind; id: number; query?: string; matchScore?: number } | null;
   onOpenChange: (open: boolean) => void;
 };
-
-const STOP_WORDS = new Set(["a", "about", "and", "are", "for", "give", "in", "journalist", "journalists", "list", "me", "of", "on", "that", "the", "to", "who", "with", "write", "writes", "creator", "creators"]);
 
 function externalUrl(value?: string | null) {
   if (!value) return null;
@@ -118,17 +117,10 @@ export function ContactProfileSheet({ profile, onOpenChange }: ContactProfileShe
     return () => { active = false; };
   }, [profile]);
 
-  const queryMatches = useMemo(() => {
-    if (!contact || !profile?.query) return [];
-    const terms = profile.query.toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) ?? [];
-    const meaningful = [...new Set(terms.filter((term) => !STOP_WORDS.has(term)))].slice(0, 8);
-    const fields: Array<[string, string]> = [
-      ["their topics", `${contact.topics ?? ""} ${contact.category ?? ""}`],
-      ["their role and outlet", `${contact.titles ?? ""} ${contact.outlet ?? ""}`],
-      ["their profile", `${contact.bio ?? ""} ${contact.type ?? ""}`],
-    ];
-    return fields.flatMap(([label, value]) => meaningful.some((term) => value.toLowerCase().includes(term)) ? [label] : []).slice(0, 2);
-  }, [contact, profile?.query]);
+  const matchExplanation = useMemo(
+    () => contact && profile ? buildMatchExplanation(contact, profile.query, profile.matchScore) : null,
+    [contact, profile],
+  );
 
   const name = contact?.name || "Unnamed contact";
   const subtitle = profile?.kind === "journalist"
@@ -164,7 +156,7 @@ export function ContactProfileSheet({ profile, onOpenChange }: ContactProfileShe
                 </div>
               </section>
 
-              {profile.query && <section className="rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">Why this match</h3><p className="mt-1 text-sm text-muted-foreground">{queryMatches.length ? `Matches “${profile.query}” through ${queryMatches.join(" and ")}.` : `Opened from your search for “${profile.query}”.`}</p>{typeof profile.matchScore === "number" && <p className="mt-2 text-xs font-medium text-primary">Evidence-based match score: {Math.round(profile.matchScore)}/100</p>}</div></div></section>}
+              {profile.query && matchExplanation && <section className="rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">Why this match</h3><p className="mt-1 text-sm text-muted-foreground">{matchExplanation.confidence} confidence for "{profile.query}".</p>{typeof profile.matchScore === "number" && <p className="mt-2 text-xs font-medium text-primary">AI fit score: {Math.round(profile.matchScore)}%</p>}<ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">{matchExplanation.reasons.map((reason) => <li key={reason}>- {reason}</li>)}</ul></div></div></section>}
 
               <ContactIntelligence kind={profile.kind} id={profile.id} compact />
 

@@ -13,6 +13,7 @@ import { resolveAuthority, useOutletAuthorities } from "@/hooks/useOutletAuthori
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildMatchExplanation } from "@/lib/matchExplanation";
 
 type Contact = Record<string, unknown> & {
   id: number;
@@ -44,11 +45,6 @@ type CoverageItem = {
   published_at?: string | null;
   summary?: string | null;
 };
-
-const STOP_WORDS = new Set([
-  "a", "about", "and", "are", "for", "give", "in", "journalist", "journalists", "list",
-  "me", "of", "on", "that", "the", "to", "who", "with", "write", "writes", "creator", "creators",
-]);
 
 function externalUrl(value?: string | null) {
   if (!value) return null;
@@ -151,17 +147,10 @@ export default function ContactProfile() {
     return () => { active = false; };
   }, [profileKind, contactId]);
 
-  const queryMatches = useMemo(() => {
-    if (!contact || !searchQuery) return [];
-    const terms = searchQuery.toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) ?? [];
-    const meaningful = [...new Set(terms.filter((term) => !STOP_WORDS.has(term)))].slice(0, 8);
-    const fields: Array<[string, string]> = [
-      ["their topics", `${contact.topics ?? ""} ${contact.category ?? ""}`],
-      ["their role and outlet", `${contact.titles ?? ""} ${contact.outlet ?? ""}`],
-      ["their profile", `${contact.bio ?? ""} ${contact.type ?? ""}`],
-    ];
-    return fields.flatMap(([label, value]) => meaningful.some((term) => value.toLowerCase().includes(term)) ? [label] : []).slice(0, 2);
-  }, [contact, searchQuery]);
+  const matchExplanation = useMemo(
+    () => contact ? buildMatchExplanation(contact, searchQuery, hasMatchScore ? matchScore : undefined) : null,
+    [contact, searchQuery, hasMatchScore, matchScore],
+  );
 
   const name = contact?.name || "Unnamed contact";
   const subtitle = profileKind === "journalist"
@@ -211,8 +200,9 @@ export default function ContactProfile() {
             {searchQuery && (
               <section className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-5">
                 <div className="flex gap-3"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h2 className="font-semibold">Why this match</h2>
-                  {queryMatches.length ? <p className="mt-1 text-sm text-muted-foreground">This profile matches “{searchQuery}” through {queryMatches.join(" and ")}.</p> : <p className="mt-1 text-sm text-muted-foreground">Opened from your search for “{searchQuery}”. Review the coverage details below before outreach.</p>}
-                  {hasMatchScore && <p className="mt-2 text-xs font-medium text-primary">Evidence-based match score: {Math.round(matchScore)}/100</p>}
+                  <p className="mt-1 text-sm text-muted-foreground">{matchExplanation?.confidence ?? "Low"} confidence for "{searchQuery}". Review the evidence before outreach.</p>
+                  {hasMatchScore && <p className="mt-2 text-xs font-medium text-primary">AI fit score: {Math.round(matchScore)}%</p>}
+                  {!!matchExplanation?.reasons.length && <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">{matchExplanation.reasons.map((reason) => <li key={reason}>- {reason}</li>)}</ul>}
                 </div></div>
               </section>
             )}

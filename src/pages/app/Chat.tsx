@@ -36,6 +36,7 @@ import {
 } from "@/hooks/useChatThreads";
 import AppHeader from "@/components/AppHeader";
 import { ContactProfileSheet } from "@/components/search/ContactProfileSheet";
+import { MatchExplanationPopover } from "@/components/search/MatchExplanation";
 
 type Msg = { role: "user" | "assistant"; content: string; ts?: string };
 
@@ -1405,7 +1406,7 @@ const Chat = () => {
                       />
                     </th>
                     <th className="w-8" />
-                    <th className="w-[72px] text-left font-medium px-2 py-2.5">Quality</th>
+                    <th className="w-[92px] text-left font-medium px-2 py-2.5">Fit</th>
                     {cols.map((c) => (
                       <th
                         key={String(c.key)}
@@ -1450,14 +1451,7 @@ const Chat = () => {
                         <td className="px-2 py-2.5">
                           {rowKey ? (
                             <div className="flex items-center gap-1">
-                              {typeof r.match_score === "number" && (
-                                <span
-                                  className={`mr-1 rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${r.match_score >= 75 ? "bg-emerald-100 text-emerald-700" : r.match_score >= 50 ? "bg-amber-100 text-amber-700" : "bg-secondary text-muted-foreground"}`}
-                                  title="Evidence-based match score for this search"
-                                >
-                                  {r.match_score}
-                                </span>
-                              )}
+                              <MatchExplanationPopover contact={r} query={lastQuery} score={r.match_score} />
                               <button
                                 type="button"
                                 onClick={() => submitRelevanceFeedback(r, rowKey, "relevant")}
