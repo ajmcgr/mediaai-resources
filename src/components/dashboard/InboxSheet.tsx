@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Inbox as InboxIcon, Mail, Send, Loader2, Plug, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,13 @@ type View =
   | { kind: "thread"; id: string }
   | { kind: "compose"; replyTo?: { messageId: string; to: { email: string; name?: string }[]; subject: string } };
 
-export function InboxSheet({ triggerNode }: { triggerNode?: React.ReactNode } = {}) {
+type InboxSheetProps = {
+  triggerNode?: ReactNode;
+  triggerClassName?: string;
+  triggerChildren?: ReactNode;
+};
+
+export function InboxSheet({ triggerNode, triggerClassName, triggerChildren }: InboxSheetProps = {}) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
   const [search, setSearch] = useState("");
@@ -36,9 +43,9 @@ export function InboxSheet({ triggerNode }: { triggerNode?: React.ReactNode } = 
           <Button
             variant="ghost"
             size="sm"
-            className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            className={triggerClassName ?? "font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"}
           >
-            Inbox
+            {triggerChildren ?? "Inbox"}
           </Button>
         )}
       </SheetTrigger>

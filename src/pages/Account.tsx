@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import AppSidebar from "@/components/AppSidebar";
 import { useTeamWorkspaces, useTeamMembers, useTeamInvites, useCurrentWorkspace } from "@/hooks/useTeams";
 import { getWorkspaceSeatUsage } from "@/lib/teamBilling";
 import { startProductTour } from "@/components/ProductTour";
@@ -137,18 +138,23 @@ const Account = () => {
   
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex">
       <Helmet>
         <title>Account — Media AI</title>
       </Helmet>
 
-      <AppHeader />
+      <AppSidebar active="settings" />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="md:hidden">
+          <AppHeader />
+        </div>
 
       <main className="flex-1 overflow-auto">
-        <div className="max-w-3xl mx-auto px-6 py-16">
+        <div className="mx-auto max-w-3xl px-6 py-16 md:py-20">
         <h1 className="text-3xl font-medium mb-8">Account</h1>
 
-        <section className="rounded-2xl border border-border bg-white p-6 mb-6">
+        <section id="credits" className="rounded-2xl border border-border bg-white p-6 mb-6 scroll-mt-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-4">
             Profile
           </h2>
@@ -315,6 +321,7 @@ const Account = () => {
         </section>
         </div>
       </main>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
@@ -14,7 +15,13 @@ import { toCsv, downloadCsv } from "@/lib/csv";
 import { toast } from "@/hooks/use-toast";
 import { ShareListDialog } from "./ShareListDialog";
 
-export const ListsSheet = ({ triggerNode }: { triggerNode?: React.ReactNode } = {}) => {
+type ListsSheetProps = {
+  triggerNode?: ReactNode;
+  triggerClassName?: string;
+  triggerChildren?: ReactNode;
+};
+
+export const ListsSheet = ({ triggerNode, triggerClassName, triggerChildren }: ListsSheetProps = {}) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -71,9 +78,9 @@ export const ListsSheet = ({ triggerNode }: { triggerNode?: React.ReactNode } = 
           <Button
             variant="ghost"
             size="sm"
-            className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            className={triggerClassName ?? "font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"}
           >
-            Lists
+            {triggerChildren ?? "Lists"}
           </Button>
         )}
       </SheetTrigger>
