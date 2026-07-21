@@ -7,7 +7,7 @@ import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Sparkles, X, ArrowRight } from "lucide-react";
 
-const STORAGE_KEY = "mediaai_product_tour_v1";
+const STORAGE_KEY = "mediaai_product_tour_v2";
 const START_EVENT = "mediaai:start-tour";
 
 type Step = {
