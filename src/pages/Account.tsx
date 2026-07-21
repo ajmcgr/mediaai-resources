@@ -187,7 +187,7 @@ const Account = () => {
           <div className="mx-auto w-full max-w-[850px]">
             <h1 className="text-4xl font-medium tracking-tight text-slate-950 md:text-5xl">Settings</h1>
 
-            <div className="mt-8 flex justify-center overflow-x-auto">
+            <div className="mt-8 flex overflow-x-auto">
               <div className="inline-flex min-w-max items-center gap-1 rounded-full bg-slate-100 p-1">
                 {SETTINGS_TABS.map((tab) => (
                   <button
