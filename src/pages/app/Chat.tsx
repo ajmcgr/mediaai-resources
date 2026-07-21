@@ -524,7 +524,7 @@ const SidebarNavItem = ({
     )}
   >
     <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-gray-500")} />
-    {!collapsed && <span>{label}</span>}
+    {!collapsed && <span className="font-semibold">{label}</span>}
   </button>
 );
 
@@ -543,7 +543,7 @@ const SidebarNavButton = React.forwardRef<
     )}
   >
     <Icon className="h-[18px] w-[18px] text-gray-500" />
-    {!collapsed && <span>{label}</span>}
+    {!collapsed && <span className="font-semibold">{label}</span>}
   </button>
 ));
 SidebarNavButton.displayName = "SidebarNavButton";
@@ -1159,7 +1159,7 @@ const Chat = () => {
               ) : (
                 <PanelLeftClose className="h-[18px] w-[18px] text-gray-500" />
               )}
-              {!sidebarCollapsed && <span>Collapse</span>}
+              {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
             </button>
           </div>
 
@@ -1202,7 +1202,7 @@ const Chat = () => {
                   )}
                 >
                   <Sparkles className="h-[18px] w-[18px] text-gray-500" />
-                  {!sidebarCollapsed && <span>Buy credits</span>}
+                  {!sidebarCollapsed && <span className="font-semibold">Buy credits</span>}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
@@ -1243,7 +1243,7 @@ const Chat = () => {
                 title="Settings"
               >
                 <Settings className="h-[18px] w-[18px] text-gray-500" />
-                {!sidebarCollapsed && <span>Settings</span>}
+                {!sidebarCollapsed && <span className="font-semibold">Settings</span>}
               </button>
               <a
                 href="mailto:alex@trymedia.ai"
@@ -1254,7 +1254,7 @@ const Chat = () => {
                 title="Help"
               >
                 <HelpCircle className="h-[18px] w-[18px] text-gray-500" />
-                {!sidebarCollapsed && <span>Help</span>}
+                {!sidebarCollapsed && <span className="font-semibold">Help</span>}
               </a>
             </div>
           </div>
