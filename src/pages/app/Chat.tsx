@@ -1268,6 +1268,23 @@ const Chat = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="mt-1 space-y-0.5">
+              <button
+                type="button"
+                onClick={() => navigate("/account")}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span>Settings</span>
+              </button>
+              <a
+                href="mailto:alex@trymedia.ai"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Help</span>
+              </a>
+            </div>
           </div>
         </aside>
         )}
