@@ -196,15 +196,14 @@ const Dashboard = () => {
   const scrollContainerRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const node = sentinelRef.current;
-    const root = scrollContainerRef.current;
-    if (!node || !root) return;
+    if (!node) return;
     const obs = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && active.hasNextPage && !active.isFetchingNextPage) {
           active.fetchNextPage();
         }
       },
-      { root, rootMargin: "400px" }
+      { rootMargin: "400px" }
     );
     obs.observe(node);
     return () => obs.disconnect();
@@ -348,7 +347,7 @@ const Dashboard = () => {
         </aside>
         )}
 
-        <main ref={scrollContainerRef} className="flex-1 min-w-0 overflow-auto flex flex-col">
+        <main ref={scrollContainerRef} className="flex-1 min-w-0 flex flex-col">
           <div className="p-3 border-b border-border bg-white flex items-center gap-3 sticky top-0 z-10">
             <div className="relative flex-1 max-w-md">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
