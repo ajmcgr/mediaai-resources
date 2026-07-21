@@ -251,7 +251,7 @@ const Account = () => {
                           required
                         />
                       </div>
-                      <Button type="submit" disabled={pwSaving} className="rounded-full px-6">
+                      <Button type="submit" disabled={pwSaving} className="rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800">
                         {pwSaving ? "Updating…" : "Save profile"}
                       </Button>
                     </form>
