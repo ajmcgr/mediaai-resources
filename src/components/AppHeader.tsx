@@ -85,8 +85,9 @@ export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderPro
       </div>
 
       <div className="flex items-center gap-2">
-        <WorkspaceDropdown />
-        <NotificationsBell />
+        <span data-tour="workspace-dropdown" className="inline-flex"><WorkspaceDropdown /></span>
+        <span data-tour="notifications-bell" className="inline-flex"><NotificationsBell /></span>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" data-tour="account-menu" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">

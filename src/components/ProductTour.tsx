@@ -7,7 +7,7 @@ import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Sparkles, X, ArrowRight } from "lucide-react";
 
-const STORAGE_KEY = "mediaai_product_tour_v1";
+const STORAGE_KEY = "mediaai_product_tour_v2";
 const START_EVENT = "mediaai:start-tour";
 
 type Step = {
@@ -23,7 +23,7 @@ const BASE_STEPS: Step[] = [
   {
     id: "welcome",
     title: "Welcome to Media AI",
-    body: "A 60-second tour of how to find journalists, pitch, and track coverage — all from one place.",
+    body: "Take a 60-second tour of what's new — sidebar nav, workspaces, notifications, and more.",
     route: "/search",
   },
   {
@@ -35,8 +35,8 @@ const BASE_STEPS: Step[] = [
   },
   {
     id: "nav-search",
-    title: "Search is your home base",
-    body: "Every conversation is saved. Reopen previous searches, refine, and keep building your list.",
+    title: "Sidebar navigation",
+    body: "All your tools now live in a collapsible left sidebar. Search is your home base — every conversation is saved here.",
     route: "/search",
     target: "nav-search",
   },
@@ -44,7 +44,7 @@ const BASE_STEPS: Step[] = [
     id: "nav-database",
     title: "Browse the full database",
     body: "Filter 1M+ journalists and creators by beat, outlet, country, language and authority.",
-    route: "/database",
+    route: "/search",
     target: "nav-database",
     requireGrowth: true,
   },
@@ -52,7 +52,7 @@ const BASE_STEPS: Step[] = [
     id: "nav-monitor",
     title: "Monitor coverage 24/7",
     body: "Track keywords across news, blogs and podcasts. Get alerted the moment your brand is mentioned.",
-    route: "/monitor",
+    route: "/search",
     target: "nav-monitor",
   },
   {
@@ -70,9 +70,44 @@ const BASE_STEPS: Step[] = [
     target: "nav-lists",
   },
   {
+    id: "nav-export",
+    title: "One-click CSV export",
+    body: "Export any result set to CSV. You'll get a confirmation in the notifications panel when it's ready.",
+    route: "/search",
+    target: "nav-export",
+  },
+  {
+    id: "sidebar-collapse",
+    title: "Collapse the sidebar",
+    body: "Click Collapse to shrink the sidebar to icons only — more room for results when you need it.",
+    route: "/search",
+    target: "sidebar-collapse",
+  },
+  {
+    id: "buy-credits",
+    title: "Credits, settings & help",
+    body: "Top up search credits, tweak your settings, or reach support — all from the bottom of the sidebar.",
+    route: "/search",
+    target: "buy-credits",
+  },
+  {
+    id: "workspace-dropdown",
+    title: "Workspaces",
+    body: "Switch between workspaces or spin up a new one to keep client work separate. Invite teammates from Manage team.",
+    route: "/search",
+    target: "workspace-dropdown",
+  },
+  {
+    id: "notifications-bell",
+    title: "Notifications",
+    body: "New — get in-app alerts when exports finish, monitors trigger, or lists are shared with you.",
+    route: "/search",
+    target: "notifications-bell",
+  },
+  {
     id: "account",
     title: "Account & billing",
-    body: "Manage your plan, top up message credits, and invite teammates from the account menu.",
+    body: "Manage your plan, invite teammates, and replay this tour anytime from the account menu.",
     route: "/search",
     target: "account-menu",
   },
@@ -83,6 +118,7 @@ const BASE_STEPS: Step[] = [
     route: "/search",
   },
 ];
+
 
 function getTargetRect(selector?: string): DOMRect | null {
   if (!selector) return null;

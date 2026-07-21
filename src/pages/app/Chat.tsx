@@ -1146,6 +1146,7 @@ const Chat = () => {
           <div className={cn("py-3", sidebarCollapsed ? "px-2 flex justify-center" : "px-2")}>
             <button
               type="button"
+              data-tour="sidebar-collapse"
               onClick={() => setSidebarCollapsed((v) => !v)}
               className={cn(
                 "flex items-center gap-2 rounded-md text-sm text-gray-700 hover:bg-gray-100",
@@ -1161,17 +1162,18 @@ const Chat = () => {
               )}
               {!sidebarCollapsed && <span className="font-semibold text-xs">Collapse</span>}
             </button>
+
           </div>
 
           <nav className={cn("pb-2 space-y-0.5 flex-1", sidebarCollapsed ? "px-2" : "px-2")}>
-            <SidebarNavItem icon={SearchIcon} label="Search" active collapsed={sidebarCollapsed} onClick={() => navigate("/search")} />
+            <div data-tour="nav-search"><SidebarNavItem icon={SearchIcon} label="Search" active collapsed={sidebarCollapsed} onClick={() => navigate("/search")} /></div>
             {hasGrowth && (
-              <SidebarNavItem icon={Database} label="Database" collapsed={sidebarCollapsed} onClick={() => navigate("/database")} />
+              <div data-tour="nav-database"><SidebarNavItem icon={Database} label="Database" collapsed={sidebarCollapsed} onClick={() => navigate("/database")} /></div>
             )}
-            <SidebarNavItem icon={Radar} label="Monitor" collapsed={sidebarCollapsed} onClick={() => navigate("/monitor")} />
-            <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={sidebarCollapsed} />} />
-            <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={sidebarCollapsed} />} />
-            <SidebarNavItem
+            <div data-tour="nav-monitor"><SidebarNavItem icon={Radar} label="Monitor" collapsed={sidebarCollapsed} onClick={() => navigate("/monitor")} /></div>
+            <div data-tour="nav-inbox"><InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={sidebarCollapsed} />} /></div>
+            <div data-tour="nav-lists"><ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={sidebarCollapsed} />} /></div>
+            <div data-tour="nav-export"><SidebarNavItem
               icon={Download}
               label="Export"
               collapsed={sidebarCollapsed}
@@ -1193,14 +1195,16 @@ const Chat = () => {
                   })
                 );
               }}
-            />
+            /></div>
           </nav>
+
 
           <div className={cn(sidebarCollapsed ? "p-2" : "p-3")}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
+                  data-tour="buy-credits"
                   title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
                   className={cn(
                     "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
@@ -1212,6 +1216,7 @@ const Chat = () => {
                   <Sparkles className="h-[18px] w-[18px] text-gray-500" />
                   {!sidebarCollapsed && <span className="font-semibold">Buy credits</span>}
                 </button>
+
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
                 <DropdownMenuLabel className="font-normal">
