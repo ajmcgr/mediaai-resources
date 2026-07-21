@@ -740,6 +740,7 @@ const Chat = () => {
   const upsertSearch = useUpsertSavedSearch();
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
+  const renameSearch = useRenameSavedSearch();
 
   const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
 
