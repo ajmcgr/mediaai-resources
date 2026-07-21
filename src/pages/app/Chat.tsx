@@ -22,7 +22,7 @@ import {
   useTogglePinSavedSearch, useDeleteSavedSearch,
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
-import logoMedia from "@/assets/brand/logo-media-blue.png";
+
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
