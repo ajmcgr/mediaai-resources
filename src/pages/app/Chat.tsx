@@ -499,20 +499,24 @@ const SidebarNavItem = ({
   label,
   active,
   disabled,
+  collapsed,
   onClick,
 }: {
   icon: IconType;
   label: string;
   active?: boolean;
   disabled?: boolean;
+  collapsed?: boolean;
   onClick?: () => void;
 }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
+    title={collapsed ? label : undefined}
     className={cn(
-      "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+      "flex items-center rounded-lg text-sm transition-colors",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
       active
         ? "bg-gray-900 text-white hover:bg-gray-900"
         : "text-gray-700 hover:bg-gray-100",
@@ -520,22 +524,26 @@ const SidebarNavItem = ({
     )}
   >
     <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-gray-500")} />
-    <span>{label}</span>
+    {!collapsed && <span>{label}</span>}
   </button>
 );
 
 const SidebarNavButton = React.forwardRef<
   HTMLButtonElement,
-  { icon: IconType; label: string } & React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ icon: Icon, label, ...props }, ref) => (
+  { icon: IconType; label: string; collapsed?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ icon: Icon, label, collapsed, ...props }, ref) => (
   <button
     ref={ref}
     type="button"
+    title={collapsed ? label : undefined}
     {...props}
-    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+    className={cn(
+      "flex items-center rounded-lg text-sm text-gray-700 hover:bg-gray-100",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+    )}
   >
     <Icon className="h-[18px] w-[18px] text-gray-500" />
-    <span>{label}</span>
+    {!collapsed && <span>{label}</span>}
   </button>
 ));
 SidebarNavButton.displayName = "SidebarNavButton";
@@ -1134,35 +1142,39 @@ const Chat = () => {
 
       <div className="flex flex-1 min-h-0">
         {/* Primary rail */}
-        <aside className="w-52 border-r border-border bg-white flex flex-col flex-shrink-0">
-          <div className="px-2 py-3">
+        <aside className={cn("border-r border-border bg-white flex flex-col flex-shrink-0 transition-[width] duration-200", sidebarCollapsed ? "w-14" : "w-52")}>
+          <div className={cn("py-3", sidebarCollapsed ? "px-2 flex justify-center" : "px-2")}>
             <button
               type="button"
               onClick={() => setSidebarCollapsed((v) => !v)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              className={cn(
+                "flex items-center gap-2 rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                sidebarCollapsed ? "justify-center p-2" : "w-full px-2 py-1.5",
+              )}
               title={sidebarCollapsed ? "Expand" : "Collapse"}
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {sidebarCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+                <PanelLeftOpen className="h-[18px] w-[18px] text-gray-500" />
               ) : (
-                <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
+                <PanelLeftClose className="h-[18px] w-[18px] text-gray-500" />
               )}
-              <span>Collapse</span>
+              {!sidebarCollapsed && <span>Collapse</span>}
             </button>
           </div>
 
-          <nav className="px-2 pb-2 space-y-0.5 flex-1">
-            <SidebarNavItem icon={SearchIcon} label="Search" active onClick={() => navigate("/search")} />
+          <nav className={cn("pb-2 space-y-0.5 flex-1", sidebarCollapsed ? "px-2" : "px-2")}>
+            <SidebarNavItem icon={SearchIcon} label="Search" active collapsed={sidebarCollapsed} onClick={() => navigate("/search")} />
             {hasGrowth && (
-              <SidebarNavItem icon={Database} label="Database" onClick={() => navigate("/database")} />
+              <SidebarNavItem icon={Database} label="Database" collapsed={sidebarCollapsed} onClick={() => navigate("/database")} />
             )}
-            <SidebarNavItem icon={Radar} label="Monitor" onClick={() => navigate("/monitor")} />
-            <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" />} />
-            <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" />} />
+            <SidebarNavItem icon={Radar} label="Monitor" collapsed={sidebarCollapsed} onClick={() => navigate("/monitor")} />
+            <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={sidebarCollapsed} />} />
+            <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={sidebarCollapsed} />} />
             <SidebarNavItem
               icon={Download}
               label="Export"
+              collapsed={sidebarCollapsed}
               disabled={!results?.rows.length}
               onClick={() => {
                 const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
@@ -1176,20 +1188,21 @@ const Chat = () => {
             />
           </nav>
 
-          <div className="border-t border-border p-3">
+          <div className={cn("border-t border-border", sidebarCollapsed ? "p-2" : "p-3")}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
                   className={cn(
-                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                    "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                    sidebarCollapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
                     usage && usage.remaining <= 0 && "text-destructive",
                     usage && usage.remaining > 0 && usage.remaining < usage.allowance * 0.2 && "text-amber-600",
                   )}
                 >
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
-                  <span>Buy credits</span>
+                  <Sparkles className="h-[18px] w-[18px] text-gray-500" />
+                  {!sidebarCollapsed && <span>Buy credits</span>}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
@@ -1223,24 +1236,31 @@ const Chat = () => {
               <button
                 type="button"
                 onClick={() => navigate("/account")}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+                className={cn(
+                  "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                  sidebarCollapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+                )}
+                title="Settings"
               >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span>Settings</span>
+                <Settings className="h-[18px] w-[18px] text-gray-500" />
+                {!sidebarCollapsed && <span>Settings</span>}
               </button>
               <a
                 href="mailto:alex@trymedia.ai"
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+                className={cn(
+                  "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                  sidebarCollapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+                )}
+                title="Help"
               >
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                <span>Help</span>
+                <HelpCircle className="h-[18px] w-[18px] text-gray-500" />
+                {!sidebarCollapsed && <span>Help</span>}
               </a>
             </div>
           </div>
         </aside>
 
         {/* Chat history panel */}
-        {!sidebarCollapsed && (
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-3 pt-3 pb-2">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
@@ -1332,7 +1352,6 @@ const Chat = () => {
             )}
           </div>
         </aside>
-        )}
 
         <section className={`flex flex-col min-h-0 ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
