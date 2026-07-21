@@ -1360,23 +1360,44 @@ const Chat = () => {
                         >
                           <span className="truncate">{t.title || "New search"}</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!confirm("Delete this search?")) return;
-                            try {
-                              await deleteThread.mutateAsync(t.id);
-                              if (active) { activeThreadIdRef.current = null; navigate("/search"); }
-                            } catch (err) {
-                              toast.error((err as Error).message || "Could not delete");
-                            }
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                          aria-label="Delete search"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 p-1 mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              aria-label="More options"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-40">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                const current = t.title || "";
+                                const next = window.prompt("Rename search", current);
+                                if (next && next.trim() && next.trim() !== current) {
+                                  updateThread.mutate({ id: t.id, title: next.trim() });
+                                }
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" /> Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={async () => {
+                                try {
+                                  await deleteThread.mutateAsync(t.id);
+                                  if (active) { activeThreadIdRef.current = null; navigate("/search"); }
+                                } catch (err) {
+                                  toast.error((err as Error).message || "Could not delete");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </li>
                     );
                   })}
