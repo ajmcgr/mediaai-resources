@@ -17,7 +17,7 @@ type View =
   | { kind: "thread"; id: string }
   | { kind: "compose"; replyTo?: { messageId: string; to: { email: string; name?: string }[]; subject: string } };
 
-export function InboxSheet() {
+export function InboxSheet({ triggerNode }: { triggerNode?: React.ReactNode } = {}) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
   const [search, setSearch] = useState("");
