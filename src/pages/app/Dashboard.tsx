@@ -226,29 +226,29 @@ const Dashboard = () => {
   const filterDefs = tab === "journalists" ? JOURNALIST_FILTERS : CREATOR_FILTERS;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Helmet><title>Dashboard — Media AI</title></Helmet>
 
-      <AppSidebar active="database" />
+      <AppHeader
+        active="database"
+        hideNav
+        rightExtras={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            onClick={handleExportView}
+            disabled={!allRows.length}
+          >
+            Export
+          </Button>
+        }
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AppHeader
-          active="database"
-          hideNav
-          rightExtras={
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-              onClick={handleExportView}
-              disabled={!allRows.length}
-            >
-              Export
-            </Button>
-          }
-        />
+      <div className="flex flex-1 min-h-0">
+        <AppSidebar active="database" />
 
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-w-0">
         {sidebarCollapsed ? (
           <div className="border-r border-border bg-white flex-shrink-0">
             <button
