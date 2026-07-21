@@ -1146,6 +1146,7 @@ const Chat = () => {
           <div className={cn("py-3", sidebarCollapsed ? "px-2 flex justify-center" : "px-2")}>
             <button
               type="button"
+              data-tour="sidebar-collapse"
               onClick={() => setSidebarCollapsed((v) => !v)}
               className={cn(
                 "flex items-center gap-2 rounded-md text-sm text-gray-700 hover:bg-gray-100",
@@ -1161,6 +1162,7 @@ const Chat = () => {
               )}
               {!sidebarCollapsed && <span className="font-semibold text-xs">Collapse</span>}
             </button>
+
           </div>
 
           <nav className={cn("pb-2 space-y-0.5 flex-1", sidebarCollapsed ? "px-2" : "px-2")}>
