@@ -180,7 +180,7 @@ const Account = () => {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="md:hidden">
-          <AppHeader />
+          <AppHeader hideNav />
         </div>
 
         <main className="flex-1 overflow-auto px-5 py-10 md:px-10 md:py-14">

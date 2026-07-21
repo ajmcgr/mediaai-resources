@@ -163,7 +163,7 @@ export default function ContactProfile() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet><title>{contact ? `${name} | Media AI` : "Profile | Media AI"}</title></Helmet>
-      <AppHeader />
+      <AppHeader hideNav />
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" className="mb-5 -ml-2 gap-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />Back
