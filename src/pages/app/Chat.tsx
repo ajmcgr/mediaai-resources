@@ -19,7 +19,7 @@ import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   useSavedSearches, useUpsertSavedSearch,
-  useTogglePinSavedSearch, useDeleteSavedSearch,
+  useTogglePinSavedSearch, useDeleteSavedSearch, useRenameSavedSearch,
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
 
