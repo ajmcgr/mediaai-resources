@@ -75,7 +75,7 @@ export function useProfileIntelligence(kind?: ContactKind | null, id?: number | 
   });
 
   const generate = useMutation({
-    mutationFn: async (refresh = false) => {
+    mutationFn: async (refresh: boolean = false) => {
       if (!kind || !id) throw new Error("Missing profile.");
       const { data, error } = await supabase.functions.invoke("profile-intelligence", {
         body: { contact_kind: kind, contact_id: id, refresh },
