@@ -185,20 +185,20 @@ const Account = () => {
 
         <main className="flex-1 overflow-auto px-5 py-10 md:px-10 md:py-16">
           <div className="mx-auto w-full max-w-[850px]">
-            <h1 className="text-3xl font-medium tracking-tight text-slate-950 md:text-4xl">Settings</h1>
+            <h1 className="text-4xl font-medium tracking-tight text-slate-950 md:text-5xl">Settings</h1>
 
-            <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-white p-1 shadow-sm">
-              <div className="flex min-w-max items-center gap-1">
+            <div className="mt-8 flex justify-center overflow-x-auto">
+              <div className="inline-flex min-w-max items-center gap-1 rounded-full bg-slate-100 p-1">
                 {SETTINGS_TABS.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
+                      "rounded-full px-5 py-2 text-sm font-medium transition-colors",
                       activeTab === tab.id
                         ? "bg-slate-950 text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                        : "text-slate-600 hover:text-slate-950",
                     )}
                   >
                     {tab.label}
