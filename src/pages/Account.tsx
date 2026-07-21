@@ -171,19 +171,17 @@ const Account = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f7f8fb]">
+    <div className="min-h-screen bg-[#f7f8fb] flex flex-col">
       <Helmet>
         <title>Settings — Media AI</title>
       </Helmet>
 
-      <AppSidebar active="settings" />
+      <AppHeader hideNav />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="md:hidden">
-          <AppHeader hideNav />
-        </div>
+      <div className="flex flex-1 min-h-0">
+        <AppSidebar active="settings" />
 
-        <main className="flex-1 overflow-auto px-5 py-10 md:px-10 md:py-14">
+        <main className="flex-1 overflow-auto px-5 py-10 md:px-10 md:py-14 min-w-0">
           <div className="mx-auto w-full max-w-[880px]">
             <h1 className="text-[32px] font-semibold tracking-tight text-slate-950 md:text-[34px]">Settings</h1>
 
