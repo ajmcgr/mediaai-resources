@@ -32,13 +32,15 @@ export function InboxSheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-        >
-          Inbox
-        </Button>
+        {triggerNode ?? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+          >
+            Inbox
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
         <SheetHeader className="px-5 py-4 border-b border-border">
