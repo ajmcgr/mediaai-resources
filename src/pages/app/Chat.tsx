@@ -1260,98 +1260,100 @@ const Chat = () => {
           </div>
         </aside>
 
-        {/* Chat history panel */}
-        <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
-          <div className="px-3 pt-3 pb-2">
-            <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
-              <Plus className="h-3.5 w-3.5" />New
-            </Button>
-          </div>
+        {/* Chat history panel — hidden when viewing results to maximise workspace */}
+        {!results && (
+          <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
+            <div className="px-3 pt-3 pb-2">
+              <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
+                <Plus className="h-3.5 w-3.5" />New
+              </Button>
+            </div>
 
-          <div className="flex-1 overflow-auto px-2 py-2">
-            {(() => {
-              const pinned = (savedSearches.data ?? []).filter((s) => s.pinned);
-              return pinned.length > 0 ? (
-                <>
-                  <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Pinned</div>
-                  <ul className="space-y-0.5 mb-3">
-                    {pinned.map((s) => (
-                      <li key={s.id} className="group flex items-center gap-1 rounded-md hover:bg-secondary/60">
+            <div className="flex-1 overflow-auto px-2 py-2">
+              {(() => {
+                const pinned = (savedSearches.data ?? []).filter((s) => s.pinned);
+                return pinned.length > 0 ? (
+                  <>
+                    <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Pinned</div>
+                    <ul className="space-y-0.5 mb-3">
+                      {pinned.map((s) => (
+                        <li key={s.id} className="group flex items-center gap-1 rounded-md hover:bg-secondary/60">
+                          <button
+                            type="button"
+                            onClick={() => handleSend(s.query.q ?? s.name, true)}
+                            className="flex-1 text-left px-2 py-1.5 text-sm truncate flex items-center gap-1.5"
+                            title={s.query.q ?? s.name}
+                          >
+                            <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{s.name}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => togglePin.mutate({ id: s.id, pinned: false })}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground"
+                            aria-label="Unpin"
+                          >
+                            <PinOff className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteSearch.mutate(s.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null;
+              })()}
+
+              <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Recent</div>
+              {chatThreads.isLoading ? (
+                <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
+              ) : (chatThreads.data?.length ?? 0) === 0 ? (
+                <div className="px-2 py-2 text-xs text-muted-foreground">Your searches will appear here.</div>
+              ) : (
+                <ul className="space-y-0.5 mb-3">
+                  {chatThreads.data!.map((t) => {
+                    const active = t.id === threadId;
+                    return (
+                      <li key={t.id} className={`group flex items-center gap-1 rounded-md ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}>
                         <button
                           type="button"
-                          onClick={() => handleSend(s.query.q ?? s.name, true)}
-                          className="flex-1 text-left px-2 py-1.5 text-sm truncate flex items-center gap-1.5"
-                          title={s.query.q ?? s.name}
+                          onClick={() => navigate(`/search/${t.id}`)}
+                          className="flex-1 text-left px-2 py-1.5 text-sm truncate"
+                          title={t.title}
                         >
-                          <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{s.name}</span>
+                          <span className="truncate">{t.title || "New search"}</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => togglePin.mutate({ id: s.id, pinned: false })}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground"
-                          aria-label="Unpin"
-                        >
-                          <PinOff className="h-3 w-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteSearch.mutate(s.id)}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm("Delete this search?")) return;
+                            try {
+                              await deleteThread.mutateAsync(t.id);
+                              if (active) { activeThreadIdRef.current = null; navigate("/search"); }
+                            } catch (err) {
+                              toast.error((err as Error).message || "Could not delete");
+                            }
+                          }}
                           className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                          aria-label="Delete"
+                          aria-label="Delete search"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null;
-            })()}
-
-            <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Recent</div>
-            {chatThreads.isLoading ? (
-              <div className="px-2 py-2 text-xs text-muted-foreground">Loading…</div>
-            ) : (chatThreads.data?.length ?? 0) === 0 ? (
-              <div className="px-2 py-2 text-xs text-muted-foreground">Your searches will appear here.</div>
-            ) : (
-              <ul className="space-y-0.5 mb-3">
-                {chatThreads.data!.map((t) => {
-                  const active = t.id === threadId;
-                  return (
-                    <li key={t.id} className={`group flex items-center gap-1 rounded-md ${active ? "bg-secondary" : "hover:bg-secondary/60"}`}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/search/${t.id}`)}
-                        className="flex-1 text-left px-2 py-1.5 text-sm truncate"
-                        title={t.title}
-                      >
-                        <span className="truncate">{t.title || "New search"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm("Delete this search?")) return;
-                          try {
-                            await deleteThread.mutateAsync(t.id);
-                            if (active) { activeThreadIdRef.current = null; navigate("/search"); }
-                          } catch (err) {
-                            toast.error((err as Error).message || "Could not delete");
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                        aria-label="Delete search"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </aside>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </aside>
+        )}
 
         <section className={`flex flex-col min-h-0 ${results ? "w-[440px] border-r border-border" : "flex-1 items-center"}`}>
           <div ref={scrollRef} className={`flex-1 overflow-auto w-full ${results ? "px-4 py-6" : "max-w-2xl px-6 py-12"}`}>
