@@ -47,7 +47,7 @@ const getInitialTab = (): SettingsTab => {
 };
 
 const SettingsCard = ({ children, className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-  <section {...props} className={cn("rounded-2xl border border-border bg-white p-6 shadow-sm md:p-7", className)}>
+  <section {...props} className={cn("rounded-xl border border-slate-200/70 bg-white p-6 md:p-8", className)}>
     {children}
   </section>
 );
