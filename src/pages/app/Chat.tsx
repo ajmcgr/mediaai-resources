@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Database, Download, HelpCircle, Inbox as InboxIcon, ListChecks, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Radar, Search as SearchIcon, Settings, Sparkles, ThumbsDown, ThumbsUp, Trash2, Zap } from "lucide-react";
+import { ArrowUp, Database, Download, HelpCircle, Inbox as InboxIcon, ListChecks, Loader2, MessageSquare, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Pin, PinOff, Plus, Radar, Search as SearchIcon, Settings, Sparkles, ThumbsDown, ThumbsUp, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,7 @@ import { BulkAddToListBar } from "@/components/dashboard/BulkAddToListBar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   useSavedSearches, useUpsertSavedSearch,
-  useTogglePinSavedSearch, useDeleteSavedSearch,
+  useTogglePinSavedSearch, useDeleteSavedSearch, useRenameSavedSearch,
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
 
@@ -740,6 +740,7 @@ const Chat = () => {
   const upsertSearch = useUpsertSavedSearch();
   const togglePin = useTogglePinSavedSearch();
   const deleteSearch = useDeleteSavedSearch();
+  const renameSearch = useRenameSavedSearch();
 
   const { usage, applyServerUsage, refresh: refreshUsage } = useChatUsage();
 
@@ -1300,22 +1301,39 @@ const Chat = () => {
                             <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                             <span className="truncate">{s.name}</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => togglePin.mutate({ id: s.id, pinned: false })}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground"
-                            aria-label="Unpin"
-                          >
-                            <PinOff className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteSearch.mutate(s.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => e.stopPropagation()}
+                                className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 p-1 mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                aria-label="More options"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-40">
+                              <DropdownMenuItem onSelect={() => togglePin.mutate({ id: s.id, pinned: false })}>
+                                <PinOff className="h-4 w-4 mr-2" /> Unpin
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  const next = window.prompt("Rename search", s.name);
+                                  if (next && next.trim() && next.trim() !== s.name) {
+                                    renameSearch.mutate({ id: s.id, name: next.trim() });
+                                  }
+                                }}
+                              >
+                                <Pencil className="h-4 w-4 mr-2" /> Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => deleteSearch.mutate(s.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </li>
                       ))}
                     </ul>
@@ -1342,23 +1360,44 @@ const Chat = () => {
                         >
                           <span className="truncate">{t.title || "New search"}</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!confirm("Delete this search?")) return;
-                            try {
-                              await deleteThread.mutateAsync(t.id);
-                              if (active) { activeThreadIdRef.current = null; navigate("/search"); }
-                            } catch (err) {
-                              toast.error((err as Error).message || "Could not delete");
-                            }
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                          aria-label="Delete search"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 p-1 mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              aria-label="More options"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-40">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                const current = t.title || "";
+                                const next = window.prompt("Rename search", current);
+                                if (next && next.trim() && next.trim() !== current) {
+                                  updateThread.mutate({ id: t.id, title: next.trim() });
+                                }
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" /> Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={async () => {
+                                try {
+                                  await deleteThread.mutateAsync(t.id);
+                                  if (active) { activeThreadIdRef.current = null; navigate("/search"); }
+                                } catch (err) {
+                                  toast.error((err as Error).message || "Could not delete");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </li>
                     );
                   })}

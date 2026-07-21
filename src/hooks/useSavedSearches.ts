@@ -82,6 +82,20 @@ export const useTogglePinSavedSearch = () => {
   });
 };
 
+export const useRenameSavedSearch = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("saved_searches")
+        .update({ name: input.name })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
+  });
+};
+
 export const useDeleteSavedSearch = () => {
   const qc = useQueryClient();
   return useMutation({
