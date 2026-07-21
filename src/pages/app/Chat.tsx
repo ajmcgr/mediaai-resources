@@ -1133,35 +1133,26 @@ const Chat = () => {
 
 
       <div className="flex flex-1 min-h-0">
-        {sidebarCollapsed ? (
-          <div className="border-r border-border bg-white flex-shrink-0">
+        {/* Primary rail */}
+        <aside className="w-52 border-r border-border bg-white flex flex-col flex-shrink-0">
+          <div className="px-2 py-3">
             <button
               type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              className="p-2 m-2 rounded-md hover:bg-secondary text-muted-foreground"
-              title="Expand sidebar"
-              aria-label="Expand sidebar"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              title={sidebarCollapsed ? "Expand" : "Collapse"}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <PanelLeftOpen className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-        <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chats</span>
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(true)}
-              className="p-1 rounded-md hover:bg-secondary text-muted-foreground"
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose className="h-4 w-4" />
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span>Collapse</span>
             </button>
           </div>
 
-          {/* Primary nav */}
-          <nav className="px-2 pb-2 space-y-0.5">
+          <nav className="px-2 pb-2 space-y-0.5 flex-1">
             <SidebarNavItem icon={SearchIcon} label="Search" active onClick={() => navigate("/search")} />
             {hasGrowth && (
               <SidebarNavItem icon={Database} label="Database" onClick={() => navigate("/database")} />
@@ -1185,8 +1176,72 @@ const Chat = () => {
             />
           </nav>
 
-          <div className="border-t border-border mx-2" />
+          <div className="border-t border-border p-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100",
+                    usage && usage.remaining <= 0 && "text-destructive",
+                    usage && usage.remaining > 0 && usage.remaining < usage.allowance * 0.2 && "text-amber-600",
+                  )}
+                >
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <span>Buy credits</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-64">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more search credits"}</div>
+                  <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k credits</span>
+                  <span className="text-xs text-muted-foreground">$10</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k credits</span>
+                  <span className="text-xs text-muted-foreground">$40</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M credits</span>
+                  <span className="text-xs text-muted-foreground">$120</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
+                  Or upgrade your plan →
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="text-xs text-muted-foreground">
+                  <a href="mailto:alex@trymedia.ai">Support</a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="mt-0.5 space-y-0.5">
+              <button
+                type="button"
+                onClick={() => navigate("/account")}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span>Settings</span>
+              </button>
+              <a
+                href="mailto:alex@trymedia.ai"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Help</span>
+              </a>
+            </div>
+          </div>
+        </aside>
 
+        {/* Chat history panel */}
+        {!sidebarCollapsed && (
+        <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-3 pt-3 pb-2">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
               <Plus className="h-3.5 w-3.5" />New
@@ -1275,66 +1330,6 @@ const Chat = () => {
                 })}
               </ul>
             )}
-          </div>
-
-          <div className="border-t border-border p-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
-                  className={`w-full justify-center gap-1.5 ${usage && usage.remaining <= 0 ? "text-destructive border-destructive/40" : usage && usage.remaining < usage.allowance * 0.2 ? "text-amber-600 border-amber-300" : ""}`}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Buy credits
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="top" className="w-64">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="text-xs text-muted-foreground">{usage ? `${usage.remaining.toLocaleString()} credits left` : "Buy more search credits"}</div>
-                  <div className="text-[11px] text-muted-foreground/70">One-time top-up, never expires</div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => buyTokens("small")} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />100k credits</span>
-                  <span className="text-xs text-muted-foreground">$10</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => buyTokens("medium")} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />500k credits</span>
-                  <span className="text-xs text-muted-foreground">$40</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => buyTokens("large")} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2"><Zap className="h-3.5 w-3.5" />2M credits</span>
-                  <span className="text-xs text-muted-foreground">$120</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navigate("/pricing")} className="text-xs text-muted-foreground">
-                  Or upgrade your plan →
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="text-xs text-muted-foreground">
-                  <a href="mailto:alex@trymedia.ai">Support</a>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="mt-1 space-y-0.5">
-              <button
-                type="button"
-                onClick={() => navigate("/account")}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span>Settings</span>
-              </button>
-              <a
-                href="mailto:alex@trymedia.ai"
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                <span>Help</span>
-              </a>
-            </div>
           </div>
         </aside>
         )}
