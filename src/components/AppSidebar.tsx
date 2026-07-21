@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Database, Download, HelpCircle, Inbox as InboxIcon, ListChecks,
   PanelLeftClose, PanelLeftOpen, Radar, Search as SearchIcon, Settings, Sparkles,
@@ -8,6 +8,7 @@ import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { useSubscription } from "@/hooks/useSubscription";
+import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { cn } from "@/lib/utils";
 
 type AppSidebarProps = {
