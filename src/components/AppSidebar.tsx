@@ -81,7 +81,7 @@ export default function AppSidebar({ active }: AppSidebarProps) {
       collapsed ? "w-14" : "w-52",
     )}>
       <div className={cn(
-        "h-14 flex items-center",
+        "h-14 flex items-center border-b border-border",
         collapsed ? "justify-center px-2" : "px-4",
       )}>
         <NavLink to={hasGrowth ? "/database" : "/search"} className="flex items-center">
