@@ -33,6 +33,7 @@ import { toCsv, downloadCsv } from "@/lib/csv";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 import AppHeader from "@/components/AppHeader";
+import AppSidebar from "@/components/AppSidebar";
 
 type Tab = "journalists" | "creators";
 
