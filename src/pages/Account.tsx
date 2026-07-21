@@ -178,10 +178,10 @@ const Account = () => {
 
       <AppHeader hideNav />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1">
         <AppSidebar active="settings" />
 
-        <main className="flex-1 overflow-auto px-5 py-10 md:px-10 md:py-14 min-w-0">
+        <main className="flex-1 px-5 py-10 md:px-10 md:py-14 min-w-0">
           <div className="mx-auto w-full max-w-[880px]">
             <h1 className="text-[32px] font-semibold tracking-tight text-slate-950 md:text-[34px]">Settings</h1>
 
