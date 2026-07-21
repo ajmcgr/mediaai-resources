@@ -1204,6 +1204,7 @@ const Chat = () => {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
+                  data-tour="buy-credits"
                   title={usage ? `${usage.used.toLocaleString()} / ${usage.allowance.toLocaleString()} monthly credits used${usage.credits > 0 ? ` · ${usage.credits.toLocaleString()} top-up credits` : ""}` : "Buy search credits"}
                   className={cn(
                     "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
@@ -1215,6 +1216,7 @@ const Chat = () => {
                   <Sparkles className="h-[18px] w-[18px] text-gray-500" />
                   {!sidebarCollapsed && <span className="font-semibold">Buy credits</span>}
                 </button>
+
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-64">
                 <DropdownMenuLabel className="font-normal">
