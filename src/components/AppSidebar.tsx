@@ -80,15 +80,6 @@ export default function AppSidebar({ active }: AppSidebarProps) {
       "hidden md:flex h-screen sticky top-0 border-r border-border bg-white flex-col flex-shrink-0 transition-[width] duration-200",
       collapsed ? "w-14" : "w-52",
     )}>
-      <div className={cn(
-        "h-14 flex items-center border-b border-border",
-        collapsed ? "justify-center px-2" : "px-4",
-      )}>
-        <NavLink to={hasGrowth ? "/database" : "/search"} className="flex items-center">
-          <img src={logoMedia} alt="Media AI" className={cn(collapsed ? "h-5 w-5 object-contain object-left" : "h-5")} />
-        </NavLink>
-      </div>
-
       <div className={cn("py-3", collapsed ? "px-2 flex justify-center" : "px-2")}>
         <button
           type="button"
