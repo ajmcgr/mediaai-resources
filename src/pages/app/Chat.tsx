@@ -512,14 +512,14 @@ const SidebarNavItem = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+      "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
       active
         ? "bg-gray-900 text-white hover:bg-gray-900"
         : "text-gray-700 hover:bg-gray-100",
       disabled && "opacity-40 cursor-not-allowed hover:bg-transparent",
     )}
   >
-    <Icon className={cn("h-4 w-4", active ? "text-white" : "text-muted-foreground")} />
+    <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-gray-500")} />
     <span>{label}</span>
   </button>
 );
