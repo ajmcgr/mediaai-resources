@@ -1144,7 +1144,7 @@ const Chat = () => {
         {/* Primary rail */}
         <aside className={cn("border-r border-border bg-white flex flex-col flex-shrink-0 transition-[width] duration-200", sidebarCollapsed ? "w-14" : "w-52")}>
           <div className={cn(
-            "h-14 flex items-center border-b border-border",
+            "h-14 flex items-center",
             sidebarCollapsed ? "justify-center px-2" : "px-4",
           )}>
             <button type="button" onClick={() => navigate(hasGrowth ? "/database" : "/search")} className="flex items-center" aria-label="Home">
