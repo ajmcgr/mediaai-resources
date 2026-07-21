@@ -1260,8 +1260,8 @@ const Chat = () => {
           </div>
         </aside>
 
-        {/* Chat history panel — hidden when viewing results to maximise workspace */}
-        {!results && (
+        {/* Chat history panel — hidden the moment a search runs or when viewing results */}
+        {!results && !loading && (
           <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
             <div className="px-3 pt-3 pb-2">
               <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
