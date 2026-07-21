@@ -186,14 +186,14 @@ const Account = () => {
             <h1 className="text-[32px] font-semibold tracking-tight text-slate-950 md:text-[34px]">Settings</h1>
 
             <div className="mt-6 flex overflow-x-auto">
-              <div className="inline-flex min-w-max items-center gap-0.5 rounded-full bg-slate-100/80 p-1">
+              <div className="inline-flex min-w-max items-center gap-0.5 rounded-md bg-slate-100/80 p-1">
                 {SETTINGS_TABS.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors",
+                      "rounded-md px-4 py-1.5 text-[13px] font-medium transition-colors",
                       activeTab === tab.id
                         ? "bg-slate-900 text-white shadow-sm"
                         : "text-slate-600 hover:text-slate-900",
@@ -212,7 +212,7 @@ const Account = () => {
                   <p className="mt-1 text-sm text-muted-foreground">Your signed-in Media AI profile.</p>
 
                   <div className="mt-7 flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-slate-100 text-sm font-semibold text-slate-700">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-slate-100 text-sm font-semibold text-slate-700">
                       {user?.email?.slice(0, 2).toUpperCase() || "AI"}
                     </div>
                     <div>
@@ -249,7 +249,7 @@ const Account = () => {
                           required
                         />
                       </div>
-                      <Button type="submit" disabled={pwSaving} className="rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800">
+                      <Button type="submit" disabled={pwSaving} className="rounded-md bg-slate-950 px-6 text-white hover:bg-slate-800">
                         {pwSaving ? "Updating…" : "Save profile"}
                       </Button>
                     </form>
@@ -272,7 +272,7 @@ const Account = () => {
                         <div className="mt-1 text-sm text-muted-foreground">Gmail and Outlook connections are managed in Inbox.</div>
                       </div>
                       <InboxSheet
-                        triggerClassName="inline-flex h-10 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+                        triggerClassName="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
                         triggerChildren="Open inbox settings"
                       />
                     </div>
@@ -303,7 +303,7 @@ const Account = () => {
                         <div className="font-semibold text-slate-950">Product tour</div>
                         <p className="mt-1 text-sm text-muted-foreground">Replay the guided walkthrough of Media AI.</p>
                       </div>
-                      <Button variant="outline" className="rounded-full" onClick={() => startProductTour()}>
+                      <Button variant="outline" className="rounded-md" onClick={() => startProductTour()}>
                         Replay tour
                       </Button>
                     </div>
@@ -312,7 +312,7 @@ const Account = () => {
                         <div className="font-semibold text-slate-950">Session</div>
                         <p className="mt-1 text-sm text-muted-foreground">Sign out of this browser.</p>
                       </div>
-                      <Button variant="outline" className="rounded-full" onClick={handleSignOut}>
+                      <Button variant="outline" className="rounded-md" onClick={handleSignOut}>
                         Sign out
                       </Button>
                     </div>
@@ -349,14 +349,14 @@ const Account = () => {
                             </div>
                           )}
                         </dl>
-                        <Button className="mt-7 rounded-full px-6" onClick={handleManage} disabled={opening}>
+                        <Button className="mt-7 rounded-md px-6" onClick={handleManage} disabled={opening}>
                           {opening ? "Opening…" : "Manage billing"}
                         </Button>
                       </>
                     ) : (
                       <>
                         <p className="mt-4 text-sm text-muted-foreground">You don't have an active subscription.</p>
-                        <Button className="mt-5 rounded-full px-6" onClick={() => navigate("/pricing")}>View plans</Button>
+                        <Button className="mt-5 rounded-md px-6" onClick={() => navigate("/pricing")}>View plans</Button>
                       </>
                     )}
                   </div>
