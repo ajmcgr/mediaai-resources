@@ -63,7 +63,7 @@ export default function Relevance() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet><title>Search Quality — Media AI</title></Helmet>
-      <AppHeader />
+      <AppHeader hideNav />
       <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
