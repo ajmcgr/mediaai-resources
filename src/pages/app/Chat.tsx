@@ -22,7 +22,7 @@ import {
   useTogglePinSavedSearch, useDeleteSavedSearch,
 } from "@/hooks/useSavedSearches";
 import { toCsv, downloadCsv } from "@/lib/csv";
-import logoMedia from "@/assets/brand/logo-media-blue.png";
+
 import { useChatUsage } from "@/hooks/useChatUsage";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -1143,14 +1143,6 @@ const Chat = () => {
       <div className="flex flex-1 min-h-0">
         {/* Primary rail */}
         <aside className={cn("border-r border-border bg-white flex flex-col flex-shrink-0 transition-[width] duration-200", sidebarCollapsed ? "w-14" : "w-52")}>
-          <div className={cn(
-            "h-14 flex items-center border-b border-border",
-            sidebarCollapsed ? "justify-center px-2" : "px-4",
-          )}>
-            <button type="button" onClick={() => navigate(hasGrowth ? "/database" : "/search")} className="flex items-center" aria-label="Home">
-              <img src={logoMedia} alt="Media AI" className={cn(sidebarCollapsed ? "h-5 w-5 object-contain object-left" : "h-5")} />
-            </button>
-          </div>
           <div className={cn("py-3", sidebarCollapsed ? "px-2 flex justify-center" : "px-2")}>
             <button
               type="button"
