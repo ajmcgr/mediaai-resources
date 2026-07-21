@@ -33,6 +33,7 @@ import { toCsv, downloadCsv } from "@/lib/csv";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 import AppHeader from "@/components/AppHeader";
+import AppSidebar from "@/components/AppSidebar";
 
 type Tab = "journalists" | "creators";
 
@@ -225,25 +226,29 @@ const Dashboard = () => {
   const filterDefs = tab === "journalists" ? JOURNALIST_FILTERS : CREATOR_FILTERS;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex min-h-screen bg-background">
       <Helmet><title>Dashboard — Media AI</title></Helmet>
 
-      <AppHeader
-        active="database"
-        rightExtras={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-            onClick={handleExportView}
-            disabled={!allRows.length}
-          >
-            Export
-          </Button>
-        }
-      />
+      <AppSidebar active="database" />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader
+          active="database"
+          hideNav
+          rightExtras={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+              onClick={handleExportView}
+              disabled={!allRows.length}
+            >
+              Export
+            </Button>
+          }
+        />
+
+        <div className="flex flex-1 min-h-0">
         {sidebarCollapsed ? (
           <div className="border-r border-border bg-white flex-shrink-0">
             <button
@@ -501,13 +506,14 @@ const Dashboard = () => {
             </div>
           )}
         </main>
+        </div>
+        <BulkAddToListBar
+          count={selectedIds.size}
+          journalistIds={tab === "journalists" ? Array.from(selectedIds) : undefined}
+          creatorIds={tab === "creators" ? Array.from(selectedIds) : undefined}
+          onClear={() => setSelectedIds(new Set())}
+        />
       </div>
-      <BulkAddToListBar
-        count={selectedIds.size}
-        journalistIds={tab === "journalists" ? Array.from(selectedIds) : undefined}
-        creatorIds={tab === "creators" ? Array.from(selectedIds) : undefined}
-        onClear={() => setSelectedIds(new Set())}
-      />
     </div>
   );
 };
