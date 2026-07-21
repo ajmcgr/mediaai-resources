@@ -7,6 +7,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
+import WorkspaceDropdown from "@/components/WorkspaceDropdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
@@ -83,6 +84,7 @@ export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderPro
       </div>
 
       <div className="flex items-center gap-2">
+        <WorkspaceDropdown />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" data-tour="account-menu" className="ml-1 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1" aria-label="Account menu">
