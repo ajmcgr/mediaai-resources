@@ -1253,7 +1253,7 @@ const Chat = () => {
         </aside>
 
         {/* Chat history panel */}
-        {(
+        {
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-3 pt-3 pb-2">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
