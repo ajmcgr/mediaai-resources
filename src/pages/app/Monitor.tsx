@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import AppHeader from "@/components/AppHeader";
+import AppSidebar from "@/components/AppSidebar";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, BarChart, Bar,
