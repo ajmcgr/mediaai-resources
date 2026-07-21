@@ -1164,14 +1164,14 @@ const Chat = () => {
           </div>
 
           <nav className={cn("pb-2 space-y-0.5 flex-1", sidebarCollapsed ? "px-2" : "px-2")}>
-            <SidebarNavItem icon={SearchIcon} label="Search" active collapsed={sidebarCollapsed} onClick={() => navigate("/search")} />
+            <div data-tour="nav-search"><SidebarNavItem icon={SearchIcon} label="Search" active collapsed={sidebarCollapsed} onClick={() => navigate("/search")} /></div>
             {hasGrowth && (
-              <SidebarNavItem icon={Database} label="Database" collapsed={sidebarCollapsed} onClick={() => navigate("/database")} />
+              <div data-tour="nav-database"><SidebarNavItem icon={Database} label="Database" collapsed={sidebarCollapsed} onClick={() => navigate("/database")} /></div>
             )}
-            <SidebarNavItem icon={Radar} label="Monitor" collapsed={sidebarCollapsed} onClick={() => navigate("/monitor")} />
-            <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={sidebarCollapsed} />} />
-            <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={sidebarCollapsed} />} />
-            <SidebarNavItem
+            <div data-tour="nav-monitor"><SidebarNavItem icon={Radar} label="Monitor" collapsed={sidebarCollapsed} onClick={() => navigate("/monitor")} /></div>
+            <div data-tour="nav-inbox"><InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={sidebarCollapsed} />} /></div>
+            <div data-tour="nav-lists"><ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={sidebarCollapsed} />} /></div>
+            <div data-tour="nav-export"><SidebarNavItem
               icon={Download}
               label="Export"
               collapsed={sidebarCollapsed}
@@ -1193,8 +1193,9 @@ const Chat = () => {
                   })
                 );
               }}
-            />
+            /></div>
           </nav>
+
 
           <div className={cn(sidebarCollapsed ? "p-2" : "p-3")}>
             <DropdownMenu>
