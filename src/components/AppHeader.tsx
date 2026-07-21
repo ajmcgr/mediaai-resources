@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 type AppHeaderProps = {
   active?: "search" | "database" | "monitor";
   rightExtras?: ReactNode;
+  hideNav?: boolean;
 };
 
 const pillBase = "font-medium text-sm px-3 py-2 h-auto";
@@ -49,7 +50,7 @@ function PillNavButton({
 }
 
 
-export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
+export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { planIdentifier } = useSubscription();
@@ -67,16 +68,18 @@ export default function AppHeader({ active, rightExtras }: AppHeaderProps) {
         <NavLink to={hasGrowth ? "/database" : "/search"} className="flex items-center">
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <PillNavButton to="/search" dataTour="nav-search">Search</PillNavButton>
-          {hasGrowth && (
-            <PillNavButton to="/database" dataTour="nav-database">Database</PillNavButton>
-          )}
-          <PillNavButton to="/monitor" dataTour="nav-monitor">Monitor</PillNavButton>
-          <span data-tour="nav-inbox" className="inline-flex"><InboxSheet /></span>
-          <span data-tour="nav-lists" className="inline-flex"><ListsSheet /></span>
-          {rightExtras}
-        </div>
+        {!hideNav && (
+          <div className="flex items-center gap-1 sm:gap-2">
+            <PillNavButton to="/search" dataTour="nav-search">Search</PillNavButton>
+            {hasGrowth && (
+              <PillNavButton to="/database" dataTour="nav-database">Database</PillNavButton>
+            )}
+            <PillNavButton to="/monitor" dataTour="nav-monitor">Monitor</PillNavButton>
+            <span data-tour="nav-inbox" className="inline-flex"><InboxSheet /></span>
+            <span data-tour="nav-lists" className="inline-flex"><ListsSheet /></span>
+            {rightExtras}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

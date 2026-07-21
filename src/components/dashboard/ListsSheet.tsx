@@ -14,7 +14,7 @@ import { toCsv, downloadCsv } from "@/lib/csv";
 import { toast } from "@/hooks/use-toast";
 import { ShareListDialog } from "./ShareListDialog";
 
-export const ListsSheet = () => {
+export const ListsSheet = ({ triggerNode }: { triggerNode?: React.ReactNode } = {}) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -67,13 +67,15 @@ export const ListsSheet = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-        >
-          Lists
-        </Button>
+        {triggerNode ?? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-medium text-sm px-3 py-2 h-auto rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+          >
+            Lists
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>

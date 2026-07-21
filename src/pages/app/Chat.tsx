@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Database, Download, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Sparkles, ThumbsDown, ThumbsUp, Trash2, Zap } from "lucide-react";
+import { ArrowUp, Database, Download, HelpCircle, Inbox as InboxIcon, ListChecks, Loader2, MessageSquare, PanelLeftClose, PanelLeftOpen, Pin, PinOff, Plus, Radar, Search as SearchIcon, Settings, Sparkles, ThumbsDown, ThumbsUp, Trash2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +37,9 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { ContactProfileSheet } from "@/components/search/ContactProfileSheet";
 import { MatchExplanationPopover } from "@/components/search/MatchExplanation";
+import { useSubscription } from "@/hooks/useSubscription";
+import { isGrowthPlanIdentifier } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string; ts?: string };
 
@@ -489,9 +492,59 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
   return base;
 }
 
+type IconType = React.ComponentType<{ className?: string }>;
+
+const SidebarNavItem = ({
+  icon: Icon,
+  label,
+  active,
+  disabled,
+  onClick,
+}: {
+  icon: IconType;
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+      active
+        ? "bg-gray-900 text-white hover:bg-gray-900"
+        : "text-gray-700 hover:bg-gray-100",
+      disabled && "opacity-40 cursor-not-allowed hover:bg-transparent",
+    )}
+  >
+    <Icon className={cn("h-4 w-4", active ? "text-white" : "text-muted-foreground")} />
+    <span>{label}</span>
+  </button>
+);
+
+const SidebarNavButton = React.forwardRef<
+  HTMLButtonElement,
+  { icon: IconType; label: string } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ icon: Icon, label, ...props }, ref) => (
+  <button
+    ref={ref}
+    type="button"
+    {...props}
+    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+  >
+    <Icon className="h-4 w-4 text-muted-foreground" />
+    <span>{label}</span>
+  </button>
+));
+SidebarNavButton.displayName = "SidebarNavButton";
+
 const Chat = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { planIdentifier } = useSubscription();
+  const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
   const { threadId } = useParams<{ threadId?: string }>();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
@@ -1076,28 +1129,7 @@ const Chat = () => {
     <div className="h-screen bg-chat flex flex-col overflow-hidden">
       <Helmet><title>Search — Media AI</title></Helmet>
 
-      <AppHeader
-        active="search"
-        rightExtras={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="font-medium text-sm px-3 py-2 h-auto rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-            disabled={!results?.rows.length}
-            onClick={() => {
-              const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
-              if (!rows.length) return;
-              const headers = Object.keys(rows[0]);
-              import("@/lib/audit").then(({ logWorkspaceEvent }) =>
-                logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
-              );
-              downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
-            }}
-          >
-            Export
-          </Button>
-        }
-      />
+      <AppHeader active="search" hideNav />
 
 
       <div className="flex flex-1 min-h-0">
@@ -1116,7 +1148,7 @@ const Chat = () => {
         ) : (
         <aside className="w-60 border-r border-border bg-white flex flex-col flex-shrink-0">
           <div className="px-4 py-3 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Searches</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Chats</span>
             <button
               type="button"
               onClick={() => setSidebarCollapsed(true)}
@@ -1127,11 +1159,40 @@ const Chat = () => {
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
-          <div className="px-3 pb-3">
+
+          {/* Primary nav */}
+          <nav className="px-2 pb-2 space-y-0.5">
+            <SidebarNavItem icon={SearchIcon} label="Search" active onClick={() => navigate("/search")} />
+            {hasGrowth && (
+              <SidebarNavItem icon={Database} label="Database" onClick={() => navigate("/database")} />
+            )}
+            <SidebarNavItem icon={Radar} label="Monitor" onClick={() => navigate("/monitor")} />
+            <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" />} />
+            <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" />} />
+            <SidebarNavItem
+              icon={Download}
+              label="Export"
+              disabled={!results?.rows.length}
+              onClick={() => {
+                const rows = (results?.rows ?? []).map((row) => ({ ...row, category: topicValue(row, lastQuery) })) as Record<string, unknown>[];
+                if (!rows.length) return;
+                const headers = Object.keys(rows[0]);
+                import("@/lib/audit").then(({ logWorkspaceEvent }) =>
+                  logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
+                );
+                downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
+              }}
+            />
+          </nav>
+
+          <div className="border-t border-border mx-2" />
+
+          <div className="px-3 pt-3 pb-2">
             <Button variant="outline" size="sm" className="w-full justify-center gap-1.5" onClick={newChat}>
               <Plus className="h-3.5 w-3.5" />New
             </Button>
           </div>
+
           <div className="flex-1 overflow-auto px-2 py-2">
             {(() => {
               const pinned = (savedSearches.data ?? []).filter((s) => s.pinned);
@@ -1257,6 +1318,23 @@ const Chat = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="mt-1 space-y-0.5">
+              <button
+                type="button"
+                onClick={() => navigate("/account")}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span>Settings</span>
+              </button>
+              <a
+                href="mailto:alex@trymedia.ai"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Help</span>
+              </a>
+            </div>
           </div>
         </aside>
         )}
