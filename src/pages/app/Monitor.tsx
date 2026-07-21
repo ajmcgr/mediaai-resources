@@ -234,12 +234,15 @@ const Monitor = () => {
   const handleSignOut = async () => { await signOut(); navigate("/"); };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex min-h-screen bg-background">
       <Helmet><title>Keyword Monitor — Media AI</title></Helmet>
 
-      <AppHeader active="monitor" />
+      <AppSidebar active="monitor" />
 
-      <main className="flex-1 overflow-auto">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader active="monitor" hideNav />
+
+        <main className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto p-6 space-y-8">
           {/* Title + trust row */}
           <section>
