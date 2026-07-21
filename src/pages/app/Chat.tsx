@@ -37,6 +37,9 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { ContactProfileSheet } from "@/components/search/ContactProfileSheet";
 import { MatchExplanationPopover } from "@/components/search/MatchExplanation";
+import { useSubscription } from "@/hooks/useSubscription";
+import { isGrowthPlanIdentifier } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string; ts?: string };
 
