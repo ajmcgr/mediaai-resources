@@ -25,11 +25,11 @@ export default function NotificationsBell() {
         <button
           type="button"
           aria-label="Notifications"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          className="relative inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
         >
-          <Bell className="h-4.5 w-4.5" />
+          <Bell className="h-4 w-4" />
           {unread > 0 && (
-            <span className="absolute top-1.5 right-1.5 inline-flex h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
+            <span className="absolute top-1 right-1 inline-flex h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
           )}
         </button>
       </DropdownMenuTrigger>
