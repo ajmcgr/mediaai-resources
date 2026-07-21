@@ -532,9 +532,9 @@ const SidebarNavButton = React.forwardRef<
     ref={ref}
     type="button"
     {...props}
-    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
   >
-    <Icon className="h-4 w-4 text-muted-foreground" />
+    <Icon className="h-[18px] w-[18px] text-gray-500" />
     <span>{label}</span>
   </button>
 ));
