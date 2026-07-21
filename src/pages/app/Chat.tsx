@@ -499,20 +499,24 @@ const SidebarNavItem = ({
   label,
   active,
   disabled,
+  collapsed,
   onClick,
 }: {
   icon: IconType;
   label: string;
   active?: boolean;
   disabled?: boolean;
+  collapsed?: boolean;
   onClick?: () => void;
 }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
+    title={collapsed ? label : undefined}
     className={cn(
-      "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+      "flex items-center rounded-lg text-sm transition-colors",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
       active
         ? "bg-gray-900 text-white hover:bg-gray-900"
         : "text-gray-700 hover:bg-gray-100",
@@ -520,22 +524,26 @@ const SidebarNavItem = ({
     )}
   >
     <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-gray-500")} />
-    <span>{label}</span>
+    {!collapsed && <span>{label}</span>}
   </button>
 );
 
 const SidebarNavButton = React.forwardRef<
   HTMLButtonElement,
-  { icon: IconType; label: string } & React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ icon: Icon, label, ...props }, ref) => (
+  { icon: IconType; label: string; collapsed?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ icon: Icon, label, collapsed, ...props }, ref) => (
   <button
     ref={ref}
     type="button"
+    title={collapsed ? label : undefined}
     {...props}
-    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+    className={cn(
+      "flex items-center rounded-lg text-sm text-gray-700 hover:bg-gray-100",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+    )}
   >
     <Icon className="h-[18px] w-[18px] text-gray-500" />
-    <span>{label}</span>
+    {!collapsed && <span>{label}</span>}
   </button>
 ));
 SidebarNavButton.displayName = "SidebarNavButton";
