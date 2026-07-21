@@ -77,7 +77,7 @@ export default function AppSidebar({ active }: AppSidebarProps) {
 
   return (
     <aside className={cn(
-      "hidden md:flex border-r border-border bg-white flex-col flex-shrink-0 transition-[width] duration-200",
+      "hidden md:flex h-screen sticky top-0 border-r border-border bg-white flex-col flex-shrink-0 transition-[width] duration-200",
       collapsed ? "w-14" : "w-52",
     )}>
       <div className={cn(
