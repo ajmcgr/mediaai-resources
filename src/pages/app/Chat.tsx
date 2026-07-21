@@ -1159,7 +1159,7 @@ const Chat = () => {
               ) : (
                 <PanelLeftClose className="h-[18px] w-[18px] text-gray-500" />
               )}
-              {!sidebarCollapsed && <span className="font-semibold">Collapse</span>}
+              {!sidebarCollapsed && <span className="font-semibold text-xs">Collapse</span>}
             </button>
           </div>
 
