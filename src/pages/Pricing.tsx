@@ -152,13 +152,13 @@ const Pricing = () => {
             Choose between monthly and yearly subscriptions. Cancel any time.
           </p>
 
-          <div className="inline-flex items-center mt-8 p-1 rounded-full border border-border bg-secondary">
+          <div className="inline-flex items-center mt-8 p-1 rounded-md border border-border bg-secondary">
             {(["monthly", "yearly"] as Interval[]).map((opt) => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setInterval(opt)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
                   interval === opt
                     ? "bg-white text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
