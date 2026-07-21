@@ -25,7 +25,7 @@ type ItemProps = {
   onClick?: () => void;
 };
 
-const expandedItem = "flex h-[58px] w-full items-center gap-4 rounded-2xl px-7 text-[17px] font-semibold transition-colors";
+const expandedItem = "flex h-12 w-full items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-colors";
 const collapsedItem = "mx-auto flex h-11 w-11 items-center justify-center rounded-xl transition-colors";
 
 function SidebarItem({ to, label, icon, active, disabled, onClick }: ItemProps) {
@@ -73,7 +73,7 @@ export default function AppSidebar({ active }: AppSidebarProps) {
     localStorage.setItem("app.sidebarCollapsed", collapsed ? "1" : "0");
   }, [collapsed]);
 
-  const itemIcon = "h-6 w-6 shrink-0";
+  const itemIcon = "h-5 w-5 shrink-0";
   const navItems: ItemProps[] = [
     { to: "/search", label: "Search", icon: <Search className={itemIcon} />, active: active === "search" },
     { to: hasGrowth ? "/database" : undefined, label: "Database", icon: <Database className={itemIcon} />, active: active === "database", disabled: !hasGrowth },
@@ -109,15 +109,15 @@ export default function AppSidebar({ active }: AppSidebarProps) {
   }
 
   return (
-    <aside className="hidden h-screen w-[420px] shrink-0 border-r border-border bg-white md:flex md:flex-col">
-      <div className="flex h-[114px] items-center border-b border-border px-8">
+    <aside className="hidden h-screen w-[256px] shrink-0 border-r border-border bg-white md:flex md:flex-col">
+      <div className="flex h-[114px] items-center border-b border-border px-7">
         <button type="button" onClick={() => navigate(hasGrowth ? "/database" : "/search")} aria-label="Media AI home">
-          <img src={logoMedia} alt="Media AI" className="h-10" />
+          <img src={logoMedia} alt="Media AI" className="h-8" />
         </button>
       </div>
-      <div className="flex-1 px-4 py-8">
-        <button type="button" onClick={() => setCollapsed(true)} className="mb-8 flex items-center gap-5 px-5 text-[17px] font-semibold text-slate-700 hover:text-slate-950">
-          <PanelLeftClose className="h-7 w-7" />
+      <div className="flex-1 px-4 py-7">
+        <button type="button" onClick={() => setCollapsed(true)} className="mb-7 flex items-center gap-3 px-3 text-sm font-semibold text-slate-700 hover:text-slate-950">
+          <PanelLeftClose className="h-5 w-5" />
           Collapse
         </button>
         <nav className="space-y-2">
