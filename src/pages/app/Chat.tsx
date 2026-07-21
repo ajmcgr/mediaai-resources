@@ -1188,7 +1188,7 @@ const Chat = () => {
             />
           </nav>
 
-          <div className={cn("border-t border-border", sidebarCollapsed ? "p-2" : "p-3")}>
+          <div className={cn(sidebarCollapsed ? "p-2" : "p-3")}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
