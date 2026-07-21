@@ -74,11 +74,12 @@ export function useProfileIntelligence(kind?: ContactKind | null, id?: number | 
     },
   });
 
-  const generate = useMutation({
-    mutationFn: async (refresh = false) => {
+  const generate = useMutation<ContactAiProfile, Error, boolean | undefined>({
+    mutationFn: async (refresh) => {
+      const refreshVal = refresh ?? false;
       if (!kind || !id) throw new Error("Missing profile.");
       const { data, error } = await supabase.functions.invoke("profile-intelligence", {
-        body: { contact_kind: kind, contact_id: id, refresh },
+        body: { contact_kind: kind, contact_id: id, refresh: refreshVal },
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
