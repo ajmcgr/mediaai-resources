@@ -541,6 +541,7 @@ const Monitor = () => {
           </section>
         </div>
       </main>
+      </div>
     </div>
   );
 };
