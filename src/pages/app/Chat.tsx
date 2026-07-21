@@ -492,9 +492,59 @@ async function expandChatResults(base: Exclude<Results, null>, query: string): P
   return base;
 }
 
+type IconType = React.ComponentType<{ className?: string }>;
+
+const SidebarNavItem = ({
+  icon: Icon,
+  label,
+  active,
+  disabled,
+  onClick,
+}: {
+  icon: IconType;
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+      active
+        ? "bg-gray-900 text-white hover:bg-gray-900"
+        : "text-gray-700 hover:bg-gray-100",
+      disabled && "opacity-40 cursor-not-allowed hover:bg-transparent",
+    )}
+  >
+    <Icon className={cn("h-4 w-4", active ? "text-white" : "text-muted-foreground")} />
+    <span>{label}</span>
+  </button>
+);
+
+const SidebarNavButton = React.forwardRef<
+  HTMLButtonElement,
+  { icon: IconType; label: string } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ icon: Icon, label, ...props }, ref) => (
+  <button
+    ref={ref}
+    type="button"
+    {...props}
+    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+  >
+    <Icon className="h-4 w-4 text-muted-foreground" />
+    <span>{label}</span>
+  </button>
+));
+SidebarNavButton.displayName = "SidebarNavButton";
+
 const Chat = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { planIdentifier } = useSubscription();
+  const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
   const { threadId } = useParams<{ threadId?: string }>();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
