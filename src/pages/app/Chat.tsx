@@ -1301,22 +1301,39 @@ const Chat = () => {
                             <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                             <span className="truncate">{s.name}</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => togglePin.mutate({ id: s.id, pinned: false })}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground"
-                            aria-label="Unpin"
-                          >
-                            <PinOff className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteSearch.mutate(s.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-destructive"
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => e.stopPropagation()}
+                                className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 p-1 mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                aria-label="More options"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-40">
+                              <DropdownMenuItem onSelect={() => togglePin.mutate({ id: s.id, pinned: false })}>
+                                <PinOff className="h-4 w-4 mr-2" /> Unpin
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  const next = window.prompt("Rename search", s.name);
+                                  if (next && next.trim() && next.trim() !== s.name) {
+                                    renameSearch.mutate({ id: s.id, name: next.trim() });
+                                  }
+                                }}
+                              >
+                                <Pencil className="h-4 w-4 mr-2" /> Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => deleteSearch.mutate(s.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </li>
                       ))}
                     </ul>
