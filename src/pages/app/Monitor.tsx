@@ -239,10 +239,10 @@ const Monitor = () => {
 
       <AppHeader active="monitor" hideNav />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1">
         <AppSidebar active="monitor" />
 
-        <main className="flex-1 overflow-auto min-w-0">
+        <main className="flex-1 min-w-0">
         <div className="max-w-6xl mx-auto p-6 space-y-8">
           {/* Title + trust row */}
           <section>
