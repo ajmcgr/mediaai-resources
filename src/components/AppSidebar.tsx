@@ -1,137 +1,153 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Database, Download, HelpCircle, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen,
-  Search, Settings, Sparkles, Target,
+  Database, Download, HelpCircle, Inbox as InboxIcon, ListChecks,
+  PanelLeftClose, PanelLeftOpen, Radar, Search as SearchIcon, Settings, Sparkles,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { ListsSheet } from "@/components/dashboard/ListsSheet";
 import { isGrowthPlanIdentifier } from "@/lib/plans";
 import { useSubscription } from "@/hooks/useSubscription";
-import logoMedia from "@/assets/brand/logo-media-blue.png";
 import { cn } from "@/lib/utils";
 
 type AppSidebarProps = {
   active?: "search" | "database" | "monitor" | "settings";
 };
 
-type ItemProps = {
-  to?: string;
-  label: string;
-  icon: ReactNode;
-  active?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-};
+type IconType = React.ComponentType<{ className?: string }>;
 
-const expandedItem = "flex h-12 w-full items-center gap-3 rounded-xl px-4 text-sm font-semibold transition-colors";
-const collapsedItem = "mx-auto flex h-11 w-11 items-center justify-center rounded-xl transition-colors";
+const SidebarNavItem = ({
+  icon: Icon, label, active, disabled, collapsed, onClick,
+}: {
+  icon: IconType; label: string; active?: boolean; disabled?: boolean;
+  collapsed?: boolean; onClick?: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    title={collapsed ? label : undefined}
+    className={cn(
+      "flex items-center rounded-lg text-sm transition-colors",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+      active
+        ? "bg-gray-900 text-white hover:bg-gray-900"
+        : "text-gray-700 hover:bg-gray-100",
+      disabled && "opacity-40 cursor-not-allowed hover:bg-transparent",
+    )}
+  >
+    <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-gray-500")} />
+    {!collapsed && <span className="font-semibold">{label}</span>}
+  </button>
+);
 
-function SidebarItem({ to, label, icon, active, disabled, onClick }: ItemProps) {
-  const classes = cn(
-    expandedItem,
-    active ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-slate-100",
-    disabled && "cursor-not-allowed text-slate-300 hover:bg-transparent",
-  );
-
-  if (to && !disabled) {
-    return (
-      <NavLink to={to} className={classes}>
-        {icon}<span>{label}</span>
-      </NavLink>
-    );
-  }
-
-  return (
-    <button type="button" className={classes} onClick={onClick} disabled={disabled}>
-      {icon}<span>{label}</span>
-    </button>
-  );
-}
-
-function CollapsedItem({ to, label, icon, active, disabled, onClick }: ItemProps) {
-  const classes = cn(
-    collapsedItem,
-    active ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100",
-    disabled && "cursor-not-allowed text-slate-300 hover:bg-transparent",
-  );
-
-  if (to && !disabled) {
-    return <NavLink to={to} className={classes} title={label} aria-label={label}>{icon}</NavLink>;
-  }
-  return <button type="button" className={classes} onClick={onClick} disabled={disabled} title={label} aria-label={label}>{icon}</button>;
-}
+const SidebarNavButton = React.forwardRef<
+  HTMLButtonElement,
+  { icon: IconType; label: string; collapsed?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ icon: Icon, label, collapsed, ...props }, ref) => (
+  <button
+    ref={ref}
+    type="button"
+    title={collapsed ? label : undefined}
+    {...props}
+    className={cn(
+      "flex items-center rounded-lg text-sm text-gray-700 hover:bg-gray-100",
+      collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+    )}
+  >
+    <Icon className="h-[18px] w-[18px] text-gray-500" />
+    {!collapsed && <span className="font-semibold">{label}</span>}
+  </button>
+));
+SidebarNavButton.displayName = "SidebarNavButton";
 
 export default function AppSidebar({ active }: AppSidebarProps) {
   const navigate = useNavigate();
   const { planIdentifier } = useSubscription();
   const hasGrowth = isGrowthPlanIdentifier(planIdentifier);
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("app.sidebarCollapsed") === "1");
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("chat.sidebarCollapsed") === "1";
+  });
 
   useEffect(() => {
-    localStorage.setItem("app.sidebarCollapsed", collapsed ? "1" : "0");
+    try { localStorage.setItem("chat.sidebarCollapsed", collapsed ? "1" : "0"); } catch {}
   }, [collapsed]);
 
-  const itemIcon = "h-5 w-5 shrink-0";
-  const navItems: ItemProps[] = [
-    { to: "/search", label: "Search", icon: <Search className={itemIcon} />, active: active === "search" },
-    { to: hasGrowth ? "/database" : undefined, label: "Database", icon: <Database className={itemIcon} />, active: active === "database", disabled: !hasGrowth },
-    { to: "/monitor", label: "Monitor", icon: <Target className={itemIcon} />, active: active === "monitor" },
-  ];
-
-  if (collapsed) {
-    return (
-      <aside className="hidden h-screen w-[72px] shrink-0 border-r border-border bg-white md:flex md:flex-col">
-        <div className="flex h-20 items-center justify-center">
-          <button type="button" onClick={() => navigate(hasGrowth ? "/database" : "/search")} aria-label="Media AI home">
-            <img src={logoMedia} alt="Media AI" className="h-5 w-5 object-cover object-left" />
-          </button>
-        </div>
-        <div className="px-2">
-          <button type="button" onClick={() => setCollapsed(false)} className={collapsedItem} title="Expand" aria-label="Expand">
-            <PanelLeftOpen className="h-5 w-5" />
-          </button>
-        </div>
-        <nav className="mt-4 space-y-2 px-2">
-          {navItems.map((item) => <CollapsedItem key={item.label} {...item} />)}
-          <InboxSheet triggerClassName={collapsedItem} triggerChildren={<Inbox className={itemIcon} />} />
-          <ListsSheet triggerClassName={collapsedItem} triggerChildren={<ListChecks className={itemIcon} />} />
-          <CollapsedItem label="Export" icon={<Download className={itemIcon} />} disabled />
-        </nav>
-        <nav className="mt-auto space-y-2 px-2 pb-6">
-          <CollapsedItem to="/account#credits" label="Buy credits" icon={<Sparkles className={itemIcon} />} />
-          <CollapsedItem to="/account" label="Settings" icon={<Settings className={itemIcon} />} active={active === "settings"} />
-          <CollapsedItem label="Help" icon={<HelpCircle className={itemIcon} />} onClick={() => { window.location.href = "mailto:alex@trymedia.ai"; }} />
-        </nav>
-      </aside>
-    );
-  }
-
   return (
-    <aside className="hidden h-screen w-[256px] shrink-0 border-r border-border bg-white md:flex md:flex-col">
-      <div className="flex h-[114px] items-center border-b border-border px-7">
-        <button type="button" onClick={() => navigate(hasGrowth ? "/database" : "/search")} aria-label="Media AI home">
-          <img src={logoMedia} alt="Media AI" className="h-8" />
+    <aside className={cn(
+      "hidden md:flex border-r border-border bg-white flex-col flex-shrink-0 transition-[width] duration-200",
+      collapsed ? "w-14" : "w-52",
+    )}>
+      <div className={cn("py-3", collapsed ? "px-2 flex justify-center" : "px-2")}>
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          className={cn(
+            "flex items-center gap-2 rounded-md text-sm text-gray-700 hover:bg-gray-100",
+            collapsed ? "justify-center p-2" : "w-full px-2 py-1.5",
+          )}
+          title={collapsed ? "Expand" : "Collapse"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed
+            ? <PanelLeftOpen className="h-[18px] w-[18px] text-gray-500" />
+            : <PanelLeftClose className="h-[18px] w-[18px] text-gray-500" />}
+          {!collapsed && <span className="font-semibold text-xs">Collapse</span>}
         </button>
       </div>
-      <div className="flex-1 px-4 py-7">
-        <button type="button" onClick={() => setCollapsed(true)} className="mb-7 flex items-center gap-3 px-3 text-sm font-semibold text-slate-700 hover:text-slate-950">
-          <PanelLeftClose className="h-5 w-5" />
-          Collapse
-        </button>
-        <nav className="space-y-2">
-          {navItems.map((item) => <SidebarItem key={item.label} {...item} />)}
-          <InboxSheet triggerClassName={expandedItem + " text-slate-700 hover:bg-slate-100"} triggerChildren={<><Inbox className={itemIcon} /><span>Inbox</span></>} />
-          <ListsSheet triggerClassName={expandedItem + " text-slate-700 hover:bg-slate-100"} triggerChildren={<><ListChecks className={itemIcon} /><span>Lists</span></>} />
-          <SidebarItem label="Export" icon={<Download className={itemIcon} />} disabled />
-        </nav>
-      </div>
-      <nav className="space-y-2 px-4 pb-10">
-        <SidebarItem to="/account#credits" label="Buy credits" icon={<Sparkles className={itemIcon} />} />
-        <SidebarItem to="/account" label="Settings" icon={<Settings className={itemIcon} />} active={active === "settings"} />
-        <SidebarItem label="Help" icon={<HelpCircle className={itemIcon} />} onClick={() => { window.location.href = "mailto:alex@trymedia.ai"; }} />
+
+      <nav className="pb-2 space-y-0.5 flex-1 px-2">
+        <SidebarNavItem icon={SearchIcon} label="Search" collapsed={collapsed} active={active === "search"} onClick={() => navigate("/search")} />
+        {hasGrowth && (
+          <SidebarNavItem icon={Database} label="Database" collapsed={collapsed} active={active === "database"} onClick={() => navigate("/database")} />
+        )}
+        <SidebarNavItem icon={Radar} label="Monitor" collapsed={collapsed} active={active === "monitor"} onClick={() => navigate("/monitor")} />
+        <InboxSheet triggerNode={<SidebarNavButton icon={InboxIcon} label="Inbox" collapsed={collapsed} />} />
+        <ListsSheet triggerNode={<SidebarNavButton icon={ListChecks} label="Lists" collapsed={collapsed} />} />
+        <SidebarNavItem icon={Download} label="Export" collapsed={collapsed} disabled />
       </nav>
+
+      <div className={cn(collapsed ? "p-2" : "p-3")}>
+        <button
+          type="button"
+          onClick={() => navigate("/account#credits")}
+          title="Buy credits"
+          className={cn(
+            "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+            collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+          )}
+        >
+          <Sparkles className="h-[18px] w-[18px] text-gray-500" />
+          {!collapsed && <span className="font-semibold">Buy credits</span>}
+        </button>
+        <div className="mt-0.5 space-y-0.5">
+          <button
+            type="button"
+            onClick={() => navigate("/account")}
+            className={cn(
+              "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+              collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+              active === "settings" && "bg-gray-100",
+            )}
+            title="Settings"
+          >
+            <Settings className="h-[18px] w-[18px] text-gray-500" />
+            {!collapsed && <span className="font-semibold">Settings</span>}
+          </button>
+          <a
+            href="mailto:alex@trymedia.ai"
+            className={cn(
+              "flex items-center rounded-md text-sm text-gray-700 hover:bg-gray-100",
+              collapsed ? "justify-center p-2 w-full" : "w-full gap-2.5 px-3 py-2",
+            )}
+            title="Help"
+          >
+            <HelpCircle className="h-[18px] w-[18px] text-gray-500" />
+            {!collapsed && <span className="font-semibold">Help</span>}
+          </a>
+        </div>
+      </div>
     </aside>
   );
 }
