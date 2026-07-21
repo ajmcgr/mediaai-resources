@@ -1183,7 +1183,15 @@ const Chat = () => {
                 import("@/lib/audit").then(({ logWorkspaceEvent }) =>
                   logWorkspaceEvent("export_triggered", null, { source_page: "chat", row_count: rows.length, kind: results?.kind })
                 );
-                downloadCsv(`${results!.kind}-${Date.now()}.csv`, toCsv(rows as never, headers));
+                const filename = `${results!.kind}-${Date.now()}.csv`;
+                downloadCsv(filename, toCsv(rows as never, headers));
+                import("@/hooks/useNotifications").then(({ addNotification }) =>
+                  addNotification({
+                    title: "Export ready",
+                    description: `${rows.length.toLocaleString()} ${results?.kind ?? "rows"} downloaded as CSV`,
+                    kind: "export",
+                  })
+                );
               }}
             />
           </nav>
