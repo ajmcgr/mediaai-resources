@@ -33,7 +33,7 @@ const Header = () => {
       <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6">
         <div className="grid grid-cols-[104px_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[1fr_auto_1fr]">
           <a
-            href="https://trymedia.ai/"
+            href={user ? "/search" : "https://trymedia.ai/"}
             className="flex shrink-0 items-center"
             aria-label="Media AI home"
           >
@@ -106,10 +106,16 @@ const Header = () => {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onSelect={() => navigate("/account")}>
-                      Account & billing
+                      Settings
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => navigate("/pricing")}>
                       Plans
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate("/team")}>
+                      Team
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate("/relevance")}>
+                      Search quality
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleSignOut}>
