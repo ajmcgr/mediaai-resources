@@ -1509,7 +1509,7 @@ const Chat = () => {
           const countryLabel = detectedCountry ? ` in ${detectedCountry}` : "";
           const summary = `Showing ${total.toLocaleString()} ${topicLabel}${kindLabel}${countryLabel}`;
           return (
-          <section className="flex-1 min-w-0 overflow-auto bg-chat">
+          <section className="flex-1 min-w-0 overflow-auto bg-white">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
                 <div className="text-sm font-medium">{summary}</div>
