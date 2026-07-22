@@ -67,7 +67,7 @@ export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderPro
   return (
     <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 flex-shrink-0 sticky top-0 z-30">
       <div className="flex items-center gap-10">
-        <NavLink to={hasGrowth ? "/database" : "/search"} className="flex items-center">
+        <NavLink to="/search" className="flex items-center">
           <img src={logoMedia} alt="Media AI" className="h-5" />
         </NavLink>
         {!hideNav && (
