@@ -1188,6 +1188,9 @@ const Chat = () => {
                 );
                 const filename = `${results!.kind}-${Date.now()}.csv`;
                 downloadCsv(filename, toCsv(rows as never, headers));
+                supabase.functions.invoke("send-export-notification", {
+                  body: { filename, rowCount: rows.length, source: `chat (${results?.kind})` },
+                }).catch(() => {});
                 import("@/hooks/useNotifications").then(({ addNotification }) =>
                   addNotification({
                     title: "Export ready",

@@ -68,7 +68,11 @@ export const ListsSheet = ({ triggerNode, triggerClassName, triggerChildren }: L
       return;
     }
     const headers = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
-    downloadCsv(`list-${Date.now()}.csv`, toCsv(rows, headers));
+    const filename = `list-${Date.now()}.csv`;
+    downloadCsv(filename, toCsv(rows, headers));
+    supabase.functions.invoke("send-export-notification", {
+      body: { filename, rowCount: rows.length, source: "lists" },
+    }).catch(() => {});
   };
 
   return (

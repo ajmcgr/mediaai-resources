@@ -218,7 +218,11 @@ const Dashboard = () => {
     import("@/lib/audit").then(({ logWorkspaceEvent }) =>
       logWorkspaceEvent("export_triggered", null, { source_page: "dashboard", row_count: allRows.length, tab })
     );
-    downloadCsv(`${tab}-${Date.now()}.csv`, toCsv(allRows as Record<string, unknown>[] as never, headers));
+    const filename = `${tab}-${Date.now()}.csv`;
+    downloadCsv(filename, toCsv(allRows as Record<string, unknown>[] as never, headers));
+    supabase.functions.invoke("send-export-notification", {
+      body: { filename, rowCount: allRows.length, source: `dashboard (${tab})` },
+    }).catch(() => {});
   };
 
 
