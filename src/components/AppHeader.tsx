@@ -102,10 +102,10 @@ export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderPro
               <div className="text-sm truncate">{user?.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/account")}>Account & billing</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/account")}>Settings</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/relevance")}>Search quality</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
           </DropdownMenuContent>
