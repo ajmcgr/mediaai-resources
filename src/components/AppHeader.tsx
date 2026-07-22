@@ -103,7 +103,9 @@ export default function AppHeader({ active, rightExtras, hideNav }: AppHeaderPro
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/account")}>Settings</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => navigate("/pricing")}>Plans</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="/pricing" target="_blank" rel="noopener noreferrer">Plans</a>
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/team")}>Team</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate("/relevance")}>Search quality</DropdownMenuItem>
             <DropdownMenuSeparator />

@@ -108,8 +108,10 @@ const Header = () => {
                     <DropdownMenuItem onSelect={() => navigate("/account")}>
                       Settings
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate("/pricing")}>
-                      Plans
+                    <DropdownMenuItem asChild>
+                      <a href="/pricing" target="_blank" rel="noopener noreferrer">
+                        Plans
+                      </a>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleSignOut}>
