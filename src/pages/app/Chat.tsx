@@ -1541,7 +1541,7 @@ const Chat = () => {
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px] text-sm">
-                <thead className="bg-secondary/40 text-xs text-muted-foreground">
+                <thead className="bg-white text-xs text-muted-foreground">
                   <tr>
                     <th className="w-10 px-2">
                       <Checkbox
