@@ -111,12 +111,6 @@ const Header = () => {
                     <DropdownMenuItem onSelect={() => navigate("/pricing")}>
                       Plans
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate("/team")}>
-                      Team
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate("/relevance")}>
-                      Search quality
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleSignOut}>
                       Sign out
