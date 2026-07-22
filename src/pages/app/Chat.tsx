@@ -1509,7 +1509,7 @@ const Chat = () => {
           const countryLabel = detectedCountry ? ` in ${detectedCountry}` : "";
           const summary = `Showing ${total.toLocaleString()} ${topicLabel}${kindLabel}${countryLabel}`;
           return (
-          <section className="flex-1 min-w-0 overflow-auto bg-chat">
+          <section className="flex-1 min-w-0 overflow-auto bg-white">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
                 <div className="text-sm font-medium">{summary}</div>
@@ -1541,7 +1541,7 @@ const Chat = () => {
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px] text-sm">
-                <thead className="bg-secondary/40 text-xs text-muted-foreground">
+                <thead className="bg-white text-xs text-muted-foreground">
                   <tr>
                     <th className="w-10 px-2">
                       <Checkbox
@@ -1574,7 +1574,7 @@ const Chat = () => {
                     const feedbackKey = rowKey ? `${lastQuery}:${rowKey}` : null;
                     const rowFeedback = feedbackKey ? relevanceFeedback[feedbackKey] : null;
                     return (
-                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-secondary/30 align-top ${selected ? "bg-primary/5" : ""}`}>
+                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-muted/20 align-top ${selected ? "bg-primary/5" : ""}`}>
                         <td className="px-2 py-2.5">
                           {rowKey ? (
                             <Checkbox
