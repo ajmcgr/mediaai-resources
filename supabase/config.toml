@@ -82,3 +82,7 @@ verify_jwt = false
 
 [functions.seo-page-build]
 verify_jwt = false
+
+[functions.send-export-notification]
+verify_jwt = false
+
