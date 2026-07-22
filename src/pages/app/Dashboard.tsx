@@ -30,6 +30,7 @@ import { EnrichCell } from "@/components/dashboard/EnrichCell";
 import { MessageSquare } from "lucide-react";
 import { InboxSheet } from "@/components/dashboard/InboxSheet";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { supabase } from "@/integrations/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpsertSavedSearch } from "@/hooks/useSavedSearches";
 import AppHeader from "@/components/AppHeader";
@@ -218,7 +219,11 @@ const Dashboard = () => {
     import("@/lib/audit").then(({ logWorkspaceEvent }) =>
       logWorkspaceEvent("export_triggered", null, { source_page: "dashboard", row_count: allRows.length, tab })
     );
-    downloadCsv(`${tab}-${Date.now()}.csv`, toCsv(allRows as Record<string, unknown>[] as never, headers));
+    const filename = `${tab}-${Date.now()}.csv`;
+    downloadCsv(filename, toCsv(allRows as Record<string, unknown>[] as never, headers));
+    supabase.functions.invoke("send-export-notification", {
+      body: { filename, rowCount: allRows.length, source: `dashboard (${tab})` },
+    }).catch(() => {});
   };
 
 
