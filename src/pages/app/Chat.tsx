@@ -1574,7 +1574,7 @@ const Chat = () => {
                     const feedbackKey = rowKey ? `${lastQuery}:${rowKey}` : null;
                     const rowFeedback = feedbackKey ? relevanceFeedback[feedbackKey] : null;
                     return (
-                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-secondary/30 align-top ${selected ? "bg-primary/5" : ""}`}>
+                      <tr key={rowKey ?? `row-${i}`} className={`group border-b border-border hover:bg-muted/20 align-top ${selected ? "bg-primary/5" : ""}`}>
                         <td className="px-2 py-2.5">
                           {rowKey ? (
                             <Checkbox
