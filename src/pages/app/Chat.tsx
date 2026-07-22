@@ -1438,7 +1438,7 @@ const Chat = () => {
             ) : (
               <div className="space-y-4">
                 {messages.map((m, i) => (
-                  <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end ml-12" : "items-start mr-12"}`}>
+                  <div key={i} className="flex flex-col items-start mr-12">
                     <div className={`text-sm rounded-xl px-4 py-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                       {m.role === "assistant" ? (
                         <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2">
